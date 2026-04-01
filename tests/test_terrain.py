@@ -2,14 +2,17 @@ import numpy as np
 import pandas as pd
 import pytest
 from digitalrivers.terrain import Terrain
+from pyramids.dataset import Dataset
 
 
 class TestHillShade:
 
     def test_int_parameters(self):
         arr = np.random.randint(0, 15, size=(100, 100))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
 
         hill_shade = dataset.hill_shade(
@@ -26,8 +29,10 @@ class TestHillShade:
 
     def test_list_parameters(self):
         arr = np.random.randint(0, 15, size=(100, 100))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
 
         hill_shade = dataset.hill_shade(
@@ -44,8 +49,10 @@ class TestHillShade:
 
     def test_multi_directional(self):
         arr = np.random.randint(0, 15, size=(100, 100))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
 
         hill_shade = dataset.hill_shade(
@@ -63,8 +70,10 @@ class TestHillShade:
 
     def test_combined(self):
         arr = np.random.randint(0, 15, size=(100, 100))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
 
         hill_shade = dataset.hill_shade(
@@ -82,8 +91,10 @@ class TestHillShade:
 
     def test_igor(self):
         arr = np.random.randint(0, 15, size=(100, 100))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
 
         hill_shade = dataset.hill_shade(
@@ -104,8 +115,10 @@ class TestSlope:
 
     def test_default_parameters(self):
         arr = np.random.randint(0, 50, size=(100, 100)).astype(np.float32)
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
         slope = dataset.slope()
         assert slope.shape == dataset.shape
@@ -122,8 +135,10 @@ class TestAspect:
 
     def test_default_parameters(self):
         arr = np.random.randint(0, 50, size=(100, 100)).astype(np.float32)
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
         aspect = dataset.aspect()
         assert aspect.shape == dataset.shape
@@ -147,8 +162,10 @@ class TestColorRelief:
             }
         )
         arr = np.random.randint(0, 15, size=(10, 10))
-        dataset = Terrain.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+        dataset = Terrain(
+            Dataset.create_from_array(
+                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            ).raster
         )
         color_relief = dataset.color_relief(band=0, color_table=color_df)
         assert color_relief.band_count == 4

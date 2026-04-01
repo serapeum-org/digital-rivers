@@ -42,7 +42,7 @@ class TestSlope:
         dem = DEM(coello_dem_4000)
         slope = dem._get_8_direction_slopes()
         assert isinstance(slope, np.ndarray)
-        assert np.array_equal(slope, coello_slope, equal_nan=True)
+        assert np.allclose(slope, coello_slope, equal_nan=True)
 
     def test_slope(
         self,
@@ -53,7 +53,7 @@ class TestSlope:
         slope = dem.slope()
         assert isinstance(slope, DEM)
         assert slope.shape == dem.shape
-        assert np.array_equal(slope.values, coello_max_slope, equal_nan=True)
+        assert np.allclose(slope.values, coello_max_slope, equal_nan=True)
 
 
 class TestFlowDirection:

@@ -24,10 +24,10 @@ class Terrain(Dataset):
 
     Args:
         raster: File path or GDAL dataset to open.
-        access: ``"read"`` (default) or ``"write"``.
+        access: ``"read_only"`` (default) or ``"write"``.
     """
 
-    def __init__(self, raster: Union[str, gdal.Dataset], access: str = "read"):
+    def __init__(self, raster: Union[str, gdal.Dataset], access: str = "read_only"):
         super().__init__(raster, access)
 
     def color_relief(
@@ -319,7 +319,9 @@ class Terrain(Dataset):
             ]
             combined_hillshade = np.average(hill_shades_arr, axis=0, weights=weights)
             combined_hillshade = np.clip(combined_hillshade, 0, 255).astype(np.uint8)
-            hill_shade = Dataset.dataset_like(self, combined_hillshade)
+            hill_shade = Dataset.dataset_like(
+                Dataset(hill_shades[0]), combined_hillshade
+            )
         else:
             hill_shade = Dataset(hill_shades[0], access="write")
 
