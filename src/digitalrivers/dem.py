@@ -1,4 +1,9 @@
-"""DEM module."""
+"""DEM processing module.
+
+This module provides the ``DEM`` class for digital elevation model analysis,
+including sink filling, slope calculation, D8 flow direction, and flow
+accumulation.
+"""
 from typing import Any, Dict, Tuple
 import numpy as np
 from osgeo import gdal
@@ -9,8 +14,12 @@ import sys
 
 sys.setrecursionlimit(50000)
 
-# South, Southwest, West, Northwest, North, Northeast, East, Southeast
-# bottom, bottom left, left, top left, top, top right, right, bottom right
+#: D8 direction offsets mapping direction index to (column_offset, row_offset).
+#:
+#: Directions follow the convention:
+#:   0 = South (bottom), 1 = Southwest (bottom-left), 2 = West (left),
+#:   3 = Northwest (top-left), 4 = North (top), 5 = Northeast (top-right),
+#:   6 = East (right), 7 = Southeast (bottom-right).
 DIR_OFFSETS = {
     0: (0, 1),  # bottom
     1: (-1, 1),  # bottom left
@@ -24,10 +33,14 @@ DIR_OFFSETS = {
 
 
 class DEM(Dataset):
-    """DEM class.
+    """Digital Elevation Model processor.
 
-    DEM contains methods to deal with the digital elevation model (DEM) and generate the flow direction based on
-    the D8 method and process the DEM.
+    Wraps a GDAL raster dataset and adds hydrological analysis methods:
+    sink filling, D8 flow direction, flow accumulation, and slope
+    computation.
+
+    Args:
+        src: GDAL dataset containing a single-band elevation raster.
     """
 
     def __init__(self, src: gdal.Dataset):
@@ -35,9 +48,13 @@ class DEM(Dataset):
 
     @property
     def values(self):
-        """values.
+        """Elevation array with no-data cells replaced by ``np.nan``.
 
-        The Values property retrieves the values of the raster and replaces the no data values with np.nan
+        Reads band 0 as ``float32`` and masks every cell whose value is
+        close to the raster's no-data value (relative tolerance 1e-5).
+
+        Returns:
+            np.ndarray: 2-D ``float32`` array of shape ``(rows, columns)``.
         """
         values = self.read_array(band=0).astype(np.float32)
         # get the value stores in no data value cells
@@ -46,17 +63,24 @@ class DEM(Dataset):
         return values
 
     def fill_sinks(self, inplace: bool = False) -> Tuple[Any, Dataset]:
-        """fill_sinks.
+        """Fill single-cell sinks in the elevation surface.
 
-        Parameters
-        ----------
-        inplace: [bool]
-            Default is False.
+        A cell is considered a sink when its elevation is lower than all
+        eight surrounding cells.  Each sink is raised to the minimum
+        neighbour elevation plus 0.1 (in map units).
 
-        Returns
-        -------
-        [numpy array]
-            DEM after filling sinks.
+        Note:
+            This is a single-pass algorithm.  Cascading sinks (a sink
+            whose fill creates a new sink) may not be fully resolved.
+
+        Args:
+            inplace: If ``True`` the current instance is modified in
+                place and ``None`` is returned.  If ``False`` (default) a
+                new ``Dataset`` is returned.
+
+        Returns:
+            Dataset containing the sink-free elevation, or ``None`` when
+            *inplace* is ``True``.
         """
         elev = self.values
 
@@ -78,17 +102,17 @@ class DEM(Dataset):
             return src
 
     def _get_8_direction_slopes(self) -> np.ndarray:
-        """compute_slopes.
+        """Compute slopes to all eight neighbours for every cell.
 
+        Uses a padded elevation array and vectorised NumPy slicing to
+        calculate the elevation difference divided by the inter-cell
+        distance (cell size for cardinal, cell size × √2 for diagonal)
+        in each of the eight D8 directions.
 
-        Returns
-        -------
-        flow_direction: [numpy array]
-            flow direction array. The array contains values [0, 1, 2, 3, 4, 5, 6, 7] referring to the 8 directions,
-            where 0 is the top cell, 1 is the top left cell, 2 is the left cell, 3 is the bottom left cell, 4 is the
-            bottom cell, 5 is the bottom right cell, 6 is the right cell, and 7 is the top right cell.
-        slopes: [numpy array]
-            The slope array.
+        Returns:
+            np.ndarray: 3-D ``float32`` array of shape
+                ``(rows, columns, 8)`` where the third axis corresponds
+                to the direction indices defined in ``DIR_OFFSETS``.
         """
         elev = self.values
         cell_size = self.cell_size
@@ -135,7 +159,20 @@ class DEM(Dataset):
         return slopes
 
     def slope(self) -> Dataset:
-        """slope."""
+        """Compute the maximum downhill slope at every cell.
+
+        Calculates slopes in all eight D8 directions via
+        ``_get_8_direction_slopes`` and returns a raster whose cell
+        values are the maximum slope across the eight neighbours.
+
+        Returns:
+            Dataset: Single-band raster with the same geometry as the
+                DEM, containing the maximum slope value per cell.
+
+        See Also:
+            Terrain.slope: GDAL-based slope using Horn or
+                Zevenbergen-Thorne algorithms.
+        """
         slope = self._get_8_direction_slopes()
         max_slope = np.nanmax(slope, axis=2)
 
@@ -145,34 +182,42 @@ class DEM(Dataset):
     def set_outflow(
         self, outflow: GeoDataFrame, direction: int, inplace: bool = False
     ) -> Dataset:
-        """set_outflow.
+        """Assign a fixed flow direction at the basin outfall cell.
 
-        Parameters
-        ----------
-        outflow: [GeoDataFrame]
-            outflow point.
-        direction: [int]
-            flow direction.
-        inplace: [bool]
-            Default is False.
+        Args:
+            outflow: GeoDataFrame with point geometry marking the
+                outfall location.
+            direction: D8 direction code (0–7) to force at the outfall.
+            inplace: If ``True`` modify the current instance in place;
+                otherwise return a new ``Dataset``.
 
-        Returns
-        -------
+        Returns:
+            Dataset with the outfall direction applied, or ``None`` when
+            *inplace* is ``True``.
+
+        Raises:
+            NotImplementedError: This method is not yet implemented.
         """
-        print()
+        raise NotImplementedError("set_outflow is not yet implemented.")
 
     def flow_direction(self, forced_direction: GeoDataFrame = None) -> "Dataset":
-        """flow_direction.
+        """Derive the D8 flow-direction raster from the DEM.
 
-        Returns
-        -------
-        flow_direction: [GeoDataFrame]
-            GeoDataFrame containing point geometry and direction value for each point.
-            The direction values are [0, 1, 2, 3, 4, 5, 6, 7] referring to the 8 directions,
-            where 0 is the bottom cell, 1 is the bottom left cell, 2 is the left cell, 3 is the top left cell,
-            4 is the top cell, 5 is the top right cell, 6 is the right cell, and 7 is the bottom right cell.
-            >>>     fid                       geometry  direction
-            >>> 0    1  POINT (486334.785 478325.599)          6
+        For each cell the direction with the steepest downhill slope is
+        selected (``nanargmax`` over the eight neighbours).  Cells that
+        are entirely ``NaN`` or have no valid slope receive the default
+        no-data value.
+
+        Args:
+            forced_direction: Optional GeoDataFrame with columns
+                ``geometry`` (point) and ``direction`` (int 0–7).  Cells
+                at the given locations are overridden with the supplied
+                direction regardless of the computed slope.
+
+        Returns:
+            Dataset: ``int32`` raster with cell values in ``{0 .. 7}``
+                following the ``DIR_OFFSETS`` convention.  No-data cells
+                are filled with ``Dataset.default_no_data_value``.
         """
         elev = self.values
         slopes = self._get_8_direction_slopes()
@@ -207,27 +252,31 @@ class DEM(Dataset):
         return src
 
     def accumulate_flow(self, r, c, flow_dir, acc, dir_offsets) -> int:
-        """accumulate_flow.
+        """Recursively count upstream cells that drain into ``(r, c)``.
 
-        Parameters
-        ----------
-        r: [int]
-            row index of the cell.
-        c: [int]
-            column index of the cell.
-        flow_dir: [numpy array]
-            flow direction array. The array contains values [0, 1, 2, 3, 4, 5, 6, 7] referring to the 8 directions,
-            where 0 is the bottom cell, 1 is the bottom left cell, 2 is the left cell, 3 is the top left cell,
-            4 is the top cell, 5 is the top right cell, 6 is the right cell, and 7 is the bottom right cell.
-        acc: [numpy array]
-            flow accumulation array.
-        dir_offsets: [Dict]
-            Default is DIR_OFFSETS.
+        Walks the D8 flow-direction grid backwards: for every neighbour
+        whose flow direction points toward ``(r, c)`` the function
+        recurses, summing the upstream counts.  Results are cached in
+        *acc* so each cell is computed at most once.
 
-        Returns
-        -------
-        [int]
-            number of cells that flow into the cell.
+        Warning:
+            This is a recursive implementation.  For large DEMs the call
+            depth may exceed Python's recursion limit (currently raised
+            to 50 000 at module import time via
+            ``sys.setrecursionlimit``).
+
+        Args:
+            r: Row index of the target cell.
+            c: Column index of the target cell.
+            flow_dir: 2-D ``int`` array of D8 direction codes (0–7).
+            acc: 2-D ``int32`` accumulation array.  Cells initialised to
+                ``-1`` are unprocessed; non-negative values are cached
+                results.
+            dir_offsets: Direction-offset mapping (see ``DIR_OFFSETS``).
+
+        Returns:
+            Number of upstream cells that drain into ``(r, c)``
+            (excluding the cell itself).
         """
         rows, cols = flow_dir.shape
         # if the upstream cell is inside the domain.
@@ -261,7 +310,17 @@ class DEM(Dataset):
 
     @staticmethod
     def opposite_direction(dr, dc, dir_offsets):
-        """opposite_direction."""
+        """Return the D8 direction code opposite to the given offset.
+
+        Args:
+            dr: Row offset component.
+            dc: Column offset component.
+            dir_offsets: Direction-offset mapping (see ``DIR_OFFSETS``).
+
+        Returns:
+            int or None: Direction code whose offset is ``(-dr, -dc)``,
+            or ``None`` if no match is found.
+        """
         for d, (d_col, d_row) in dir_offsets.items():
             if d_row == -dr and d_col == -dc:
                 return d
@@ -270,25 +329,22 @@ class DEM(Dataset):
     def flow_accumulation(
         self, flow_direction: "DEM", dir_offsets: Dict = None
     ) -> "Dataset":
-        """flow_accumulation.
+        """Compute the flow-accumulation raster from a flow-direction grid.
 
-        Parameters
-        ----------
-        flow_direction: [DEM]
-            flow direction raster obtained from catchment delineation
-            it only contains values [0, 1, 2, 3, 4, 5, 6, 7].
-        dir_offsets: [Dict]
-            Default is DIR_OFFSETS.
-            DIR_OFFSETS = {
-                0: (0, 1),  # bottom
-                1: (-1, 1),  # bottom left
-                2: (-1, 0),  # left
-                3: (-1, -1),  # top left
-                4: (0, -1),  # top
-                5: (1, -1),  # top right
-                6: (1, 0),  # right
-                7: (1, 1)  # bottom right
-            }
+        Each cell's value represents the number of upstream cells that
+        drain into it (not counting itself).  The algorithm iterates
+        over every valid cell and calls ``accumulate_flow`` recursively.
+
+        Args:
+            flow_direction: A ``DEM`` (or ``Dataset``) containing the D8
+                flow-direction raster with values in ``{0 .. 7}``.
+            dir_offsets: Direction-offset mapping.  Defaults to the
+                module-level ``DIR_OFFSETS``.
+
+        Returns:
+            Dataset: ``int32`` raster where each cell holds its upstream
+                count.  No-data cells retain
+                ``Dataset.default_no_data_value``.
         """
         if dir_offsets is None:
             dir_offsets = DIR_OFFSETS
@@ -311,13 +367,17 @@ class DEM(Dataset):
         return src
 
     def convert_flow_direction_to_cell_indices(self) -> np.ndarray:
-        """D8 method generates flow direction raster from DEM and fills sinks.
+        """Convert D8 direction codes to downstream cell row/column indices.
 
-        Returns
-        -------
-        flow_direction_cell: [numpy array]
-            with the same dimensions of the raster and 2 layers
-            first layer for rows index and second rows for column index
+        Computes the flow direction from the DEM and translates each
+        direction code into the absolute row and column index of the
+        downstream neighbour.
+
+        Returns:
+            np.ndarray: 3-D ``float64`` array of shape
+                ``(rows, columns, 2)``.  Layer 0 holds the downstream
+                row index; layer 1 holds the downstream column index.
+                Cells with no valid direction contain ``np.nan``.
         """
         no_columns = self.columns
         no_rows = self.rows
@@ -340,23 +400,21 @@ class DEM(Dataset):
 
     @staticmethod
     def delete_basins(basins: gdal.Dataset, path: str):
-        """Delete Basins
+        """Keep only the first (largest) basin and discard the rest.
 
-            delete_basins deletes all the basins in a basin raster created when delineating a catchment and leaves
-            only the first basin which is the biggest basin in the raster.
+        Reads a basin-ID raster produced during catchment delineation,
+        replaces every cell that does not belong to the first basin with
+        the no-data value, and writes the result to *path*.
 
-        Parameters
-        ----------
-        basins: [gdal.dataset]
-            raster you create during delineation of the catchment
-            values of its cells are the number of the basin it belongs to
-        path: [str]
-             path you want to save the resulted raster to it should include
-            the extension ".tif"
+        Args:
+            basins: GDAL dataset whose cell values are basin IDs
+                (integers).  The first unique basin ID found (excluding
+                no-data) is retained.
+            path: Output GeoTIFF file path (must end with ``".tif"``).
 
-        Returns
-        -------
-        raster with only one basin (the basin that its name is 1)
+        Raises:
+            TypeError: If *path* is not a string or *basins* is not a
+                ``gdal.Dataset``.
         """
         if not isinstance(path, str):
             raise TypeError(f"path: {path} input should be string type")
