@@ -41,10 +41,11 @@ class DEM(Dataset):
 
     Args:
         src: GDAL dataset containing a single-band elevation raster.
+        access: ``"read_only"`` (default) or ``"write"``.
     """
 
-    def __init__(self, src: gdal.Dataset):
-        super().__init__(src)
+    def __init__(self, src: gdal.Dataset, access: str = "read_only"):
+        super().__init__(src, access)
 
     @property
     def values(self):
@@ -247,7 +248,8 @@ class DEM(Dataset):
                 flow_direction[tuple(ind)] = forced_direction.loc[i, "direction"]
 
         src = self.create_from_array(
-            flow_direction, self.geotransform, self.epsg, self.default_no_data_value
+            flow_direction, geo=self.geotransform, epsg=self.epsg,
+            no_data_value=self.default_no_data_value,
         )
         return src
 
@@ -362,7 +364,8 @@ class DEM(Dataset):
                     self.accumulate_flow(i, j, fd_array, acc, dir_offsets)
 
         src = self.create_from_array(
-            acc, self.geotransform, self.epsg, self.default_no_data_value
+            acc, geo=self.geotransform, epsg=self.epsg,
+            no_data_value=self.default_no_data_value,
         )
         return src
 
@@ -383,7 +386,9 @@ class DEM(Dataset):
         no_rows = self.rows
 
         flow_direction = self.flow_direction()
-        flow_dir = flow_direction.values
+        flow_dir = flow_direction.read_array(band=0).astype(np.float32)
+        no_val = flow_direction.no_data_value[0]
+        flow_dir[np.isclose(flow_dir, no_val, rtol=0.00001)] = np.nan
         # convert index of the flow direction to the index of the cell
         flow_direction_cell = np.ones((no_rows, no_columns, 2)) * np.nan
 
