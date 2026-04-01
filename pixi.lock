@@ -2991,7 +2991,7 @@ packages:
 - pypi: ./
   name: digital-rivers
   version: 0.1.0
-  sha256: 08da2b4809f6edbecf6baea5c692f25041a383126610aceb653b171222e5ee59
+  sha256: e1ac8e8c05a2288811fbbbe2b4780c082f6bfe20a3d5040b858453b8944d7de1
   requires_dist:
   - geopandas>=1.0.0
   - numpy>=2.0.0
