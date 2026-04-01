@@ -7,8 +7,8 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/MAfarrag/digitalrivers)
 ![GitHub forks](https://img.shields.io/github/forks/MAfarrag/digitalrivers?style=social)
 ![GitHub Repo stars](https://img.shields.io/github/stars/MAfarrag/digitalrivers?style=social)
-[![codecov](https://codecov.io/gh/Serapieum-of-alex/digitalrivers/branch/main/graph/badge.svg?token=g0DV4dCa8N)](https://codecov.io/gh/Serapieum-of-alex/digitalrivers)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5e3aa4d0acc843d1a91caf33545ecf03)](https://www.codacy.com/gh/Serapieum-of-alex/digitalrivers/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Serapieum-of-alex/digitalrivers&amp;utm_campaign=Badge_Grade)
+[![codecov](https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graph/badge.svg?token=g0DV4dCa8N)](https://codecov.io/gh/serapeum-org/digitalrivers)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5e3aa4d0acc843d1a91caf33545ecf03)](https://www.codacy.com/gh/serapeum-org/digitalrivers/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=serapeum-org/digitalrivers&amp;utm_campaign=Badge_Grade)
 
 ![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/mafarrag/digitalrivers/0.1.0?include_prereleases&style=plastic)
 ![GitHub last commit](https://img.shields.io/github/last-commit/mafarrag/digitalrivers)
@@ -60,7 +60,7 @@ conda search digitalrivers --channel conda-forge
 to install the last development to time, you can install the library from GitHub
 
 ```
-pip install git+https://github.com/Serapieum-of-alex/digitalrivers
+pip install git+https://github.com/serapeum-org/digitalrivers
 ```
 
 ## pip
@@ -82,4 +82,4 @@ Quick start
 
 ## Coverage
 
-[![codecov](https://codecov.io/gh/Serapieum-of-alex/digitalrivers/branch/main/graphs/sunburst.svg?token=g0DV4dCa8N)](https://codecov.io/gh/Serapieum-of-alex/digitalrivers)
+[![codecov](https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graphs/sunburst.svg?token=g0DV4dCa8N)](https://codecov.io/gh/serapeum-org/digitalrivers)

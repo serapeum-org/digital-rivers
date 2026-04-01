@@ -1,8 +1,8 @@
 site_name: pyramids
 site_description: GIS package
-site_url: https://serapieum-of-alex.github.io/digital-rivers/
-repo_url: https://github.com/Serapieum-of-alex/digital-rivers
-repo_name: Serapieum-of-alex/digital-rivers
+site_url: https://serapeum-org.github.io/digital-rivers/
+repo_url: https://github.com/serapeum-org/digital-rivers
+repo_name: serapeum-org/digital-rivers
 
 theme:
   name: material
@@ -123,7 +123,7 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/Serapieum-of-alex/digital-rivers
+      link: https://github.com/serapeum-org/digital-rivers
   version:
       provider: mike
   version_selector: true

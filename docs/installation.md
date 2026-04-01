@@ -88,7 +88,7 @@ If you insist on a pip-only approach, consult the GDAL wheel guidance for your p
 Clone the repository and install:
 
 ```console
-git clone https://github.com/Serapieum-of-alex/pyramids.git
+git clone https://github.com/serapeum-org/pyramids.git
 cd pyramids
 python -m pip install .
 ```
@@ -96,7 +96,7 @@ python -m pip install .
 Editable (development) install:
 
 ```console
-git clone https://github.com/Serapieum-of-alex/pyramids.git
+git clone https://github.com/serapeum-org/pyramids.git
 cd pyramids
 pip install -e .[dev]
 ```
@@ -104,13 +104,13 @@ pip install -e .[dev]
 Install directly from GitHub (latest main):
 
 ```console
-pip install "git+https://github.com/Serapieum-of-alex/pyramids.git"
+pip install "git+https://github.com/serapeum-org/pyramids.git"
 ```
 
 Install a specific tagged release from GitHub:
 
 ```console
-pip install "git+https://github.com/Serapieum-of-alex/pyramids.git@v0.7.3"
+pip install "git+https://github.com/serapeum-org/pyramids.git@v0.7.3"
 ```
 
 ## Quick check
@@ -130,5 +130,5 @@ pytest -m "not plot" -q
 ## Notes
 - Supported Python versions are 3.11–3.13.
 - Prefer conda-forge for GDAL and related libraries.
-- Documentation: https://serapieum-of-alex.github.io/pyramids/latest
-- Source repository: https://github.com/Serapieum-of-alex/pyramids
+- Documentation: https://serapeum-org.github.io/pyramids/latest
+- Source repository: https://github.com/serapeum-org/pyramids
