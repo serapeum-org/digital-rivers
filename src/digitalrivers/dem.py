@@ -427,7 +427,7 @@ class DEM(Dataset):
 
 
     @staticmethod
-    def delete_basins(basins: gdal.Dataset, path: str):
+    def delete_basins(basins: Dataset, path: str):
         """Keep only the first (largest) basin and discard the rest.
 
         Reads a basin-ID raster produced during catchment delineation,
@@ -435,46 +435,25 @@ class DEM(Dataset):
         the no-data value, and writes the result to *path*.
 
         Args:
-            basins: GDAL dataset whose cell values are basin IDs
-                (integers).  The first unique basin ID found (excluding
-                no-data) is retained.
+            basins: Dataset whose cell values are basin IDs (integers).
+                The first unique basin ID found (excluding no-data) is
+                retained.
             path: Output GeoTIFF file path (must end with ``".tif"``).
 
         Raises:
-            TypeError: If *path* is not a string or *basins* is not a
-                ``gdal.Dataset``.
+            TypeError: If *path* is not a string.
         """
         if not isinstance(path, str):
             raise TypeError(f"path: {path} input should be string type")
-        if not isinstance(basins, gdal.Dataset):
-            raise TypeError(
-                "basins raster should be read using gdal (gdal dataset please read it using gdal library)"
-            )
 
-        # get number of rows
-        rows = basins.RasterYSize
-        # get number of columns
-        cols = basins.RasterXSize
-        # array
-        basins_a = basins.ReadAsArray()
-        # no data value
-        no_val = np.float32(basins.GetRasterBand(1).GetNoDataValue())
-        # get number of basins and there names
-        basins_val = list(
-            set(
-                [
-                    int(basins_a[i, j])
-                    for i in range(rows)
-                    for j in range(cols)
-                    if basins_a[i, j] != no_val
-                ]
-            )
-        )
+        basins_a = basins.read_array()
+        no_val = np.float32(basins.no_data_value[0])
 
-        # keep the first basin and delete the others by filling their cells by nodata value
-        for i in range(rows):
-            for j in range(cols):
-                if basins_a[i, j] != no_val and basins_a[i, j] != basins_val[0]:
-                    basins_a[i, j] = no_val
+        valid_mask = basins_a != no_val
+        unique_basins = np.unique(basins_a[valid_mask]).astype(int)
+
+        if len(unique_basins) > 0:
+            keep = unique_basins[0]
+            basins_a[valid_mask & (basins_a != keep)] = no_val
 
         Dataset.dataset_like(basins, basins_a, path)
