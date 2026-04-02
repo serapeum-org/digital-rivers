@@ -9,10 +9,6 @@ import numpy as np
 from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
-import sys
-
-
-sys.setrecursionlimit(50000)
 
 #: D8 direction offsets mapping direction index to (column_offset, row_offset).
 #:
@@ -254,18 +250,13 @@ class DEM(Dataset):
         return src
 
     def accumulate_flow(self, r, c, flow_dir, acc, dir_offsets) -> int:
-        """Recursively count upstream cells that drain into ``(r, c)``.
+        """Count upstream cells that drain into ``(r, c)`` (iterative).
 
-        Walks the D8 flow-direction grid backwards: for every neighbour
-        whose flow direction points toward ``(r, c)`` the function
-        recurses, summing the upstream counts.  Results are cached in
-        *acc* so each cell is computed at most once.
-
-        Warning:
-            This is a recursive implementation.  For large DEMs the call
-            depth may exceed Python's recursion limit (currently raised
-            to 50 000 at module import time via
-            ``sys.setrecursionlimit``).
+        Uses an explicit stack to perform a depth-first traversal of the
+        flow-direction grid backwards.  For every neighbour whose flow
+        direction points toward the current cell, the neighbour is pushed
+        onto the stack.  Results are cached in *acc* so each cell is
+        computed at most once.
 
         Args:
             r: Row index of the target cell.
@@ -281,34 +272,66 @@ class DEM(Dataset):
             (excluding the cell itself).
         """
         rows, cols = flow_dir.shape
-        # if the upstream cell is inside the domain.
-        if 0 <= r < rows and 0 <= c < cols:
-            # if the upstream cell is not processed yet
-            if acc[r, c] >= 0:
-                count = acc[r, c]
-                return count
-        else:
+
+        if not (0 <= r < rows and 0 <= c < cols):
             return 0
+        if acc[r, c] >= 0:
+            return acc[r, c]
 
-        # Start with 1 to count the cell itself
-        total = 0
-        # for each direction, check which cell is the upstream cell, by looping over the 8 directions
-        # and get the cell that has the opposite direction to the current cell. and that will be the upstream cell
-        for dc, dr in dir_offsets.values():
-            rr, cc = r + dr, c + dc
-            # check again if the indices of the cell are inside the domain.
-            if 0 <= rr < rows and 0 <= cc < cols:
-                new_fd = flow_dir[rr, cc]
-            else:
+        # Pre-compute the opposite direction for each offset so we don't
+        # re-derive it on every iteration.
+        opposites = {}
+        for d, (d_col, d_row) in dir_offsets.items():
+            opp = self.opposite_direction(d_row, d_col, dir_offsets)
+            opposites[d] = (d_col, d_row, opp)
+
+        # Each stack frame: (row, col, neighbour_iterator_index, running_total)
+        stack = [(r, c, 0, 0)]
+
+        while stack:
+            cr, cc, idx, total = stack[-1]
+
+            # Already resolved — return cached value to caller.
+            if acc[cr, cc] >= 0:
+                stack.pop()
+                if stack:
+                    pr, pc, pidx, ptotal = stack[-1]
+                    stack[-1] = (pr, pc, pidx, ptotal + acc[cr, cc] + 1)
                 continue
-            current_opposite = self.opposite_direction(dr, dc, dir_offsets)
-            if 0 <= rr < rows and 0 <= cc < cols and new_fd == current_opposite:
-                total = (
-                    total + self.accumulate_flow(rr, cc, flow_dir, acc, dir_offsets) + 1
-                )
 
-        acc[r, c] = total
-        return total
+            offsets_list = list(opposites.values())
+
+            # Advance through remaining neighbours.
+            found_unprocessed = False
+            while idx < len(offsets_list):
+                d_col, d_row, opp = offsets_list[idx]
+                idx += 1
+                rr, rc = cr + d_row, cc + d_col
+                if not (0 <= rr < rows and 0 <= rc < cols):
+                    continue
+                if flow_dir[rr, rc] != opp:
+                    continue
+                if opp is None:
+                    continue
+                # Neighbour already computed — just add its count.
+                if acc[rr, rc] >= 0:
+                    total += acc[rr, rc] + 1
+                    continue
+                # Neighbour needs processing — save our state and push it.
+                stack[-1] = (cr, cc, idx, total)
+                stack.append((rr, rc, 0, 0))
+                found_unprocessed = True
+                break
+
+            if not found_unprocessed:
+                # All neighbours processed — finalise this cell.
+                acc[cr, cc] = total
+                stack.pop()
+                if stack:
+                    pr, pc, pidx, ptotal = stack[-1]
+                    stack[-1] = (pr, pc, pidx, ptotal + total + 1)
+
+        return acc[r, c]
 
     @staticmethod
     def opposite_direction(dr, dc, dir_offsets):
@@ -335,7 +358,7 @@ class DEM(Dataset):
 
         Each cell's value represents the number of upstream cells that
         drain into it (not counting itself).  The algorithm iterates
-        over every valid cell and calls ``accumulate_flow`` recursively.
+        over every valid cell and calls ``accumulate_flow``.
 
         Args:
             flow_direction: A ``DEM`` (or ``Dataset``) containing the D8
