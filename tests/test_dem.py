@@ -84,19 +84,17 @@ class TestFlowDirection:
 def test_flow_accumulation(
     coello_dem_4000: gdal.Dataset,
     coello_flow_direction_4000: gdal.Dataset,
+    coello_flow_accumulation_4000: gdal.Dataset,
 ):
     dem = DEM(coello_dem_4000)
     flow_direction = DEM(coello_flow_direction_4000)
     acc = dem.flow_accumulation(flow_direction)
     assert isinstance(acc, Dataset)
-    # assert np.array_equal(fd, coello_flow_direction_cell_index, equal_nan=True)
-    assert isinstance(acc, Dataset)
     assert acc.no_data_value == [Dataset.default_no_data_value]
     assert acc.dtype == ["int32"]
     arr = acc.read_array()
-    # check that the no data value is set correctly in the array.
     assert arr[0, 0] == Dataset.default_no_data_value
-    arr_validation = acc.read_array()
+    arr_validation = coello_flow_accumulation_4000.ReadAsArray()
     assert np.array_equal(arr, arr_validation, equal_nan=True)
 
 
