@@ -405,23 +405,26 @@ class DEM(Dataset):
                 row index; layer 1 holds the downstream column index.
                 Cells with no valid direction contain ``np.nan``.
         """
-        no_columns = self.columns
-        no_rows = self.rows
-
         flow_direction = self.flow_direction()
         flow_dir = flow_direction.read_array(band=0).astype(np.float32)
         no_val = flow_direction.no_data_value[0]
         flow_dir[np.isclose(flow_dir, no_val, rtol=0.00001)] = np.nan
-        # convert index of the flow direction to the index of the cell
-        flow_direction_cell = np.ones((no_rows, no_columns, 2)) * np.nan
 
-        for i in range(no_rows):
-            for j in range(no_columns):
-                if not np.isnan(flow_dir[i, j]):
-                    ind = int(flow_dir[i, j])
-                    indices = DIR_OFFSETS[ind]
-                    flow_direction_cell[i, j, 0] = i + indices[0]
-                    flow_direction_cell[i, j, 1] = j + indices[1]
+        rows, cols = flow_dir.shape
+        valid = ~np.isnan(flow_dir)
+
+        # Build lookup arrays from DIR_OFFSETS (index 0 = first tuple
+        # element, index 1 = second tuple element, matching the
+        # original loop: cell[i,j,0] = i + offset[0]).
+        offset_0 = np.array([DIR_OFFSETS[d][0] for d in range(8)], dtype=np.float64)
+        offset_1 = np.array([DIR_OFFSETS[d][1] for d in range(8)], dtype=np.float64)
+
+        flow_direction_cell = np.full((rows, cols, 2), np.nan, dtype=np.float64)
+
+        dir_idx = flow_dir[valid].astype(int)
+        row_idx, col_idx = np.where(valid)
+        flow_direction_cell[valid, 0] = row_idx + offset_0[dir_idx]
+        flow_direction_cell[valid, 1] = col_idx + offset_1[dir_idx]
 
         return flow_direction_cell
 
