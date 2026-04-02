@@ -285,22 +285,12 @@ class Terrain(Dataset):
         else:
             driver = "GTiff"
 
-        # if parameters are lists
-        if isinstance(azimuth, list):
-            if not (
-                    len(azimuth)
-                    == len(altitude)
-                    == len(vertical_exaggeration)
-                    == len(scale)
-            ):
-                raise ValueError(
-                    "The length of the light source angle and elevation must be the same."
-                )
-        else:
-            azimuth = [azimuth]
-            altitude = [altitude]
-            vertical_exaggeration = [vertical_exaggeration]
-            scale = [scale]
+        wrap = lambda v: v if isinstance(v, list) else [v]
+        azimuth, altitude, vertical_exaggeration, scale = (
+            wrap(azimuth), wrap(altitude), wrap(vertical_exaggeration), wrap(scale),
+        )
+        if not (len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)):
+            raise ValueError("All list parameters must have the same length.")
 
         # get the hill shade for all the parameters
         hill_shades: list[gdal.Dataset] = []
