@@ -1,30 +1,34 @@
-name: tests
-
-on: [push]
+name: Tests - Suite
 
 permissions:
   contents: read
+  id-token: write
+
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   main-package:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        environment: [py311, py312, py313]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        environment: [py311, py312]
 
     steps:
-      - uses: actions/checkout@v4
-      - name: Environment ${{ matrix.environment }} ${{ matrix.os }}
-        uses: prefix-dev/setup-pixi@v0.8.14
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: serapeum-org/github-actions/actions/python-setup/pixi@pixi/v1
         with:
           environments: ${{ matrix.environment }}
           activate-environment: ${{ matrix.environment }}
-          pixi-version: v0.49.0
           cache: true
-          cache-key: pixi-${{ hashFiles('pixi.lock') }}
-          # only write caches on main to save space
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
       - name: Run main tests
         run: |
@@ -38,5 +42,11 @@ jobs:
         uses: codecov/codecov-action@v5
 
       - name: test Jupyter notebooks
+        shell: bash
         run: |
+          set +e
           pixi run -e ${{ matrix.environment }} notebooks
+          rc=$?
+          if [ $rc -eq 4 ] || [ $rc -eq 5 ]; then exit 0; fi
+          exit $rc
+

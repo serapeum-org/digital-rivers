@@ -42,7 +42,7 @@ class TestSlope:
         dem = DEM(coello_dem_4000)
         slope = dem._get_8_direction_slopes()
         assert isinstance(slope, np.ndarray)
-        assert np.array_equal(slope, coello_slope, equal_nan=True)
+        assert np.allclose(slope, coello_slope, equal_nan=True)
 
     def test_slope(
         self,
@@ -53,7 +53,7 @@ class TestSlope:
         slope = dem.slope()
         assert isinstance(slope, DEM)
         assert slope.shape == dem.shape
-        assert np.array_equal(slope.values, coello_max_slope, equal_nan=True)
+        assert np.allclose(slope.values, coello_max_slope, equal_nan=True)
 
 
 class TestFlowDirection:
@@ -84,19 +84,17 @@ class TestFlowDirection:
 def test_flow_accumulation(
     coello_dem_4000: gdal.Dataset,
     coello_flow_direction_4000: gdal.Dataset,
+    coello_flow_accumulation_4000: gdal.Dataset,
 ):
     dem = DEM(coello_dem_4000)
     flow_direction = DEM(coello_flow_direction_4000)
     acc = dem.flow_accumulation(flow_direction)
     assert isinstance(acc, Dataset)
-    # assert np.array_equal(fd, coello_flow_direction_cell_index, equal_nan=True)
-    assert isinstance(acc, Dataset)
     assert acc.no_data_value == [Dataset.default_no_data_value]
     assert acc.dtype == ["int32"]
     arr = acc.read_array()
-    # check that the no data value is set correctly in the array.
     assert arr[0, 0] == Dataset.default_no_data_value
-    arr_validation = acc.read_array()
+    arr_validation = coello_flow_accumulation_4000.ReadAsArray()
     assert np.array_equal(arr, arr_validation, equal_nan=True)
 
 

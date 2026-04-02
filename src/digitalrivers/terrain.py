@@ -1,15 +1,35 @@
+"""Terrain analysis module.
+
+This module provides the ``Terrain`` class for raster-based terrain
+visualisation and analysis: color relief, hill shade, slope, and aspect.
+All heavy lifting is delegated to GDAL's ``DEMProcessing`` utility.
+"""
+from __future__ import annotations
+
 import os
 import numpy as np
 from pandas import DataFrame
-from typing import List, Union
 import tempfile
 import uuid
 from osgeo import gdal
 from pyramids.dataset import Dataset
 
-CREATION_OPTIONS = ["COMPRESS={}".format("DEFLATE"), "PREDICTOR={}".format(2)]
+CREATION_OPTIONS = ["COMPRESS=DEFLATE", "PREDICTOR=2"]
+
 
 class Terrain(Dataset):
+    """Terrain analysis tools built on GDAL ``DEMProcessing``.
+
+    Wraps a single- or multi-band raster and exposes convenience methods
+    for color relief, hill shade, slope, and aspect computation.
+
+    Args:
+        raster: File path or GDAL dataset to open.
+        access: ``"read_only"`` (default) or ``"write"``.
+    """
+
+    def __init__(self, raster: str | gdal.Dataset, access: str = "read_only"):
+        super().__init__(raster, access)
 
     def color_relief(
         self, band: int = 0, path: str = None, color_table: DataFrame = None, **kwargs
@@ -102,19 +122,20 @@ class Terrain(Dataset):
             driver = "GTiff"
         color_df = self._process_color_table(color_table)
 
-        temp_dir = tempfile.mkdtemp()
-        color_table_path = os.path.join(temp_dir, f"{uuid.uuid1()}.txt")
-        color_df.to_csv(color_table_path, index=False, header=False)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            color_table_path = os.path.join(temp_dir, f"{uuid.uuid1()}.txt")
+            color_df.to_csv(color_table_path, index=False, header=False)
 
-        options = gdal.DEMProcessingOptions(
-            band=band + 1,
-            format=driver,
-            colorFilename=color_table_path,
-            addAlpha=True,
-            creationOptions=["COMPRESS={}".format("DEFLATE"), "PREDICTOR={}".format(2)],
-            **kwargs,
-        )
-        dst = gdal.DEMProcessing(path, self.raster, "color-relief", options=options)
+            options = gdal.DEMProcessingOptions(
+                band=band + 1,
+                format=driver,
+                colorFilename=color_table_path,
+                addAlpha=True,
+                creationOptions=CREATION_OPTIONS,
+                **kwargs,
+            )
+            dst = gdal.DEMProcessing(path, self.raster, "color-relief", options=options)
+
         color_relief = Dataset(dst, access="write")
         color_relief.band_color = {0: "red", 1: "green", 2: "blue", 3: "alpha"}
         return color_relief
@@ -122,12 +143,12 @@ class Terrain(Dataset):
     def hill_shade(
         self,
         band: int = 0,
-        azimuth: Union[int, float, List[int]] = 315,
-        altitude: Union[int, float, List[int]] = 45,
-        vertical_exaggeration: Union[int, float, List[int]] = 1,
-        scale: Union[int, float, List[int]] = 1,
+        azimuth: int | float | list[int] = 315,
+        altitude: int | float | list[int] = 45,
+        vertical_exaggeration: int | float | list[int] = 1,
+        scale: int | float | list[int] = 1,
         path: str = None,
-        weights: List[int] = None,
+        weights: list[int] = None,
         **kwargs,
     ) -> "Dataset":
         """Create hill-shade.
@@ -154,24 +175,24 @@ class Terrain(Dataset):
         Args:
             band: int
                 band index.
-            azimuth: Union[List, int, float]
+            azimuth: int | float | list[int]
                 The source of light direction, it is measured clockwise from the north. zero means from north to south.
                 45 degrees means from the northeast to the southwest.
-            altitude: Union[List, int, float]
+            altitude: int | float | list[int]
                 The source of light elevation, it is measured in degrees from the horizon. zero means from the horizon.
                 90 degrees means from the zenith.
                 the overall image gets brighter as the light source gets closer to the zenith. The brightest slopes/DEM
                 features will be perpendicular to the light source, and the darkest will be angled 90˚ or more away.
-            vertical_exaggeration: Union[List, int, float]
+            vertical_exaggeration: int | float | list[int]
                 Vertical exaggeration, the vertical exaggeration It is used to emphasize the
                 vertical features of the terrain.
-            scale: Union[List, int, float]
+            scale: int | float | list[int]
                 the scale is the ratio of vertical units to horizontal. If the horizontal unit of the source DEM is
                 degrees (e.g Lat/Long WGS84 projection), you can use scale=111120 if the vertical units are meters
                 (or scale=370400 if they are in feet).
             path: str, optional, default is None
                 path to save the hill-shade raster.
-            weights: List[int], default is None.
+            weights: list[int], default is None.
                 list of weights to combine the hill-shades if the other parameters are given as lists, an average hill
                 shade will be calculated based on the weights. if None, the weights will be equal.
             **kwargs:
@@ -264,25 +285,15 @@ class Terrain(Dataset):
         else:
             driver = "GTiff"
 
-        # if parameters are lists
-        if isinstance(azimuth, list):
-            if (
-                    len(azimuth)
-                    != len(altitude)
-                    != len(vertical_exaggeration)
-                    != len(scale)
-            ):
-                raise ValueError(
-                    "The length of the light source angle and elevation must be the same."
-                )
-        else:
-            azimuth = [azimuth]
-            altitude = [altitude]
-            vertical_exaggeration = [vertical_exaggeration]
-            scale = [scale]
+        wrap = lambda v: v if isinstance(v, list) else [v]
+        azimuth, altitude, vertical_exaggeration, scale = (
+            wrap(azimuth), wrap(altitude), wrap(vertical_exaggeration), wrap(scale),
+        )
+        if not (len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)):
+            raise ValueError("All list parameters must have the same length.")
 
         # get the hill shade for all the parameters
-        hill_shades: List[gdal.Dataset] = []
+        hill_shades: list[gdal.Dataset] = []
         for az, alt, ver_ex, scale_1 in zip(
                 azimuth, altitude, vertical_exaggeration, scale
         ):
@@ -295,12 +306,14 @@ class Terrain(Dataset):
             if weights is None:
                 weights = np.ones(len(azimuth))
             weights = np.array(weights) / np.sum(weights)
-            hill_shades_arr: List[np.ndarray] = [
+            hill_shades_arr: list[np.ndarray] = [
                 hill_shade.ReadAsArray() for hill_shade in hill_shades
             ]
             combined_hillshade = np.average(hill_shades_arr, axis=0, weights=weights)
             combined_hillshade = np.clip(combined_hillshade, 0, 255).astype(np.uint8)
-            hill_shade = Dataset.dataset_like(self, combined_hillshade)
+            hill_shade = Dataset.dataset_like(
+                Dataset(hill_shades[0]), combined_hillshade
+            )
         else:
             hill_shade = Dataset(hill_shades[0], access="write")
 
@@ -312,14 +325,29 @@ class Terrain(Dataset):
         self,
         band: int,
         driver: str,
-        azimuth: Union[int, float] = 315,
-        altitude: Union[int, float] = 45,
-        vertical_exaggeration: Union[int, float] = 1,
-        scale: Union[int, float] = 1,
+        azimuth: int | float = 315,
+        altitude: int | float = 45,
+        vertical_exaggeration: int | float = 1,
+        scale: int | float = 1,
         path: str = None,
         **kwargs,
     ) -> gdal.Dataset:
+        """Run a single GDAL ``DEMProcessing("hillshade")`` call.
 
+        Args:
+            band: Zero-based band index.
+            driver: GDAL driver name (``"MEM"`` or ``"GTiff"``).
+            azimuth: Light-source azimuth in degrees clockwise from
+                north.
+            altitude: Light-source elevation in degrees above horizon.
+            vertical_exaggeration: Z-factor for vertical emphasis.
+            scale: Ratio of vertical to horizontal units.
+            path: Output file path (empty string for in-memory).
+            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
+
+        Returns:
+            gdal.Dataset: Raw GDAL dataset with the computed hill shade.
+        """
         options = gdal.DEMProcessingOptions(
             band=band + 1,
             format=driver,
@@ -337,46 +365,48 @@ class Terrain(Dataset):
     def slope(
         self,
         band: int = 0,
-        scale: Union[int, float, List[int]] = 1,
+        scale: int | float | list[int] = 1,
         slope_format: str = "degree",
         path: str = None,
         algorithm: str = None,
-        creation_options: List[str] = None,
+        creation_options: list[str] = None,
         **kwargs,
     ) -> "Dataset":
-        """Slope.
+        """Compute the slope of the terrain surface.
+
+        Uses GDAL ``DEMProcessing`` to calculate the slope (rate of
+        elevation change) for every cell.
 
         Args:
-            band: int, default is 0.
-                band index.
-            scale: Union[List, int, float]
-                the scale is the ratio of vertical units to horizontal. If the horizontal unit of the source DEM is
-                degrees (e.g., Lat/Long WGS84 projection), you can use scale=111120 if the vertical units are meters
-                (or scale=370400 if they are in feet).
-            slope_format: str, default is 'degree'.
-                The output slope format. It can be 'degree' or 'percent'.
-            algorithm: str, default is "Wilson".
-                The algorithm to calculate the slope. It can be one of 'Horn', 'ZevenbergenThorne' for hill_shade,
-                slope or aspect. 'Wilson'. The literature suggests Zevenbergen & Thorne to be more suited to smooth
-                landscapes, whereas Horn's formula.
-                to perform better on rougher terrain.
-            path: str, optional, default is None
-                path to save the hill-shade raster.
-            creation_options: List[str], default is None.
-                Additional creation options for the output raster. if None, the default creation options
-                (['COMPRESS=DEFLATE', 'PREDICTOR=2']) will be used.
-
+            band: Zero-based band index. Defaults to 0.
+            scale: Ratio of vertical to horizontal units.  Use
+                ``111120`` when the horizontal CRS is in degrees and
+                vertical units are metres.  Defaults to 1.
+            slope_format: Output format — ``"degree"`` (default) or
+                ``"percent"``.
+            algorithm: Slope algorithm.  One of ``"Horn"``,
+                ``"ZevenbergenThorne"``, or ``None`` (GDAL default).
+                Zevenbergen-Thorne suits smooth landscapes; Horn
+                performs better on rough terrain.
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            creation_options: GDAL creation options.  Defaults to
+                ``['COMPRESS=DEFLATE', 'PREDICTOR=2']``.
+            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
 
         Returns:
-            Dataset:
-                Dataset with the calculated slope, and the no_data_value is -9999.0.
+            Dataset: Single-band ``float32`` raster with slope values.
+                No-data value is ``-9999.0``.
 
         Examples:
-            - First create a one band dataset, consisting of 10 columns and 10 rows, with random values between 0 and 15.
+            - First create a one band dataset, consisting of 10 columns
+                and 10 rows, with random values between 0 and 15.
                 ```python
                 >>> import numpy as np
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
-                >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+                >>> dataset = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+                ... )
                 ```
             - Now let's create the slope for the dataset.
                 ```python
@@ -387,8 +417,10 @@ class Terrain(Dataset):
                 ![slope](./../_images/dataset/slope.png)
 
         See Also:
-            Dataset.hill_shade: create a hill-shade for a band in the Dataset.
-            Dataset.color_relief: create a color relief for a band in the Dataset.
+            Terrain.hill_shade: Create a hill-shade for a band in the
+                Dataset.
+            Terrain.color_relief: Create a color relief for a band in
+                the Dataset.
         """
         if path is None:
             driver = "MEM"
@@ -416,63 +448,63 @@ class Terrain(Dataset):
     def aspect(
         self,
         band: int = 0,
-        scale: Union[int, float, List[int]] = 1,
-        vertical_exaggeration: Union[int, float, List[int]] = 1,
+        scale: int | float | list[int] = 1,
+        vertical_exaggeration: int | float | list[int] = 1,
         zero_flat_surface: bool = False,
         algorithm: str = None,
         path: str = None,
-        creation_options: List[str] = None,
+        creation_options: list[str] = None,
         **kwargs,
     ) -> "Dataset":
-        """Aspect.
+        """Compute the aspect (slope direction) of the terrain surface.
+
+        Uses GDAL ``DEMProcessing`` to calculate the compass direction
+        of the steepest downhill slope for every cell.  Values range
+        from 0° (north) clockwise to 360°.
 
         Args:
-            band: int, default is 0.
-                band index.
-            scale: Union[List, int, float]
-                the scale is the ratio of vertical units to horizontal. If the horizontal unit of the source DEM is
-                degrees (e.g., Lat/Long WGS84 projection), you can use scale=111120 if the vertical units are meters
-                (or scale=370400 if they are in feet).
-            zero_flat_surface: bool, default is False.
-                If True, the slope of a flat surface will be zero. If False, the slope of a flat surface will be
-                no_data_value.
-            algorithm: str, default is "Wilson".
-                The algorithm to calculate the slope. It can be one of 'Horn', 'ZevenbergenThorne' for hill_shade,
-                slope or aspect. 'Wilson'. The literature suggests Zevenbergen & Thorne to be more suited to smooth
-                landscapes, whereas Horn's formula.
-                to perform better on rougher terrain.
-            vertical_exaggeration: Union[List, int, float]
-                Vertical exaggeration, the vertical exaggeration It is used to emphasize the
-                vertical features of the terrain.
-            path: str, optional, default is None
-                path to save the hill-shade raster.
-            creation_options: List[str], default is None.
-                Additional creation options for the output raster. if None, the default creation options
-                (['COMPRESS=DEFLATE', 'PREDICTOR=2']) will be used.
-
+            band: Zero-based band index. Defaults to 0.
+            scale: Ratio of vertical to horizontal units.  Use
+                ``111120`` when the horizontal CRS is in degrees and
+                vertical units are metres.  Defaults to 1.
+            vertical_exaggeration: Z-factor used to emphasise vertical
+                features.  Defaults to 1.
+            zero_flat_surface: If ``True`` flat areas get an aspect of
+                0°.  If ``False`` (default) flat areas receive the
+                no-data value.
+            algorithm: Aspect algorithm.  One of ``"Horn"``,
+                ``"ZevenbergenThorne"``, or ``None`` (GDAL default).
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            creation_options: GDAL creation options.  Defaults to
+                ``['COMPRESS=DEFLATE', 'PREDICTOR=2']``.
+            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
 
         Returns:
-            Dataset:
-                Dataset with the calculated slope, and the no_data_value is -9999.0.
+            Dataset: Single-band ``float32`` raster with aspect values
+                in degrees (0–360).  No-data value is ``-9999.0``.
 
         Examples:
-            - First create a one band dataset, consisting of 10 columns and 10 rows, with random values between 0 and 15.
+            - Create a small raster and compute its aspect.
                 ```python
                 >>> import numpy as np
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
-                >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+                >>> dataset = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+                ... )
                 ```
-            - Now let's create the slope for the dataset.
+            - Compute the aspect raster.
                 ```python
                 >>> aspect = dataset.aspect()
-                >>> cleo = slope.plot()
+                >>> fig, ax = aspect.plot()
 
                 ```
-                ![slope](./../_images/dataset/slope.png)
+                ![aspect](./../_images/dataset/aspect.png)
 
         See Also:
-            Dataset.hill_shade: create a hill-shade for a band in the Dataset.
-            Dataset.color_relief: create a color relief for a band in the Dataset.
+            Terrain.hill_shade: Create a hill-shade for a band in the
+                Dataset.
+            Terrain.slope: Compute the slope of the terrain surface.
         """
         if path is None:
             driver = "MEM"
