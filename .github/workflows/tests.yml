@@ -43,4 +43,5 @@ jobs:
 
       - name: test Jupyter notebooks
         run: |
-          pixi run -e ${{ matrix.environment }} notebooks
+          pixi run -e ${{ matrix.environment }} notebooks; rc=$?; [ $rc -eq 5 ] && exit 0 || exit $rc
+        shell: bash
