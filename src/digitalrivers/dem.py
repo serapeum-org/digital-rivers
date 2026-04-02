@@ -94,7 +94,7 @@ class DEM(Dataset):
 
         src = self.dataset_like(self, elev_sinkless)
         if inplace:
-            self.__init__(src.raster)
+            self._update_inplace(src.raster)
         else:
             return src
 
