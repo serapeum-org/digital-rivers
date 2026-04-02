@@ -286,11 +286,11 @@ class Terrain(Dataset):
 
         # if parameters are lists
         if isinstance(azimuth, list):
-            if (
+            if not (
                     len(azimuth)
-                    != len(altitude)
-                    != len(vertical_exaggeration)
-                    != len(scale)
+                    == len(altitude)
+                    == len(vertical_exaggeration)
+                    == len(scale)
             ):
                 raise ValueError(
                     "The length of the light source angle and elevation must be the same."
