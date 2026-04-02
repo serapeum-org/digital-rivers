@@ -29,6 +29,7 @@ dependencies = [
     "geopandas >=1.0.0",
     "numpy >=2.0.0",
     "cleopatra >=0.4.0",
+    "pyramids-gis >=0.9.1",
 ]
 
 [project.optional-dependencies]
@@ -133,5 +134,5 @@ python = "3.11.*"
 python = "3.12.*"
 
 [tool.pixi.dependencies]
-pyramids = ">=0.8.0"
+pyramids = ">=0.9.1"
 gdal = ">=3.10.0,<4"
