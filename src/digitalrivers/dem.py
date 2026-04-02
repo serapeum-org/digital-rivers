@@ -278,28 +278,22 @@ class DEM(Dataset):
         if acc[r, c] >= 0:
             return acc[r, c]
 
-        # Pre-compute the opposite direction for each offset so we don't
-        # re-derive it on every iteration.
-        opposites = {}
-        for d, (d_col, d_row) in dir_offsets.items():
-            opp = self.opposite_direction(d_row, d_col, dir_offsets)
-            opposites[d] = (d_col, d_row, opp)
+        offsets_list = [
+            (d_col, d_row, self.opposite_direction(d_row, d_col, dir_offsets))
+            for d_col, d_row in dir_offsets.values()
+        ]
 
-        # Each stack frame: (row, col, neighbour_iterator_index, running_total)
         stack = [(r, c, 0, 0)]
 
         while stack:
             cr, cc, idx, total = stack[-1]
 
-            # Already resolved — return cached value to caller.
             if acc[cr, cc] >= 0:
                 stack.pop()
                 if stack:
                     pr, pc, pidx, ptotal = stack[-1]
                     stack[-1] = (pr, pc, pidx, ptotal + acc[cr, cc] + 1)
                 continue
-
-            offsets_list = list(opposites.values())
 
             # Advance through remaining neighbours.
             found_unprocessed = False
