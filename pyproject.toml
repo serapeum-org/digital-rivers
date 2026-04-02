@@ -108,7 +108,7 @@ markers = [
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["win-64", "linux-64"]
+platforms = ["win-64", "linux-64", "osx-arm64"]
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
