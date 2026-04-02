@@ -4,7 +4,7 @@ This module provides the ``DEM`` class for digital elevation model analysis,
 including sink filling, slope calculation, D8 flow direction, and flow
 accumulation.
 """
-from typing import Any, Dict, Tuple
+from __future__ import annotations
 import numpy as np
 from osgeo import gdal
 from geopandas import GeoDataFrame
@@ -59,7 +59,7 @@ class DEM(Dataset):
         values[np.isclose(values, no_val, rtol=0.00001)] = np.nan
         return values
 
-    def fill_sinks(self, inplace: bool = False) -> Tuple[Any, Dataset]:
+    def fill_sinks(self, inplace: bool = False) -> Dataset | None:
         """Fill single-cell sinks in the elevation surface.
 
         A cell is considered a sink when its elevation is lower than all
@@ -352,7 +352,7 @@ class DEM(Dataset):
         return None
 
     def flow_accumulation(
-        self, flow_direction: "DEM", dir_offsets: Dict = None
+        self, flow_direction: "DEM", dir_offsets: dict = None
     ) -> "Dataset":
         """Compute the flow-accumulation raster from a flow-direction grid.
 

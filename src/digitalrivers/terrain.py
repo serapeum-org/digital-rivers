@@ -4,10 +4,11 @@ This module provides the ``Terrain`` class for raster-based terrain
 visualisation and analysis: color relief, hill shade, slope, and aspect.
 All heavy lifting is delegated to GDAL's ``DEMProcessing`` utility.
 """
+from __future__ import annotations
+
 import os
 import numpy as np
 from pandas import DataFrame
-from typing import List, Union
 import tempfile
 import uuid
 from osgeo import gdal
@@ -27,7 +28,7 @@ class Terrain(Dataset):
         access: ``"read_only"`` (default) or ``"write"``.
     """
 
-    def __init__(self, raster: Union[str, gdal.Dataset], access: str = "read_only"):
+    def __init__(self, raster: str | gdal.Dataset, access: str = "read_only"):
         super().__init__(raster, access)
 
     def color_relief(
@@ -141,12 +142,12 @@ class Terrain(Dataset):
     def hill_shade(
         self,
         band: int = 0,
-        azimuth: Union[int, float, List[int]] = 315,
-        altitude: Union[int, float, List[int]] = 45,
-        vertical_exaggeration: Union[int, float, List[int]] = 1,
-        scale: Union[int, float, List[int]] = 1,
+        azimuth: int | float | list[int] = 315,
+        altitude: int | float | list[int] = 45,
+        vertical_exaggeration: int | float | list[int] = 1,
+        scale: int | float | list[int] = 1,
         path: str = None,
-        weights: List[int] = None,
+        weights: list[int] = None,
         **kwargs,
     ) -> "Dataset":
         """Create hill-shade.
@@ -173,24 +174,24 @@ class Terrain(Dataset):
         Args:
             band: int
                 band index.
-            azimuth: Union[List, int, float]
+            azimuth: int | float | list[int]
                 The source of light direction, it is measured clockwise from the north. zero means from north to south.
                 45 degrees means from the northeast to the southwest.
-            altitude: Union[List, int, float]
+            altitude: int | float | list[int]
                 The source of light elevation, it is measured in degrees from the horizon. zero means from the horizon.
                 90 degrees means from the zenith.
                 the overall image gets brighter as the light source gets closer to the zenith. The brightest slopes/DEM
                 features will be perpendicular to the light source, and the darkest will be angled 90˚ or more away.
-            vertical_exaggeration: Union[List, int, float]
+            vertical_exaggeration: int | float | list[int]
                 Vertical exaggeration, the vertical exaggeration It is used to emphasize the
                 vertical features of the terrain.
-            scale: Union[List, int, float]
+            scale: int | float | list[int]
                 the scale is the ratio of vertical units to horizontal. If the horizontal unit of the source DEM is
                 degrees (e.g Lat/Long WGS84 projection), you can use scale=111120 if the vertical units are meters
                 (or scale=370400 if they are in feet).
             path: str, optional, default is None
                 path to save the hill-shade raster.
-            weights: List[int], default is None.
+            weights: list[int], default is None.
                 list of weights to combine the hill-shades if the other parameters are given as lists, an average hill
                 shade will be calculated based on the weights. if None, the weights will be equal.
             **kwargs:
@@ -301,7 +302,7 @@ class Terrain(Dataset):
             scale = [scale]
 
         # get the hill shade for all the parameters
-        hill_shades: List[gdal.Dataset] = []
+        hill_shades: list[gdal.Dataset] = []
         for az, alt, ver_ex, scale_1 in zip(
                 azimuth, altitude, vertical_exaggeration, scale
         ):
@@ -314,7 +315,7 @@ class Terrain(Dataset):
             if weights is None:
                 weights = np.ones(len(azimuth))
             weights = np.array(weights) / np.sum(weights)
-            hill_shades_arr: List[np.ndarray] = [
+            hill_shades_arr: list[np.ndarray] = [
                 hill_shade.ReadAsArray() for hill_shade in hill_shades
             ]
             combined_hillshade = np.average(hill_shades_arr, axis=0, weights=weights)
@@ -333,10 +334,10 @@ class Terrain(Dataset):
         self,
         band: int,
         driver: str,
-        azimuth: Union[int, float] = 315,
-        altitude: Union[int, float] = 45,
-        vertical_exaggeration: Union[int, float] = 1,
-        scale: Union[int, float] = 1,
+        azimuth: int | float = 315,
+        altitude: int | float = 45,
+        vertical_exaggeration: int | float = 1,
+        scale: int | float = 1,
         path: str = None,
         **kwargs,
     ) -> gdal.Dataset:
@@ -373,11 +374,11 @@ class Terrain(Dataset):
     def slope(
         self,
         band: int = 0,
-        scale: Union[int, float, List[int]] = 1,
+        scale: int | float | list[int] = 1,
         slope_format: str = "degree",
         path: str = None,
         algorithm: str = None,
-        creation_options: List[str] = None,
+        creation_options: list[str] = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the slope of the terrain surface.
@@ -456,12 +457,12 @@ class Terrain(Dataset):
     def aspect(
         self,
         band: int = 0,
-        scale: Union[int, float, List[int]] = 1,
-        vertical_exaggeration: Union[int, float, List[int]] = 1,
+        scale: int | float | list[int] = 1,
+        vertical_exaggeration: int | float | list[int] = 1,
         zero_flat_surface: bool = False,
         algorithm: str = None,
         path: str = None,
-        creation_options: List[str] = None,
+        creation_options: list[str] = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the aspect (slope direction) of the terrain surface.
