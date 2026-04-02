@@ -30,6 +30,11 @@ for dependency in hard_dependencies:
 if missing_dependencies:
     raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
 
+from digitalrivers.dem import DEM
+from digitalrivers.terrain import Terrain
+
+__all__ = ["DEM", "Terrain"]
+
 __doc__ = """
 digital-rivers - GIS utility package
 """
