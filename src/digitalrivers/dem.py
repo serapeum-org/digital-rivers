@@ -425,15 +425,15 @@ class DEM(Dataset):
 
     @staticmethod
     def delete_basins(basins: Dataset, path: str):
-        """Keep only the first (largest) basin and discard the rest.
+        """Keep only the basin with the lowest ID and discard the rest.
 
         Reads a basin-ID raster produced during catchment delineation,
-        replaces every cell that does not belong to the first basin with
-        the no-data value, and writes the result to *path*.
+        replaces every cell that does not belong to the lowest basin ID
+        with the no-data value, and writes the result to *path*.
 
         Args:
             basins: Dataset whose cell values are basin IDs (integers).
-                The first unique basin ID found (excluding no-data) is
+                The lowest unique basin ID (excluding no-data) is
                 retained.
             path: Output GeoTIFF file path (must end with ``".tif"``).
 
