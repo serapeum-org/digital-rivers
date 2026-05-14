@@ -125,7 +125,7 @@ class TestSlope:
         slope = dataset.slope()
         assert slope.shape == dataset.shape
         assert slope.dtype == ["float32"]
-        assert slope.no_data_value == [-9999.0]
+        assert slope.no_data_value == (-9999.0,)
         arr2 = slope.read_array()
         vals = arr2[~np.isclose(arr2, -9999.0)]
         assert vals.max() <= 90
@@ -144,7 +144,7 @@ class TestAspect:
         aspect = dataset.aspect()
         assert aspect.shape == dataset.shape
         assert aspect.dtype == ["float32"]
-        assert aspect.no_data_value == [-9999.0]
+        assert aspect.no_data_value == (-9999.0,)
         arr2 = aspect.read_array()
         vals = arr2[~np.isclose(arr2, -9999.0)]
         assert vals.max() <= 360

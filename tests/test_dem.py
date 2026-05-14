@@ -72,7 +72,7 @@ class TestFlowDirection:
         coello_outfall["direction"] = 6
         fd = dem.flow_direction(forced_direction=coello_outfall)
         assert isinstance(fd, Dataset)
-        assert fd.no_data_value == [Dataset.default_no_data_value]
+        assert fd.no_data_value == (Dataset.default_no_data_value,)
         assert fd.dtype == ["int32"]
         arr = fd.read_array()
         # check that the no data value is set correctly in the array.
@@ -90,7 +90,7 @@ def test_flow_accumulation(
     flow_direction = DEM(coello_flow_direction_4000)
     acc = dem.flow_accumulation(flow_direction)
     assert isinstance(acc, Dataset)
-    assert acc.no_data_value == [Dataset.default_no_data_value]
+    assert acc.no_data_value == (Dataset.default_no_data_value,)
     assert acc.dtype == ["int32"]
     arr = acc.read_array()
     assert arr[0, 0] == Dataset.default_no_data_value
