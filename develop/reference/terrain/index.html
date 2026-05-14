@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1758,7 +1758,7 @@ for color relief, hill shade, slope, and aspect computation.</p>
 <a id="__codelineno-0-120" name="__codelineno-0-120"></a>            <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a>        <span class="k">else</span><span class="p">:</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a>            <span class="n">driver</span> <span class="o">=</span> <span class="s2">&quot;GTiff&quot;</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>        <span class="n">color_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_color_table</span><span class="p">(</span><span class="n">color_table</span><span class="p">)</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>        <span class="n">color_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">_process_color_table</span><span class="p">(</span><span class="n">color_table</span><span class="p">)</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>
 <a id="__codelineno-0-125" name="__codelineno-0-125"></a>        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">temp_dir</span><span class="p">:</span>
 <a id="__codelineno-0-126" name="__codelineno-0-126"></a>            <span class="n">color_table_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid1</span><span class="p">()</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
@@ -2529,7 +2529,7 @@ or DataFrame with columns: values, red, green, blue, alpha, (the alpha column is
 <a id="__codelineno-0-120" name="__codelineno-0-120"></a>        <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 <a id="__codelineno-0-121" name="__codelineno-0-121"></a>    <span class="k">else</span><span class="p">:</span>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a>        <span class="n">driver</span> <span class="o">=</span> <span class="s2">&quot;GTiff&quot;</span>
-<a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="n">color_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_color_table</span><span class="p">(</span><span class="n">color_table</span><span class="p">)</span>
+<a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="n">color_df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">_process_color_table</span><span class="p">(</span><span class="n">color_table</span><span class="p">)</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>
 <a id="__codelineno-0-125" name="__codelineno-0-125"></a>    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">TemporaryDirectory</span><span class="p">()</span> <span class="k">as</span> <span class="n">temp_dir</span><span class="p">:</span>
 <a id="__codelineno-0-126" name="__codelineno-0-126"></a>        <span class="n">color_table_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">temp_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid1</span><span class="p">()</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">)</span>
