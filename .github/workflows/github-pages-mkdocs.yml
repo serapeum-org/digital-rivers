@@ -23,11 +23,11 @@ jobs:
       if: github.event_name == 'pull_request'
       runs-on: ubuntu-latest
       steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
 
-      - uses: serapeum-org/github-actions/actions/mkdocs-deploy@mkdocs/v1
+      - uses: serapeum-org/github-actions/actions/mkdocs-deploy@38edf6028477d823ab42ea059ee694fc89dad1e9 # mkdocs/v1.1.0
         with:
           trigger: 'pull_request'
           package-manager: 'pixi'
@@ -38,10 +38,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       with:
         fetch-depth: 0
-    - uses: serapeum-org/github-actions/actions/mkdocs-deploy@mkdocs/v1
+    - uses: serapeum-org/github-actions/actions/mkdocs-deploy@38edf6028477d823ab42ea059ee694fc89dad1e9 # mkdocs/v1.1.0
       with:
         trigger: 'main'
         package-manager: 'pixi'
@@ -54,7 +54,7 @@ jobs:
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       with:
         fetch-depth: 0
         ref: ${{ github.event.workflow_run.head_branch || github.ref }}
@@ -65,7 +65,7 @@ jobs:
         VERSION=$(grep -m1 '^version' pyproject.toml | sed 's/.*"\(.*\)"/\1/')
         echo "tag=$VERSION" >> $GITHUB_OUTPUT
 
-    - uses: serapeum-org/github-actions/actions/mkdocs-deploy@mkdocs/v1
+    - uses: serapeum-org/github-actions/actions/mkdocs-deploy@38edf6028477d823ab42ea059ee694fc89dad1e9 # mkdocs/v1.1.0
       with:
         trigger: 'release'
         package-manager: 'pixi'
