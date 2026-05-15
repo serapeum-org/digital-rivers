@@ -265,6 +265,68 @@ class DEM(Dataset):
             return None
         return DEM(plain_ds.raster)
 
+    def hand(
+        self,
+        streams,
+        flow_direction,
+    ) -> Dataset:
+        """Compute Height Above Nearest Drainage (Rennó 2008 / Nobre 2011).
+
+        For every cell, follows the flow-direction raster downstream until it
+        reaches a stream cell, and assigns ``elev[cell] - elev[stream_cell]``
+        as the cell's HAND value. Stream cells themselves are 0; cells whose
+        flow path does not reach a stream (orphans, sinks, no-data) are NaN.
+
+        Args:
+            streams: ``StreamRaster`` aligned to this DEM. Only the underlying
+                stream mask is read.
+            flow_direction: Single-direction ``FlowDirection`` (``d8`` /
+                ``rho8``) aligned to this DEM.
+
+        Returns:
+            ``Dataset`` containing the float32 HAND raster. No-data cells use
+            this DEM's no-data sentinel (NaN in the underlying values
+            property; the on-disk sentinel restored before write-back).
+
+        Raises:
+            ValueError: If shapes do not match or ``flow_direction`` is
+                multi-direction.
+        """
+        from digitalrivers._hand import hand_d8
+        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.stream_raster import StreamRaster
+
+        if not isinstance(flow_direction, FlowDirection):
+            raise ValueError(
+                "flow_direction must be a FlowDirection instance"
+            )
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"hand currently supports single-direction routing only; "
+                f"got {flow_direction.routing!r}"
+            )
+        if not isinstance(streams, StreamRaster):
+            raise ValueError("streams must be a StreamRaster instance")
+
+        elev = self.values
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        stream_arr = streams.read_array().astype(bool, copy=False)
+        if not (elev.shape == fdir.shape == stream_arr.shape):
+            raise ValueError(
+                f"Shape mismatch: dem={elev.shape}, flow_direction="
+                f"{fdir.shape}, streams={stream_arr.shape}"
+            )
+
+        hand_arr = hand_d8(elev, fdir, stream_arr).astype(np.float32, copy=False)
+        no_val = float(self.no_data_value[0])
+        hand_arr = np.where(np.isnan(hand_arr), no_val, hand_arr)
+        return Dataset.create_from_array(
+            hand_arr,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
+        )
+
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
         """Deprecated alias for ``fill_depressions(method="priority_flood", epsilon=0.1)``.
 
