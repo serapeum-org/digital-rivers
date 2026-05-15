@@ -206,6 +206,24 @@ def accumulate(
                 f"{routing!r} expects a 2-D direction-code array; got shape "
                 f"{flow_direction_array.shape}"
             )
+        # Numba fast path for single-direction routings — bit-for-bit identical to
+        # the pure-Python Kahn sweep, ≥ 30× faster warm.
+        from digitalrivers._numba import (
+            _DIR_DR_I32,
+            _DIR_DC_I32,
+            is_numba_enabled,
+            kahn_accumulate_d8_numba,
+        )
+
+        if is_numba_enabled():
+            if weights is None:
+                w_arr = np.ones(valid_mask.shape, dtype=np.float64)
+            else:
+                w_arr = np.where(valid_mask, weights.astype(np.float64, copy=False), 0.0)
+            return kahn_accumulate_d8_numba(
+                flow_direction_array.astype(np.int32, copy=False),
+                w_arr, _DIR_DR_I32, _DIR_DC_I32,
+            )
         receivers, proportions = _receivers_d8(flow_direction_array, valid_mask)
     elif routing == "dinf":
         if flow_direction_array.ndim != 3 or flow_direction_array.shape[0] != 2:

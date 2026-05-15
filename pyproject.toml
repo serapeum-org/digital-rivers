@@ -154,3 +154,4 @@ python = "3.12.*"
 # conda-forge 0.18.0 hash; restore once `pixi update` stops failing.
 # pyramids = ">=0.18.0"
 gdal = ">=3.10.0,<4"
+numba = "*"
