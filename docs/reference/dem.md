@@ -1,4 +1,6 @@
-# Dataset Class
+# DEM
+
+DEM processing — sink filling, D8 flow direction, flow accumulation, slope, and basin filtering. Subclasses `pyramids.dataset.Dataset`, so all pyramids methods are inherited.
 
 
 ::: digitalrivers.dem.DEM

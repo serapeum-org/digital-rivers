@@ -1,5 +1,5 @@
-site_name: pyramids
-site_description: GIS package
+site_name: digital-rivers
+site_description: DEM and terrain processing utilities for GDAL-based GIS
 site_url: https://serapeum-org.github.io/digital-rivers/
 repo_url: https://github.com/serapeum-org/digital-rivers
 repo_name: serapeum-org/digital-rivers

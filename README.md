@@ -1,85 +1,119 @@
-[![Documentation Status](https://readthedocs.org/projects/digital-rivers/badge/?version=latest)](https://digital-rivers.readthedocs.io/en/latest/?badge=latest)
-[![Python Versions](https://img.shields.io/pypi/pyversions/digitalrivers.png)](https://img.shields.io/pypi/pyversions/digitalrivers)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/MAfarrag/Hapi.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/MAfarrag/Hapi/context:python)
+[![codecov](https://codecov.io/gh/serapeum-org/digital-rivers/branch/main/graph/badge.svg)](https://codecov.io/gh/serapeum-org/digital-rivers)
 
-![GitHub last commit](https://img.shields.io/github/last-commit/MAfarrag/digitalrivers)
-![GitHub forks](https://img.shields.io/github/forks/MAfarrag/digitalrivers?style=social)
-![GitHub Repo stars](https://img.shields.io/github/stars/MAfarrag/digitalrivers?style=social)
-[![codecov](https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graph/badge.svg?token=g0DV4dCa8N)](https://codecov.io/gh/serapeum-org/digitalrivers)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/5e3aa4d0acc843d1a91caf33545ecf03)](https://www.codacy.com/gh/serapeum-org/digitalrivers/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=serapeum-org/digitalrivers&amp;utm_campaign=Badge_Grade)
+# digital-rivers
 
-![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/mafarrag/digitalrivers/0.1.0?include_prereleases&style=plastic)
-![GitHub last commit](https://img.shields.io/github/last-commit/mafarrag/digitalrivers)
+**digital-rivers** is a small GIS utility library for Digital Elevation Model (DEM) processing and terrain analysis. It builds on [GDAL](https://gdal.org) and the [`pyramids`](https://github.com/serapeum-org/pyramids) raster wrapper to provide:
 
-Current release info
-====================
+- **DEM processing** — sink filling, D8 flow direction, flow accumulation, slope (stack-based DFS, no recursion-limit hacks).
+- **Terrain visualisation** — color relief, hill shade, slope, and aspect via GDAL's `DEMProcessing`.
 
-| Name                                                                                                                 | Downloads                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Version                                                                                                                                                                                                                     | Platforms                                                                                                                                                                                                                                                                                                                                 |
-|----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [![Conda Recipe](https://img.shields.io/badge/recipe-digitalrivers-green.svg)](https://anaconda.org/conda-forge/digitalrivers) | [![Conda Downloads](https://img.shields.io/conda/dn/conda-forge/digitalrivers.svg)](https://anaconda.org/conda-forge/digitalrivers) [![Downloads](https://pepy.tech/badge/digitalrivers)](https://pepy.tech/project/digitalrivers) [![Downloads](https://pepy.tech/badge/digitalrivers/month)](https://pepy.tech/project/digitalrivers)  [![Downloads](https://pepy.tech/badge/digitalrivers/week)](https://pepy.tech/project/digitalrivers)  ![PyPI - Downloads](https://img.shields.io/pypi/dd/digitalrivers?color=blue&style=flat-square) | [![Conda Version](https://img.shields.io/conda/vn/conda-forge/digitalrivers.svg)](https://anaconda.org/conda-forge/digitalrivers) [![PyPI version](https://badge.fury.io/py/digitalrivers.svg)](https://badge.fury.io/py/digitalrivers) | [![Conda Platforms](https://img.shields.io/conda/pn/conda-forge/digitalrivers.svg)](https://anaconda.org/conda-forge/digitalrivers) [![Join the chat at https://gitter.im/Hapi-Nile/Hapi](https://badges.gitter.im/Hapi-Nile/Hapi.svg)](https://gitter.im/Hapi-Nile/Hapi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) |
+The package exposes two classes: `DEM` and `Terrain`. Both subclass `pyramids.dataset.Dataset`, so any pyramids method works on them.
 
-digitalrivers - GIS utility package
-=====================================================================
-**digitalrivers** is a GIS utility package using gdal, ....
+> **Naming note** — the distribution name on PyPI is `digital-rivers` (with hyphen), the Python import name is `digitalrivers` (no separator).
 
-digitalrivers
+## Installation
 
-![1](/docs/images/package-work-flow/overall.png)
+The package is **not yet published to conda-forge or PyPI**. Install from source for now:
 
-Main Features
--------------
+### With Pixi (recommended — provides GDAL via conda-forge)
 
-- GIS modules to enable the modeler to fully prepare the meteorological inputs and do all the preprocessing
-  needed to build the model (align rasters with the DEM), in addition to various methods to manipulate and
-  convert different forms of distributed data (rasters, NetCDF, shapefiles)
-
-Future work
--------------
-
-- Developing a DEM processing module for generating the river network at different DEM spatial resolutions.
-
-Installing digitalrivers
-===============
-
-Installing `digitalrivers` from the `conda-forge` channel can be achieved by:
-
-```
-conda install -c conda-forge digitalrivers=0.1.0
+```bash
+git clone https://github.com/serapeum-org/digital-rivers.git
+cd digital-rivers
+pixi install -e dev      # creates the dev environment
+pixi shell -e dev
 ```
 
-It is possible to list all the versions of `digitalrivers` available on your platform with:
+### With pip
 
-```
-conda search digitalrivers --channel conda-forge
-```
+GDAL must already be importable. If you don't have it from conda-forge:
 
-## Install from GitHub
-
-to install the last development to time, you can install the library from GitHub
-
-```
-pip install git+https://github.com/serapeum-org/digitalrivers
+```bash
+pip install git+https://github.com/serapeum-org/digital-rivers.git
 ```
 
-## pip
+Optional plotting extras (pulls `cleopatra` via pyramids' `[viz]` extra):
 
-to install the last release, you can easily use pip
-
-```
-pip install digitalrivers==0.1.0
+```bash
+pip install "digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git"
 ```
 
-Quick start
-===========
+Supported Python: **3.11–3.13**.
+
+## Quick start
+
+### DEM processing
+
+```python
+from osgeo import gdal
+from digitalrivers.dem import DEM
+
+dem = DEM(gdal.Open("path/to/dem.tif"))
+
+filled = dem.fill_sinks()                  # remove single-cell sinks
+slope = dem.slope()                        # max downhill slope (D8)
+fd = dem.flow_direction()                  # 0–7 D8 codes
+acc = dem.flow_accumulation(fd)            # upstream cell counts
+```
+
+You can pin the basin outfall direction via `flow_direction(forced_direction=gdf)` where `gdf` is a `GeoDataFrame` with `geometry` (point) and `direction` (int 0–7) columns.
+
+### Terrain visualisation
+
+```python
+import pandas as pd
+from digitalrivers.terrain import Terrain
+
+terrain = Terrain("path/to/dem.tif")
+
+# Hill shade
+hs = terrain.hill_shade(azimuth=315, altitude=45)
+
+# Color relief from a hex palette
+palette = pd.DataFrame({
+    "values": [0, 500, 1500, 3000],
+    "color":  ["#3a7d44", "#f2cb05", "#bc4b51", "#8c8c8c"],
+})
+relief = terrain.color_relief(band=0, color_table=palette)
+
+# GDAL-based slope and aspect
+slope = terrain.slope(slope_format="degree", algorithm="Horn")
+aspect = terrain.aspect(zero_flat_surface=True)
+```
+
+## Project layout
 
 ```
-  >>> import digitalrivers
+src/digitalrivers/
+  dem.py        — DEM class (hydrological analysis)
+  terrain.py    — Terrain class (color relief, hill shade, slope, aspect)
+tests/          — pytest suite + Coello river basin fixtures
+examples/       — runnable scripts and notebooks
+docs/           — MkDocs sources (MkDocs Material + mkdocstrings)
 ```
 
-[other code samples](https://digitalrivers.readthedocs.io/en/latest/?badge=latest)
+## Documentation
 
-## Coverage
+Full API reference is built with MkDocs Material:
 
-[![codecov](https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graphs/sunburst.svg?token=g0DV4dCa8N)](https://codecov.io/gh/serapeum-org/digitalrivers)
+- Live site: <https://serapeum-org.github.io/digital-rivers/latest/>
+- Local preview: `pixi run -e docs mkdocs serve`
+
+## Development
+
+This repository uses [Pixi](https://pixi.sh/) for environment management.
+
+```bash
+pixi run main          # run main test suite (excludes plot tests)
+pixi run plot          # run plot/visualization tests
+pixi run notebooks     # validate example notebooks
+pre-commit run --all-files
+```
+
+See [`CLAUDE.md`](./CLAUDE.md) for more development notes.
+
+## License
+
+GNU General Public License v3 — see [`LICENSE.md`](./LICENSE.md).
