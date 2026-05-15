@@ -13,6 +13,7 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
+from digitalrivers._breach import breach_depressions as _breach_depressions_array
 from digitalrivers._pitremoval import fill_depressions as _fill_depressions_array
 from digitalrivers.flow_direction import FlowDirection
 
@@ -125,6 +126,75 @@ class DEM(Dataset):
         # Build a plain Dataset (cls=Dataset so we don't get a DEM via cls(...)), then
         # wrap with the typed DEM. This mirrors the pattern used in flow_direction().
         plain_ds = Dataset.dataset_like(self, z_fill.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def breach_depressions(
+        self,
+        method: str = "least_cost",
+        max_depth: float | None = None,
+        max_length: int | None = None,
+        fill_remaining: bool = True,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Breach depressions in the DEM (Lindsay 2016 family).
+
+        Breaching is the structural alternative to filling: instead of raising the pit
+        floor, it cuts a channel through the lowest barrier between the pit and an
+        outlet. On LiDAR DEMs this is usually more realistic — most internal pits are
+        data artefacts and the natural drainage path is preserved by cutting the artefact
+        away rather than inflating the surrounding terrain.
+
+        Three methods are available via the ``method`` argument:
+
+        * ``"single_cell"`` — cheap O(n) preprocessing pass that resolves isolated 1-cell
+          pits by lowering an intermediate first-order neighbour to the midpoint of the
+          pit and a lower second-order cell. Does nothing if no such configuration exists.
+        * ``"least_cost"`` (default) — Lindsay 2016 Dijkstra-from-each-pit. Carves a
+          strictly monotonic channel from the pit to the nearest outlet. Optional
+          ``max_depth`` and ``max_length`` constraints abort the breach for any pit whose
+          channel would exceed them; aborted pits are left unresolved.
+        * ``"hybrid"`` — try ``least_cost`` first; pits that fail their constraint fall
+          back to the Priority-Flood depression fill (P2). The breach phase has already
+          lowered parts of the DEM where partial breaching occurred, so the fill operates
+          on a modified surface and produces less overall lift than fill-only.
+
+        No-data cells act as free outlets — any Dijkstra path that reaches a no-data cell
+        terminates the search.
+
+        Args:
+            method: One of ``"single_cell"``, ``"least_cost"``, ``"hybrid"``.
+            max_depth: Maximum cumulative ``|Δz|`` for a single breach path. ``None``
+                disables the constraint.
+            max_length: Maximum path length in cells. ``None`` disables.
+            fill_remaining: Only meaningful when ``method="hybrid"``. If ``True``
+                (default), unresolved pits are passed to Priority-Flood with
+                ``epsilon=0``. If ``False``, they are left as pits in the output.
+            inplace: If ``True`` the current instance is updated in place and ``None`` is
+                returned. If ``False`` (default) a new ``DEM`` is returned.
+
+        Returns:
+            DEM | None: A new ``DEM`` containing the breached elevation, or ``None`` when
+            ``inplace`` is ``True``.
+
+        Raises:
+            ValueError: If ``method`` is unknown.
+        """
+        elev = self.values
+        nodata_mask = np.isnan(elev)
+        z_out = _breach_depressions_array(
+            elev.astype(np.float64, copy=False),
+            nodata_mask=nodata_mask,
+            method=method,
+            max_depth=max_depth,
+            max_length=max_length,
+            fill_remaining=fill_remaining,
+        )
+        no_val = self.no_data_value[0]
+        z_out[np.isnan(z_out)] = no_val
+        plain_ds = Dataset.dataset_like(self, z_out.astype(elev.dtype, copy=False))
         if inplace:
             self._update_inplace(plain_ds.raster)
             return None

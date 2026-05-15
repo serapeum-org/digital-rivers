@@ -33,6 +33,51 @@ _NEIGHBOURS_8: tuple[tuple[int, int], ...] = (
 VALID_METHODS: frozenset[str] = frozenset({"priority_flood", "wang_liu", "planchon_darboux"})
 
 
+def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.ndarray:
+    """Boolean mask of cells strictly lower than all 8 valid neighbours.
+
+    Boundary cells (first/last row and column) are excluded — they have fewer than 8
+    neighbours and the comparison is ill-defined. NaN cells (and cells flagged by
+    ``nodata_mask`` if provided) are excluded from the output AND ignored when computing
+    a candidate cell's neighbour minimum.
+
+    This is the generic local-minima detector that the breach algorithm uses to find pits
+    and the depression-fill tests use as a "no internal sinks remain" assertion. It is
+    earmarked for promotion to ``pyramids.morphology`` (see
+    ``planning/pyramids/pyramids-feat-morphology-utils.md``).
+
+    Args:
+        z: 2-D float array. NaN marks no-data unless a separate ``nodata_mask`` is given.
+        nodata_mask: Optional 2-D bool array, True at no-data cells. Combined with NaN
+            positions in ``z`` if both are present.
+
+    Returns:
+        2-D bool array, True at strict 8-connected local minima.
+    """
+    if z.ndim != 2:
+        raise ValueError(f"local_minima_8 expects a 2-D array; got {z.ndim}-D")
+    nan_mask = np.isnan(z)
+    if nodata_mask is not None:
+        nan_mask = nan_mask | nodata_mask.astype(bool, copy=False)
+    rows, cols = z.shape
+    out = np.zeros((rows, cols), dtype=bool)
+    for r in range(1, rows - 1):
+        for c in range(1, cols - 1):
+            if nan_mask[r, c]:
+                continue
+            window = z[r - 1 : r + 2, c - 1 : c + 2]
+            others = np.delete(window.ravel(), 4)
+            valid = ~np.isnan(others)
+            if nodata_mask is not None:
+                nm_window = nodata_mask[r - 1 : r + 2, c - 1 : c + 2]
+                valid = valid & ~np.delete(nm_window.ravel(), 4)
+            if not valid.any():
+                continue
+            if z[r, c] < others[valid].min():
+                out[r, c] = True
+    return out
+
+
 def _nodata_adjacent(nodata_mask: np.ndarray) -> np.ndarray:
     """Boolean mask of data cells touching a no-data cell (8-connectivity).
 

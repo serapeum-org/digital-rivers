@@ -17,6 +17,7 @@ from digitalrivers._pitremoval import (
     _nodata_adjacent,
     _seed_mask,
     fill_depressions,
+    local_minima_8,
 )
 
 
@@ -59,26 +60,9 @@ PIT_IN_PIT_6x6_FLAT_FILL = np.full((6, 6), 9.0, dtype=np.float64)
 
 # ----- helpers --------------------------------------------------------------------------------
 
-def _internal_sinks_mask(z: np.ndarray) -> np.ndarray:
-    """True at cells strictly lower than all 8 valid neighbours; ignores boundary + nodata.
-
-    Used to verify "no internal sinks remain" after a fill.
-    """
-    rows, cols = z.shape
-    nan_mask = np.isnan(z)
-    out = np.zeros((rows, cols), dtype=bool)
-    for r in range(1, rows - 1):
-        for c in range(1, cols - 1):
-            if nan_mask[r, c]:
-                continue
-            window = z[r - 1 : r + 2, c - 1 : c + 2].copy()
-            window[1, 1] = np.inf
-            valid = ~np.isnan(window)
-            if not valid.any():
-                continue
-            if z[r, c] < np.nanmin(window):
-                out[r, c] = True
-    return out
+# Local-minima detection now lives in digitalrivers._pitremoval.local_minima_8 (moved out
+# of this test file in P3; previously inlined here as _internal_sinks_mask).
+_internal_sinks_mask = local_minima_8
 
 
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
