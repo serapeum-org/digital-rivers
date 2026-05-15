@@ -2,6 +2,7 @@ import numpy as np
 from osgeo import gdal
 from geopandas import GeoDataFrame
 from digitalrivers.dem import DEM
+from digitalrivers.flow_direction import FlowDirection
 from pyramids.dataset import Dataset
 
 
@@ -71,7 +72,11 @@ class TestFlowDirection:
         coello_outfall.to_crs(dem.epsg, inplace=True)
         coello_outfall["direction"] = 6
         fd = dem.flow_direction(forced_direction=coello_outfall)
-        assert isinstance(fd, Dataset)
+        # Strict-type assertion: must be exactly FlowDirection, not a DEM
+        # (today's behaviour without P1) and not just any Dataset subclass.
+        assert type(fd) is FlowDirection
+        assert fd.routing == "d8"
+        assert fd.encoding == "digitalrivers"
         assert fd.no_data_value == (Dataset.default_no_data_value,)
         assert fd.dtype == ["int32"]
         arr = fd.read_array()

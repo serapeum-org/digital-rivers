@@ -10,6 +10,8 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
+from digitalrivers.flow_direction import FlowDirection
+
 #: D8 direction offsets mapping direction index to (column_offset, row_offset).
 #:
 #: Directions follow the convention:
@@ -197,7 +199,7 @@ class DEM(Dataset):
         """
         raise NotImplementedError("set_outflow is not yet implemented.")
 
-    def flow_direction(self, forced_direction: GeoDataFrame = None) -> "Dataset":
+    def flow_direction(self, forced_direction: GeoDataFrame = None) -> FlowDirection:
         """Derive the D8 flow-direction raster from the DEM.
 
         For each cell the direction with the steepest downhill slope is
@@ -212,28 +214,20 @@ class DEM(Dataset):
                 direction regardless of the computed slope.
 
         Returns:
-            Dataset: ``int32`` raster with cell values in ``{0 .. 7}``
-                following the ``DIR_OFFSETS`` convention.  No-data cells
-                are filled with ``Dataset.default_no_data_value``.
+            FlowDirection: ``int32`` raster with cell values in ``{0 .. 7}``
+                following the ``DIR_OFFSETS`` convention, tagged with
+                ``routing="d8"`` and ``encoding="digitalrivers"``. No-data
+                cells are filled with ``Dataset.default_no_data_value``.
         """
         elev = self.values
         slopes = self._get_8_direction_slopes()
-        # Create a mask for non-NaN cells in the elevation array
         mask = ~np.isnan(elev)
-
-        # Create a mask for cells with at least one non-NaN slope
         valid_mask = ~np.all(np.isnan(slopes), axis=2)
-
-        # Combine masks to identify cells where calculations should be done
         valid_cells_mask = mask & valid_mask
 
-        # Initialize the flow_direction array with NaN values
         flow_direction = np.full(
             elev.shape, Dataset.default_no_data_value, dtype=np.int32
         )
-
-        # Apply np.nanargmax only where the mask is True to get the index of the maximum slope
-        # hence, the flow direction.
         flow_direction[valid_cells_mask] = np.nanargmax(
             slopes[valid_cells_mask], axis=1
         )
@@ -243,11 +237,18 @@ class DEM(Dataset):
             for i, ind in enumerate(indices):
                 flow_direction[tuple(ind)] = forced_direction.loc[i, "direction"]
 
-        src = self.create_from_array(
-            flow_direction, geo=self.geotransform, epsg=self.epsg,
+        # Build a plain Dataset (cls=Dataset on the classmethod call so we don't
+        # get a DEM back), then wrap with the typed FlowDirection. Calling
+        # FlowDirection.create_from_array directly would raise TypeError because
+        # pyramids' inner cls(dst, access="write") cannot supply routing — that
+        # raise is the safety property, so we route around it explicitly here.
+        plain_ds = Dataset.create_from_array(
+            flow_direction,
+            geo=self.geotransform,
+            epsg=self.epsg,
             no_data_value=self.default_no_data_value,
         )
-        return src
+        return FlowDirection.from_dataset(plain_ds, routing="d8")
 
     def accumulate_flow(self, r, c, flow_dir, acc, dir_offsets) -> int:
         """Count upstream cells that drain into ``(r, c)`` (iterative).
