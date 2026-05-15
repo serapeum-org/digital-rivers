@@ -221,6 +221,158 @@ class FlowDirection(Dataset):
             return np.ones(band0.shape, dtype=bool)
         return band0 != no_val
 
+    def upscale(
+        self,
+        scale_factor: int,
+        method: str = "cotat",
+        accumulation=None,
+        dem=None,
+        area_threshold_cells: int | None = None,
+    ) -> tuple:
+        """Upscale the flow-direction raster by an integer factor.
+
+        Three classical methods are specified by P18; this initial
+        implementation ships ``"cotat"`` (Reed 2003 — Cell Outlet Tracing
+        with an Area Threshold). EAM (Olivera 2002) and DMM raise
+        ``NotImplementedError`` pending a follow-up.
+
+        COTAT algorithm (per coarse cell):
+
+        1. Find the fine cell with the highest accumulation in the
+           scale_factor × scale_factor block. This is the coarse cell's
+           outlet.
+        2. Trace downstream from that fine outlet along the fine
+           ``fdir`` until leaving the block.
+        3. The direction from the source coarse cell to the destination
+           coarse cell becomes the coarse cell's D8 flow direction.
+
+        Args:
+            scale_factor: Integer aggregation factor (>= 1).
+            method: ``"cotat"`` (default); ``"eam"`` / ``"dmm"`` raise
+                ``NotImplementedError``.
+            accumulation: ``Accumulation`` aligned to this FlowDirection;
+                required for COTAT (used to pick the per-block outlet).
+            dem: Optional ``DEM`` aligned to this FlowDirection — when
+                supplied, the returned ``upscaled_dem`` reports the
+                elevation of each coarse cell's outlet (Reed 2003).
+            area_threshold_cells: Reserved for COTAT+ branch-cutoff
+                refinement; currently ignored.
+
+        Returns:
+            Tuple ``(upscaled_dem, upscaled_fdir)``. If ``dem`` is
+            ``None`` the first element is ``None`` and the caller is
+            expected to recompute elevations from a coarsened DEM.
+
+        Raises:
+            NotImplementedError: For methods other than ``"cotat"``.
+            ValueError: If ``scale_factor < 1`` or ``accumulation`` is
+                missing for COTAT.
+        """
+        import numpy as np
+
+        from digitalrivers.accumulation import Accumulation
+
+        if scale_factor < 1:
+            raise ValueError(
+                f"scale_factor must be >= 1; got {scale_factor}"
+            )
+        if scale_factor == 1:
+            return (dem, FlowDirection.from_dataset(
+                Dataset(self.raster), routing=self.routing,
+                encoding=self.encoding,
+            ))
+        if method != "cotat":
+            raise NotImplementedError(
+                f"method={method!r} not yet implemented (only 'cotat')"
+            )
+        if not isinstance(accumulation, Accumulation):
+            raise ValueError("COTAT requires an Accumulation input")
+
+        fdir = self.read_array().astype(np.int32, copy=False)
+        acc = accumulation.read_array().astype(np.float64, copy=False)
+        if fdir.shape != acc.shape:
+            raise ValueError(
+                f"accumulation shape {acc.shape} != flow_direction shape "
+                f"{fdir.shape}"
+            )
+
+        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
+        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        rows, cols = fdir.shape
+        out_rows = rows // scale_factor
+        out_cols = cols // scale_factor
+        coarse_fdir = np.full(
+            (out_rows, out_cols), Dataset.default_no_data_value, dtype=np.int32,
+        )
+
+        z = None
+        if dem is not None:
+            z = dem.read_array().astype(np.float64, copy=False)
+            coarse_z = np.full(
+                (out_rows, out_cols), Dataset.default_no_data_value,
+                dtype=np.float32,
+            )
+
+        for br in range(out_rows):
+            for bc in range(out_cols):
+                r_lo = br * scale_factor
+                r_hi = r_lo + scale_factor
+                c_lo = bc * scale_factor
+                c_hi = c_lo + scale_factor
+                block = acc[r_lo:r_hi, c_lo:c_hi]
+                best = np.unravel_index(int(np.argmax(block)), block.shape)
+                fr = r_lo + int(best[0])
+                fc = c_lo + int(best[1])
+                if z is not None:
+                    coarse_z[br, bc] = float(z[fr, fc]) if np.isfinite(z[fr, fc]) else Dataset.default_no_data_value
+                r, c = fr, fc
+                # Trace downstream until exiting the block.
+                while True:
+                    d = int(fdir[r, c])
+                    if d < 0 or d > 7:
+                        break
+                    nr = r + int(d_row[d])
+                    nc = c + int(d_col[d])
+                    if not (0 <= nr < rows and 0 <= nc < cols):
+                        break
+                    coarse_dr = (nr // scale_factor) - br
+                    coarse_dc = (nc // scale_factor) - bc
+                    if coarse_dr != 0 or coarse_dc != 0:
+                        # Find direction code matching (coarse_dr, coarse_dc).
+                        for k in range(8):
+                            if (
+                                int(d_row[k]) == coarse_dr
+                                and int(d_col[k]) == coarse_dc
+                            ):
+                                coarse_fdir[br, bc] = k
+                                break
+                        break
+                    r, c = nr, nc
+
+        # Build coarse geotransform.
+        gt = self.geotransform
+        coarse_gt = (
+            gt[0], gt[1] * scale_factor, gt[2],
+            gt[3], gt[4], gt[5] * scale_factor,
+        )
+        plain_fdir = Dataset.create_from_array(
+            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            no_data_value=Dataset.default_no_data_value,
+        )
+        upscaled_fdir = FlowDirection.from_dataset(
+            plain_fdir, routing="d8", encoding=self.encoding,
+        )
+        if z is not None:
+            from digitalrivers.dem import DEM as _DEM
+            plain_dem = Dataset.create_from_array(
+                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                no_data_value=Dataset.default_no_data_value,
+            )
+            upscaled_dem = _DEM(plain_dem.raster)
+        else:
+            upscaled_dem = None
+        return upscaled_dem, upscaled_fdir
+
     def subbasins_pfafstetter(
         self,
         accumulation,
