@@ -9,7 +9,7 @@ color_file = f"{path}/daymet_v4_temperature_palette_-20_40.txt"
 output_path = f"daymet_v4_tmax_annavg_na_2022_color99999.tif"
 # %%
 max_dataset = Terrain.read_file(f"{path}/daymet_v4_tmax_annavg_na_2022.tif")
-# max_dataset.plot(cmap="RdYlBu")
+cleo = max_dataset.plot(cmap="RdYlBu")
 df = pd.read_csv(color_file, header=None)
 df.columns = ["values", "red", "green", "blue", "alpha"]
 color_relief = max_dataset.color_relief(band=0, color_table=df)
