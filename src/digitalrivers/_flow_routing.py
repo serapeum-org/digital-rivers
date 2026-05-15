@@ -93,6 +93,18 @@ def dinf_flow_direction(
                 no-data, all-flat neighbourhoods).
             magnitude: ``(rows, cols)`` float32, slope magnitude along the chosen
                 facet. ``0.0`` where ``angle == -1``.
+
+    Examples:
+        - A planar surface tilted so water flows east (``Z = -x``) gives an
+          aspect angle ≈ 0 (CCW from east) on interior cells:
+
+            >>> import numpy as np
+            >>> z = -np.arange(5, dtype=float)[None, :].repeat(5, axis=0)
+            >>> angle, magnitude = dinf_flow_direction(z, cell_size=1.0)
+            >>> bool(abs(angle[2, 2]) < 0.05)
+            True
+            >>> bool(magnitude[2, 2] > 0.9)
+            True
     """
     rows, cols = z.shape
     padded = _padded_elevation(z)

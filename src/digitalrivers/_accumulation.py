@@ -121,6 +121,18 @@ def kahn_accumulate(
         ``(rows, cols)`` float64 accumulation grid. ``out[cell]`` is the sum of
         ``weights`` over all strictly-upstream cells (not including ``cell``
         itself), weighted by propagation fractions along each path.
+
+    Examples:
+        - A 3-cell east-flowing chain accumulates upstream cells at the outlet:
+
+            >>> import numpy as np
+            >>> receivers = np.array([[[6], [6], [-1]]], dtype=np.int8)
+            >>> proportions = np.array([[[1.0], [1.0], [0.0]]], dtype=np.float32)
+            >>> weights = np.ones((1, 3))
+            >>> valid = np.ones((1, 3), dtype=bool)
+            >>> out = kahn_accumulate(receivers, proportions, weights, valid)
+            >>> [float(x) for x in out[0]]
+            [0.0, 1.0, 2.0]
     """
     rows, cols, K = receivers.shape
 

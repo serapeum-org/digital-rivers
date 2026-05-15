@@ -53,6 +53,30 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
 
     Returns:
         2-D bool array, True at strict 8-connected local minima.
+
+    Examples:
+        - Single pit at the centre of a 5×5 grid is flagged:
+
+            >>> import numpy as np
+            >>> z = np.array([
+            ...     [5., 5., 5., 5., 5.],
+            ...     [5., 4., 4., 4., 5.],
+            ...     [5., 4., 1., 4., 5.],
+            ...     [5., 4., 4., 4., 5.],
+            ...     [5., 5., 5., 5., 5.],
+            ... ])
+            >>> mask = local_minima_8(z)
+            >>> bool(mask[2, 2])
+            True
+            >>> int(mask.sum())
+            1
+
+        - A monotonic ramp has no internal local minima:
+
+            >>> import numpy as np
+            >>> z = np.arange(16, dtype=float).reshape(4, 4)
+            >>> local_minima_8(z).any()
+            np.False_
     """
     if z.ndim != 2:
         raise ValueError(f"local_minima_8 expects a 2-D array; got {z.ndim}-D")

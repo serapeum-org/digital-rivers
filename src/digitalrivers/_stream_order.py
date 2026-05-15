@@ -86,6 +86,26 @@ def strahler(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
 
     Returns:
         ``(rows, cols)`` uint16 of Strahler orders. Non-stream cells hold ``0``.
+
+    Examples:
+        - Two single-cell head tributaries meeting at a confluence promote the
+          downstream trunk to order 2:
+
+            >>> import numpy as np
+            >>> sm = np.zeros((4, 3), dtype=bool)
+            >>> sm[0, 0] = sm[0, 2] = True
+            >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
+            >>> fd = np.array([
+            ...     [7, -1,  1],
+            ...     [-1, 0, -1],
+            ...     [-1, 0, -1],
+            ...     [-1, -1, -1],
+            ... ], dtype=np.int32)
+            >>> order = strahler(sm, fd)
+            >>> int(order[0, 0])
+            1
+            >>> int(order[3, 1])
+            2
     """
     rows, cols = stream_mask.shape
     out = np.zeros((rows, cols), dtype=np.uint16)
@@ -136,6 +156,25 @@ def shreve(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
         ``(rows, cols)`` uint32 of Shreve magnitudes. Non-stream cells hold ``0``.
         ``uint32`` rather than ``uint16`` because magnitudes are total head
         counts and easily exceed 65 535 on continental basins.
+
+    Examples:
+        - A 2-head Y-junction produces magnitude 1 at each head and 2 at the outlet:
+
+            >>> import numpy as np
+            >>> sm = np.zeros((4, 3), dtype=bool)
+            >>> sm[0, 0] = sm[0, 2] = True
+            >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
+            >>> fd = np.array([
+            ...     [7, -1,  1],
+            ...     [-1, 0, -1],
+            ...     [-1, 0, -1],
+            ...     [-1, -1, -1],
+            ... ], dtype=np.int32)
+            >>> mag = shreve(sm, fd)
+            >>> int(mag[0, 0]), int(mag[0, 2])
+            (1, 1)
+            >>> int(mag[3, 1])
+            2
     """
     rows, cols = stream_mask.shape
     out = np.zeros((rows, cols), dtype=np.uint32)

@@ -39,6 +39,22 @@ def hand_d8(
     Returns:
         ``(rows, cols)`` float64 HAND raster. Stream cells = 0; cells with no
         flow path to a stream (orphans, sinks, no-data) = NaN.
+
+    Examples:
+        - Two top-row cells drain south into a stream-row at the bottom:
+
+            >>> import numpy as np
+            >>> elev = np.array([
+            ...     [10., 8.],
+            ...     [2., 1.],
+            ... ])
+            >>> fdir = np.array([[0, 0], [-1, -1]], dtype=np.int32)
+            >>> stream_mask = np.array([[False, False], [True, True]])
+            >>> hand = hand_d8(elev, fdir, stream_mask)
+            >>> float(hand[0, 0]), float(hand[0, 1])
+            (8.0, 7.0)
+            >>> float(hand[1, 0])
+            0.0
     """
     rows, cols = elev.shape
     hand = np.full((rows, cols), np.nan, dtype=np.float64)
