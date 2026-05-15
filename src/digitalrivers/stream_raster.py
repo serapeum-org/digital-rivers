@@ -123,6 +123,68 @@ class StreamRaster(Dataset):
             threshold = float(tag)
         return cls(ds.raster, threshold=threshold, routing=resolved_routing)
 
+    def order(
+        self,
+        method: str = "strahler",
+        flow_direction=None,
+    ) -> "StreamRaster":
+        """Compute Strahler / Shreve / Horton stream order on this raster.
+
+        Args:
+            method: ``"strahler"`` (default), ``"shreve"``, or ``"horton"``.
+            flow_direction: Single-direction (``d8`` / ``rho8``) FlowDirection
+                aligned to this stream raster. Required — the topology walks
+                the flow-direction edges.
+
+        Returns:
+            A new ``StreamRaster`` whose underlying raster is uint16 (uint32
+            for ``shreve``) and holds the stream order; non-stream cells hold
+            ``0``. The returned object preserves this raster's ``threshold``
+            and ``routing`` tags for downstream consumers.
+
+        Raises:
+            ValueError: If ``method`` is unknown or ``flow_direction`` is
+                missing / multi-direction.
+        """
+        import numpy as np
+
+        from digitalrivers._stream_order import horton, shreve, strahler
+        from digitalrivers.flow_direction import FlowDirection
+
+        if method not in ("strahler", "shreve", "horton"):
+            raise ValueError(
+                f"method must be one of 'strahler', 'shreve', 'horton'; "
+                f"got {method!r}"
+            )
+        if not isinstance(flow_direction, FlowDirection):
+            raise ValueError(
+                "flow_direction is required and must be a FlowDirection"
+            )
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"order currently supports single-direction routing only; got "
+                f"{flow_direction.routing!r}"
+            )
+        stream_mask = self.read_array().astype(bool, copy=False)
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        if stream_mask.shape != fdir.shape:
+            raise ValueError(
+                f"flow_direction shape {fdir.shape} != stream raster shape "
+                f"{stream_mask.shape}"
+            )
+        if method == "strahler":
+            arr = strahler(stream_mask, fdir)
+        elif method == "shreve":
+            arr = shreve(stream_mask, fdir)
+        else:
+            arr = horton(stream_mask, fdir)
+        plain = Dataset.create_from_array(
+            arr, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+        )
+        return StreamRaster.from_dataset(
+            plain, threshold=self.threshold, routing=self.routing
+        )
+
     def to_vector(
         self,
         flow_direction,
