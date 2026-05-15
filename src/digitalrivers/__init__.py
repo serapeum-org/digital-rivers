@@ -35,8 +35,12 @@ from digitalrivers.dem import DEM
 from digitalrivers.flow_direction import FlowDirection
 from digitalrivers.stream_raster import StreamRaster
 from digitalrivers.terrain import Terrain
+from digitalrivers.watershed_raster import WatershedRaster
 
-__all__ = ["DEM", "Terrain", "FlowDirection", "Accumulation", "StreamRaster"]
+__all__ = [
+    "DEM", "Terrain", "FlowDirection", "Accumulation", "StreamRaster",
+    "WatershedRaster",
+]
 
 __doc__ = """
 digital-rivers - GIS utility package

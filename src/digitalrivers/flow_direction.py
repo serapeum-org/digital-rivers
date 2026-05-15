@@ -221,6 +221,98 @@ class FlowDirection(Dataset):
             return np.ones(band0.shape, dtype=bool)
         return band0 != no_val
 
+    def watershed(
+        self,
+        pour_points,
+        require_unique_basins: bool = False,
+    ) -> "WatershedRaster":  # noqa: F821
+        """Delineate the upstream watershed of each pour point.
+
+        Reverse-BFS from every pour-point cell, labelling every contributing
+        cell with the pour point's 1-based basin ID. Multi-point inputs
+        produce a labelled raster (one ID per pour point).
+
+        Args:
+            pour_points: ``GeoDataFrame`` of Point geometries — one row per
+                desired basin. Points outside the raster envelope are skipped
+                with a NaN entry in the returned ``outlets`` GeoDataFrame.
+            require_unique_basins: If False (default), inner pour points
+                overwrite the outer basin's cells along shared upstream
+                paths — the outer basin contains a hole around the inner
+                basin. If True, the first seed to claim a cell keeps it; the
+                outer basin contains no inner-basin cells.
+
+        Returns:
+            :class:`WatershedRaster` tagged with this FlowDirection's routing.
+            The ``outlets`` attribute is a GeoDataFrame parallel to the input
+            ``pour_points``.
+        """
+        import numpy as np
+
+        from digitalrivers._watershed import watershed_d8
+        from digitalrivers.watershed_raster import WatershedRaster
+
+        if self.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"watershed currently supports single-direction routing only; "
+                f"got {self.routing!r}"
+            )
+
+        target_epsg = self.epsg
+        if (
+            getattr(pour_points, "crs", None) is not None
+            and target_epsg is not None
+            and pour_points.crs.to_epsg() != target_epsg
+        ):
+            pour_points = pour_points.to_crs(target_epsg)
+
+        fdir = self.read_array().astype(np.int32, copy=False)
+        rows, cols = fdir.shape
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+
+        seeds: list[tuple[int, int]] = []
+        basin_ids: list[int] = []
+        outlet_records: list[dict] = []
+        for i, pt in enumerate(pour_points.geometry):
+            px, py = float(pt.x), float(pt.y)
+            col = int((px - x0) / dx)
+            row = int((py - y0) / dy)
+            bid = i + 1
+            if 0 <= row < rows and 0 <= col < cols:
+                seeds.append((row, col))
+                basin_ids.append(bid)
+                outlet_records.append({
+                    "basin_id": bid, "row": row, "col": col,
+                    "x": x0 + (col + 0.5) * dx,
+                    "y": y0 + (row + 0.5) * dy,
+                })
+            else:
+                outlet_records.append({
+                    "basin_id": bid, "row": -1, "col": -1,
+                    "x": float("nan"), "y": float("nan"),
+                })
+
+        basins = watershed_d8(fdir, seeds, basin_ids,
+                              require_unique_basins=require_unique_basins)
+        plain = Dataset.create_from_array(
+            basins, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+        )
+
+        import geopandas as gpd
+        from shapely.geometry import Point
+        outlets_gdf = gpd.GeoDataFrame(
+            outlet_records,
+            geometry=[
+                Point(rec["x"], rec["y"]) if not (rec["row"] < 0) else None
+                for rec in outlet_records
+            ],
+            crs=target_epsg,
+        )
+        return WatershedRaster.from_dataset(
+            plain, routing=self.routing, outlets=outlets_gdf,
+        )
+
     def __repr__(self) -> str:
         return (
             f"<FlowDirection rows={self.rows} cols={self.columns} "
