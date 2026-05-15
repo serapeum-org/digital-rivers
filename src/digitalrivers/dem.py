@@ -327,6 +327,127 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
+    def burn_streams(
+        self,
+        streams,
+        method: str = "fill_burn",
+        *,
+        sharp: float = 10.0,
+        smooth: float = 2.0,
+        buffer_cells: int = 5,
+        constant_drop: float = 1.0,
+        max_breach_depth: float | None = None,
+        max_breach_length: int | None = None,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Condition the DEM by burning a vector stream network into it.
+
+        Three methods are specified by P20; this implementation ships
+        ``"fill_burn"`` (Saunders 1999 — used by WhiteboxTools' FillBurn) as
+        the default. ``"agree"`` (Hellweger 1997) and
+        ``"topological_breach"`` (Lindsay 2016) raise ``NotImplementedError``.
+
+        Fill-burn algorithm:
+
+        1. Rasterise every LineString in ``streams`` onto a stream mask.
+        2. Lower every stream cell's elevation by ``constant_drop``.
+        3. Run ``fill_depressions(method="priority_flood")`` so the
+           surrounding cells drain naturally into the channel.
+
+        Args:
+            streams: ``GeoDataFrame`` of LineString geometries.
+            method: ``"fill_burn"`` (default); ``"agree"`` and
+                ``"topological_breach"`` raise ``NotImplementedError``.
+            sharp / smooth / buffer_cells: AGREE parameters (unused for
+                fill_burn).
+            constant_drop: Elevation drop applied to every stream cell
+                in fill_burn (default 1.0 map unit).
+            max_breach_depth / max_breach_length: topological_breach
+                parameters (unused for fill_burn).
+            inplace: If True, update the instance; else return a new DEM.
+
+        Returns:
+            DEM | None: New DEM with the conditioned surface, or None when
+            ``inplace=True``.
+        """
+        import numpy as np
+
+        if method != "fill_burn":
+            raise NotImplementedError(
+                f"method={method!r} not yet implemented (only 'fill_burn')"
+            )
+
+        elev = self.values
+        rows, cols = elev.shape
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+        stream_mask = np.zeros((rows, cols), dtype=bool)
+
+        target_epsg = self.epsg
+        if (
+            getattr(streams, "crs", None) is not None
+            and target_epsg is not None
+            and streams.crs.to_epsg() != target_epsg
+        ):
+            streams = streams.to_crs(target_epsg)
+
+        for geom in streams.geometry:
+            if geom is None or geom.is_empty:
+                continue
+            try:
+                coords = list(geom.coords)
+            except NotImplementedError:
+                # MultiLineString — iterate each segment.
+                for sub in geom.geoms:
+                    self._rasterise_line(sub, stream_mask, gt)
+                continue
+            for (x1, y1), (x2, y2) in zip(coords[:-1], coords[1:]):
+                c1 = (x1 - x0) / dx
+                r1 = (y1 - y0) / dy
+                c2 = (x2 - x0) / dx
+                r2 = (y2 - y0) / dy
+                steps = max(int(abs(r2 - r1)), int(abs(c2 - c1)), 1)
+                for i in range(steps + 1):
+                    t = i / steps
+                    r = int(round(r1 + t * (r2 - r1)))
+                    c = int(round(c1 + t * (c2 - c1)))
+                    if 0 <= r < rows and 0 <= c < cols:
+                        stream_mask[r, c] = True
+
+        z = elev.astype(np.float64, copy=True)
+        z[stream_mask] = z[stream_mask] - constant_drop
+        nodata_mask = np.isnan(z)
+        z = _fill_depressions_array(
+            z, nodata_mask=nodata_mask, method="priority_flood", epsilon=0.0,
+        )
+        no_val = self.no_data_value[0]
+        z[np.isnan(z)] = no_val
+        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def _rasterise_line(self, geom, mask, gt):
+        """Rasterise a single LineString into ``mask`` using the supplied
+        geotransform. Helper for ``burn_streams`` MultiLineString handling.
+        """
+        x0, dx, _, y0, _, dy = gt
+        rows, cols = mask.shape
+        coords = list(geom.coords)
+        for (x1, y1), (x2, y2) in zip(coords[:-1], coords[1:]):
+            c1 = (x1 - x0) / dx
+            r1 = (y1 - y0) / dy
+            c2 = (x2 - x0) / dx
+            r2 = (y2 - y0) / dy
+            steps = max(int(abs(r2 - r1)), int(abs(c2 - c1)), 1)
+            for i in range(steps + 1):
+                t = i / steps
+                r = int(round(r1 + t * (r2 - r1)))
+                c = int(round(c1 + t * (c2 - c1)))
+                if 0 <= r < rows and 0 <= c < cols:
+                    mask[r, c] = True
+
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
         """Deprecated alias for ``fill_depressions(method="priority_flood", epsilon=0.1)``.
 
