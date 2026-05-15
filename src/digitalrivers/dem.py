@@ -15,6 +15,11 @@ from pyramids.dataset import Dataset
 
 from digitalrivers._breach import breach_depressions as _breach_depressions_array
 from digitalrivers._flats import resolve_flats as _resolve_flats_array
+from digitalrivers._flow_routing import (
+    dinf_flow_direction as _dinf_flow_direction,
+    mfd_flow_direction as _mfd_flow_direction,
+    rho8_flow_direction as _rho8_flow_direction,
+)
 from digitalrivers._pitremoval import fill_depressions as _fill_depressions_array
 from digitalrivers.flow_direction import FlowDirection
 
@@ -388,56 +393,120 @@ class DEM(Dataset):
         """
         raise NotImplementedError("set_outflow is not yet implemented.")
 
-    def flow_direction(self, forced_direction: GeoDataFrame = None) -> FlowDirection:
-        """Derive the D8 flow-direction raster from the DEM.
+    def flow_direction(
+        self,
+        method: str = "d8",
+        exponent: float = 1.0,
+        forced: GeoDataFrame | None = None,
+        seed: int | None = None,
+        forced_direction: GeoDataFrame | None = None,
+    ) -> FlowDirection:
+        """Derive a flow-direction raster from the DEM under one of five routing schemes.
 
-        For each cell the direction with the steepest downhill slope is
-        selected (``nanargmax`` over the eight neighbours).  Cells that
-        are entirely ``NaN`` or have no valid slope receive the default
-        no-data value.
+        Schemes:
+
+        * ``"d8"`` (default) — O'Callaghan & Mark (1984). Single-direction steepest
+          descent. Output: 1-band ``int32`` raster of direction codes 0–7 following
+          ``DIR_OFFSETS``.
+        * ``"dinf"`` — Tarboton (1997). Output: 2-band ``float32`` raster. Band 0 is
+          the aspect angle in radians CCW from east in ``[0, 2π)``; band 1 is the
+          slope magnitude along the chosen facet. ``-1.0`` in band 0 marks sinks /
+          no-data.
+        * ``"mfd_quinn"`` — Quinn et al. (1991). Multi-direction with contour-length
+          weighting. Output: 8-band ``float32`` raster of partition fractions,
+          ordered by ``DIR_OFFSETS``. Per-cell fractions sum to 1.0 (or all zero
+          for sinks).
+        * ``"mfd_holmgren"`` — Holmgren (1994). Same family as Quinn but tunable
+          ``exponent`` (default 1.0 mimics Quinn; 4–6 mimics D8). 8-band output.
+        * ``"rho8"`` — Fairfield & Leymarie (1991). Stochastic single-direction;
+          cardinal slopes are perturbed before the steepest-neighbour pick. Pass
+          ``seed`` for reproducibility. 1-band ``int32`` output like D8.
 
         Args:
-            forced_direction: Optional GeoDataFrame with columns
-                ``geometry`` (point) and ``direction`` (int 0–7).  Cells
-                at the given locations are overridden with the supplied
-                direction regardless of the computed slope.
+            method: Routing scheme — one of ``"d8"``, ``"dinf"``, ``"mfd_quinn"``,
+                ``"mfd_holmgren"``, ``"rho8"``.
+            exponent: ``p`` for ``mfd_holmgren`` and ``mfd_quinn``. Ignored otherwise.
+            forced: Optional GeoDataFrame with columns ``geometry`` (point) and
+                ``direction`` (int 0–7) — cells at the given locations are forced
+                to that D8 direction code regardless of the computed slope. Only
+                meaningful for ``"d8"`` and ``"rho8"``.
+            seed: Random seed for ``"rho8"`` reproducibility.
+            forced_direction: Deprecated alias for ``forced``. If both are given,
+                ``forced`` wins.
 
         Returns:
-            FlowDirection: ``int32`` raster with cell values in ``{0 .. 7}``
-                following the ``DIR_OFFSETS`` convention, tagged with
-                ``routing="d8"`` and ``encoding="digitalrivers"``. No-data
-                cells are filled with ``Dataset.default_no_data_value``.
+            FlowDirection: typed wrapper carrying the routing scheme and encoding.
+
+        Raises:
+            ValueError: If ``method`` is unknown.
         """
+        if forced is None and forced_direction is not None:
+            forced = forced_direction
+
+        valid_methods = {"d8", "dinf", "mfd_quinn", "mfd_holmgren", "rho8"}
+        if method not in valid_methods:
+            raise ValueError(
+                f"method must be one of {sorted(valid_methods)}; got {method!r}"
+            )
+
         elev = self.values
+        valid_mask = ~np.isnan(elev)
+
+        if method == "d8":
+            slopes = self._get_8_direction_slopes()
+            slope_valid = ~np.all(np.isnan(slopes), axis=2)
+            valid_cells_mask = valid_mask & slope_valid
+            arr = np.full(elev.shape, Dataset.default_no_data_value, dtype=np.int32)
+            arr[valid_cells_mask] = np.nanargmax(slopes[valid_cells_mask], axis=1)
+            if forced is not None:
+                indices = self.map_to_array_coordinates(forced)
+                for i, ind in enumerate(indices):
+                    arr[tuple(ind)] = forced.loc[i, "direction"]
+            plain_ds = Dataset.create_from_array(
+                arr, geo=self.geotransform, epsg=self.epsg,
+                no_data_value=self.default_no_data_value,
+            )
+            return FlowDirection.from_dataset(plain_ds, routing="d8")
+
+        if method == "rho8":
+            slopes = self._get_8_direction_slopes()
+            rng = np.random.default_rng(seed)
+            arr = _rho8_flow_direction(slopes, valid_mask, rng=rng)
+            # Replace -1 (sentinel from rho8 helper) with the dataset no-data value.
+            arr[arr < 0] = Dataset.default_no_data_value
+            if forced is not None:
+                indices = self.map_to_array_coordinates(forced)
+                for i, ind in enumerate(indices):
+                    arr[tuple(ind)] = forced.loc[i, "direction"]
+            plain_ds = Dataset.create_from_array(
+                arr.astype(np.int32, copy=False),
+                geo=self.geotransform, epsg=self.epsg,
+                no_data_value=self.default_no_data_value,
+            )
+            return FlowDirection.from_dataset(plain_ds, routing="rho8")
+
+        if method == "dinf":
+            angle, magnitude = _dinf_flow_direction(elev, self.cell_size)
+            stacked = np.stack([angle, magnitude], axis=0).astype(np.float32, copy=False)
+            plain_ds = Dataset.create_from_array(
+                stacked, geo=self.geotransform, epsg=self.epsg,
+                no_data_value=self.default_no_data_value,
+            )
+            return FlowDirection.from_dataset(plain_ds, routing="dinf")
+
+        # mfd_quinn or mfd_holmgren
         slopes = self._get_8_direction_slopes()
-        mask = ~np.isnan(elev)
-        valid_mask = ~np.all(np.isnan(slopes), axis=2)
-        valid_cells_mask = mask & valid_mask
-
-        flow_direction = np.full(
-            elev.shape, Dataset.default_no_data_value, dtype=np.int32
+        weighting = "quinn" if method == "mfd_quinn" else "holmgren"
+        fractions = _mfd_flow_direction(
+            slopes, valid_mask, weighting=weighting, exponent=exponent,
         )
-        flow_direction[valid_cells_mask] = np.nanargmax(
-            slopes[valid_cells_mask], axis=1
-        )
-
-        if forced_direction is not None:
-            indices = self.map_to_array_coordinates(forced_direction)
-            for i, ind in enumerate(indices):
-                flow_direction[tuple(ind)] = forced_direction.loc[i, "direction"]
-
-        # Build a plain Dataset (cls=Dataset on the classmethod call so we don't
-        # get a DEM back), then wrap with the typed FlowDirection. Calling
-        # FlowDirection.create_from_array directly would raise TypeError because
-        # pyramids' inner cls(dst, access="write") cannot supply routing — that
-        # raise is the safety property, so we route around it explicitly here.
+        # Transpose (rows, cols, 8) -> (8, rows, cols) for pyramids's band-first layout.
+        bands = np.transpose(fractions, (2, 0, 1)).astype(np.float32, copy=False)
         plain_ds = Dataset.create_from_array(
-            flow_direction,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            bands, geo=self.geotransform, epsg=self.epsg,
             no_data_value=self.default_no_data_value,
         )
-        return FlowDirection.from_dataset(plain_ds, routing="d8")
+        return FlowDirection.from_dataset(plain_ds, routing=method)
 
     def accumulate_flow(self, r, c, flow_dir, acc, dir_offsets) -> int:
         """Count upstream cells that drain into ``(r, c)`` (iterative).
