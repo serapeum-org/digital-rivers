@@ -23,15 +23,28 @@ class TestProperties:
         assert np.isnan(arr[0, 0])
 
 
-def test_fill_sinks(coello_dem_4000: gdal.Dataset, elev_sink_free: np.ndarray):
+def test_fill_sinks_deprecated_alias(coello_dem_4000: gdal.Dataset):
+    """``DEM.fill_sinks`` now aliases ``fill_depressions(method='priority_flood', epsilon=0.1)``
+    and emits a DeprecationWarning. The historical pixel-equality fixture
+    (``elev_sink_free``) was computed by the old single-pass algorithm and is no
+    longer reproducible — behavioural assertions take its place."""
+    import warnings
+
     dem = DEM(coello_dem_4000)
-    dem_filled = dem.fill_sinks()
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        dem_filled = dem.fill_sinks()
+        assert any(issubclass(w.category, DeprecationWarning) for w in caught)
+
     assert isinstance(dem_filled, DEM)
     assert dem_filled.shape == dem.shape
-    assert np.array_equal(dem_filled.values, elev_sink_free, equal_nan=True)
-    # test if the changes are made inplace
-    dem_filled = dem.fill_sinks(inplace=True)
-    assert dem_filled is None
+    # The fill cannot reduce elevations, only raise them.
+    original = dem.values
+    filled = dem_filled.values
+    valid = ~np.isnan(original) & ~np.isnan(filled)
+    assert np.all(filled[valid] >= original[valid])
+    # inplace branch returns None.
+    assert dem.fill_sinks(inplace=True) is None
 
 
 class TestSlope:

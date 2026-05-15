@@ -1,15 +1,19 @@
 """DEM processing module.
 
 This module provides the ``DEM`` class for digital elevation model analysis,
-including sink filling, slope calculation, D8 flow direction, and flow
+including depression filling, slope calculation, D8 flow direction, and flow
 accumulation.
 """
 from __future__ import annotations
+
+import warnings
+
 import numpy as np
 from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
+from digitalrivers._pitremoval import fill_depressions as _fill_depressions_array
 from digitalrivers.flow_direction import FlowDirection
 
 #: D8 direction offsets mapping direction index to (column_offset, row_offset).
@@ -61,44 +65,99 @@ class DEM(Dataset):
         values[np.isclose(values, no_val, rtol=0.00001)] = np.nan
         return values
 
-    def fill_sinks(self, inplace: bool = False) -> Dataset | None:
-        """Fill single-cell sinks in the elevation surface.
+    def fill_depressions(
+        self,
+        method: str = "priority_flood",
+        epsilon: float = 0.0,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Fill closed depressions in the DEM.
 
-        A cell is considered a sink when its elevation is lower than all
-        eight surrounding cells.  Each sink is raised to the minimum
-        neighbour elevation plus 0.1 (in map units).
+        Three algorithms are available via the ``method`` argument:
 
-        Note:
-            This is a single-pass algorithm.  Cascading sinks (a sink
-            whose fill creates a new sink) may not be fully resolved.
+        * ``"priority_flood"`` (default) — Barnes, Lehman & Mulla (2014) Priority-Flood
+          with the two-queue plateau optimisation. With ``epsilon == 0`` it produces flat
+          fills; with ``epsilon > 0`` it produces a strictly monotonic surface (every cell
+          has at least one strictly lower neighbour along the flood path) at the cost of
+          a small elevation inflation proportional to plateau width.
+        * ``"wang_liu"`` — Wang & Liu (2006). Flat fill, no epsilon. Equivalent in output
+          to ``priority_flood`` with ``epsilon == 0``; kept as a named alternative for
+          callers who plan to resolve flats explicitly afterwards (P4).
+        * ``"planchon_darboux"`` — Planchon & Darboux (2002). Iterative directional-sweep
+          algorithm. Slower than Priority-Flood on large DEMs; kept as a low-relief
+          reference. Requires ``epsilon > 0``.
+
+        No-data handling is uniform across methods: cells flagged no-data act as outlets
+        (they cannot be filled, and data cells adjacent to them are seeded as drainage
+        sources alongside the true raster boundary).
 
         Args:
-            inplace: If ``True`` the current instance is modified in
-                place and ``None`` is returned.  If ``False`` (default) a
-                new ``Dataset`` is returned.
+            method: One of ``"priority_flood"``, ``"wang_liu"``, ``"planchon_darboux"``.
+            epsilon: Per-step elevation lift inside depressions. ``0.0`` (default for
+                ``priority_flood``) returns a non-strictly-decreasing surface — flats
+                remain flat. Positive values guarantee a unique downhill path at the
+                cost of slight elevation inflation. ``planchon_darboux`` requires
+                ``epsilon > 0``.
+            inplace: If ``True`` the current instance is updated in place and ``None``
+                is returned. If ``False`` (default) a new ``DEM`` is returned.
 
         Returns:
-            Dataset containing the sink-free elevation, or ``None`` when
-            *inplace* is ``True``.
+            DEM | None: A new ``DEM`` containing the filled elevation, or ``None`` when
+            ``inplace`` is ``True``.
+
+        Raises:
+            ValueError: If ``method`` is unknown, or ``planchon_darboux`` is requested
+                with ``epsilon <= 0``.
         """
         elev = self.values
+        nodata_mask = np.isnan(elev)
+        z_fill = _fill_depressions_array(
+            elev.astype(np.float64, copy=False),
+            nodata_mask=nodata_mask,
+            method=method,
+            epsilon=epsilon,
+        )
+        # Restore the original raster's no-data sentinel (the array carries NaN; the
+        # GeoTIFF needs the numeric sentinel).
+        no_val = self.no_data_value[0]
+        z_fill[nodata_mask] = no_val
 
-        elev_sinkless = np.copy(elev)
-        for i in range(1, self.rows - 1):
-            for j in range(1, self.columns - 1):
-                # Get elevation of surrounding cells
-                f = elev[i - 1 : i + 2, j - 1 : j + 2].flatten()
-                # Exclude the center cell
-                f[4] = np.nan
-                min_f = np.nanmin(f)
-                if elev_sinkless[i, j] < min_f:
-                    elev_sinkless[i, j] = min_f + 0.1
-
-        src = self.dataset_like(self, elev_sinkless)
+        # Build a plain Dataset (cls=Dataset so we don't get a DEM via cls(...)), then
+        # wrap with the typed DEM. This mirrors the pattern used in flow_direction().
+        plain_ds = Dataset.dataset_like(self, z_fill.astype(elev.dtype, copy=False))
         if inplace:
-            self._update_inplace(src.raster)
-        else:
-            return src
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def fill_sinks(self, inplace: bool = False) -> DEM | None:
+        """Deprecated alias for ``fill_depressions(method="priority_flood", epsilon=0.1)``.
+
+        The original implementation was a single-pass, single-cell sink fill that did
+        not cascade through nested pits. Calls now route through the Priority-Flood +
+        epsilon algorithm, which is correct on cascading depressions. The output
+        differs from the historical algorithm in two ways:
+
+        1. Cascading pits are fully resolved (each pit fills to the rim of its enclosing
+           pit, not just to its immediate-neighbour minimum).
+        2. Drainage paths within filled depressions inherit a 0.1-unit gradient — so
+           D8 routing on the result avoids ``NO_FLOW`` cells inside the fill.
+
+        Args:
+            inplace: If ``True`` the instance is updated in place; otherwise a new
+                ``DEM`` is returned.
+
+        Returns:
+            DEM | None: New ``DEM`` with the sink-free elevation, or ``None`` when
+            ``inplace`` is ``True``.
+        """
+        warnings.warn(
+            "DEM.fill_sinks is deprecated; use DEM.fill_depressions(method='priority_flood', "
+            "epsilon=0.1) for equivalent behaviour or method='wang_liu' for a flat fill.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.fill_depressions(method="priority_flood", epsilon=0.1, inplace=inplace)
 
     def _get_8_direction_slopes(self) -> np.ndarray:
         """Compute slopes to all eight neighbours for every cell.

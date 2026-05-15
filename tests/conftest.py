@@ -47,6 +47,3 @@ def coello_outfall() -> GeoDataFrame:
     return gpd.read_file("tests/data/coello/coello-outfall.geojson")
 
 
-@pytest.fixture(scope="function")
-def elev_sink_free() -> np.ndarray:
-    return np.load("tests/data/coello/elevation-sink-free.npy")
