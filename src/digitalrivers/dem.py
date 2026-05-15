@@ -13,6 +13,7 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
+from shapely.geometry import Point as _make_point  # noqa: N812
 from digitalrivers._breach import breach_depressions as _breach_depressions_array
 from digitalrivers._flats import resolve_flats as _resolve_flats_array
 from digitalrivers._flow_routing import (
@@ -440,13 +441,276 @@ class DEM(Dataset):
             r1 = (y1 - y0) / dy
             c2 = (x2 - x0) / dx
             r2 = (y2 - y0) / dy
-            steps = max(int(abs(r2 - r1)), int(abs(c2 - c1)), 1)
+            # 2x oversampling avoids skipping cells when the line crosses
+            # cell boundaries exactly between samples.
+            steps = max(int(abs(r2 - r1)), int(abs(c2 - c1)), 1) * 2
             for i in range(steps + 1):
                 t = i / steps
-                r = int(round(r1 + t * (r2 - r1)))
-                c = int(round(c1 + t * (c2 - c1)))
+                r = int(np.floor(r1 + t * (r2 - r1)))
+                c = int(np.floor(c1 + t * (c2 - c1)))
                 if 0 <= r < rows and 0 <= c < cols:
                     mask[r, c] = True
+
+    def enforce_culverts(
+        self,
+        roads,
+        streams,
+        culvert_drop: float = 0.5,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Lower DEM cells at every stream-road intersection by
+        ``culvert_drop`` so subsequent flow routing crosses roads instead of
+        dead-ending against them. Simplified version of WhiteboxTools'
+        ``BurnStreamsAtRoads``.
+
+        Args:
+            roads: ``GeoDataFrame`` of LineString road geometries.
+            streams: ``GeoDataFrame`` of LineString stream geometries.
+            culvert_drop: Elevation drop applied to each intersection cell.
+            inplace: If True, update the instance; else return a new DEM.
+
+        Returns:
+            DEM | None: New DEM with culverts enforced, or None when
+            ``inplace=True``.
+        """
+        import numpy as np
+
+        elev = self.values
+        rows, cols = elev.shape
+        gt = self.geotransform
+        road_mask = np.zeros((rows, cols), dtype=bool)
+        stream_mask = np.zeros((rows, cols), dtype=bool)
+        for layer, mask in ((roads, road_mask), (streams, stream_mask)):
+            target_epsg = self.epsg
+            if (
+                getattr(layer, "crs", None) is not None
+                and target_epsg is not None
+                and layer.crs.to_epsg() != target_epsg
+            ):
+                layer = layer.to_crs(target_epsg)
+            for geom in layer.geometry:
+                if geom is None or geom.is_empty:
+                    continue
+                try:
+                    coords = list(geom.coords)
+                except NotImplementedError:
+                    for sub in geom.geoms:
+                        self._rasterise_line(sub, mask, gt)
+                    continue
+                self._rasterise_line(geom, mask, gt)
+
+        crossings = road_mask & stream_mask
+        z = elev.astype(np.float64, copy=True)
+        z[crossings] = z[crossings] - culvert_drop
+        no_val = self.no_data_value[0]
+        z[np.isnan(z)] = no_val
+        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def hydroflatten(
+        self,
+        water_polygons,
+        method: str = "min",
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Flatten lake / pond surfaces to a single elevation per polygon.
+
+        For each input polygon, sample the DEM cells the polygon covers
+        and assign every cell in the polygon the per-polygon statistic
+        (``"min"`` by default — the most defensive choice for hydrology;
+        ``"mean"`` and ``"median"`` are also supported).
+
+        Args:
+            water_polygons: ``GeoDataFrame`` of Polygon / MultiPolygon
+                geometries.
+            method: ``"min"`` (default), ``"mean"``, or ``"median"``.
+            inplace: If True, update the instance; else return a new DEM.
+
+        Returns:
+            DEM | None: Hydroflattened DEM.
+        """
+        import numpy as np
+
+        if method not in ("min", "mean", "median"):
+            raise ValueError(
+                f"method must be 'min', 'mean', or 'median'; got {method!r}"
+            )
+
+        elev = self.values
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+        rows, cols = elev.shape
+
+        target_epsg = self.epsg
+        if (
+            getattr(water_polygons, "crs", None) is not None
+            and target_epsg is not None
+            and water_polygons.crs.to_epsg() != target_epsg
+        ):
+            water_polygons = water_polygons.to_crs(target_epsg)
+
+        z = elev.astype(np.float64, copy=True)
+        for geom in water_polygons.geometry:
+            if geom is None or geom.is_empty:
+                continue
+            minx, miny, maxx, maxy = geom.bounds
+            c_lo = max(0, int((minx - x0) / dx))
+            c_hi = min(cols, int((maxx - x0) / dx) + 1)
+            r_lo = max(0, int((maxy - y0) / dy))
+            r_hi = min(rows, int((miny - y0) / dy) + 1)
+            in_poly: list[tuple[int, int]] = []
+            for r in range(r_lo, r_hi):
+                for c in range(c_lo, c_hi):
+                    cx = x0 + (c + 0.5) * dx
+                    cy = y0 + (r + 0.5) * dy
+                    if geom.intersects(_make_point(cx, cy)):
+                        in_poly.append((r, c))
+            if not in_poly:
+                continue
+            vals = np.array([z[r, c] for r, c in in_poly], dtype=np.float64)
+            vals = vals[np.isfinite(vals)]
+            if vals.size == 0:
+                continue
+            if method == "min":
+                target = float(vals.min())
+            elif method == "mean":
+                target = float(vals.mean())
+            else:
+                target = float(np.median(vals))
+            for r, c in in_poly:
+                z[r, c] = target
+
+        no_val = self.no_data_value[0]
+        z[np.isnan(z)] = no_val
+        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def burn_buildings(
+        self,
+        building_polygons,
+        lift: float = 50.0,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Lift building footprints above the DEM by ``lift`` map units so
+        2D flood routing flows around them.
+
+        Args:
+            building_polygons: ``GeoDataFrame`` of Polygon geometries.
+            lift: Elevation added to every cell whose centre falls inside a
+                polygon.
+            inplace: If True, update the instance; else return a new DEM.
+
+        Returns:
+            DEM | None: DEM with buildings raised.
+        """
+        import numpy as np
+
+        elev = self.values
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+        rows, cols = elev.shape
+
+        target_epsg = self.epsg
+        if (
+            getattr(building_polygons, "crs", None) is not None
+            and target_epsg is not None
+            and building_polygons.crs.to_epsg() != target_epsg
+        ):
+            building_polygons = building_polygons.to_crs(target_epsg)
+
+        z = elev.astype(np.float64, copy=True)
+        for geom in building_polygons.geometry:
+            if geom is None or geom.is_empty:
+                continue
+            minx, miny, maxx, maxy = geom.bounds
+            c_lo = max(0, int((minx - x0) / dx))
+            c_hi = min(cols, int((maxx - x0) / dx) + 1)
+            r_lo = max(0, int((maxy - y0) / dy))
+            r_hi = min(rows, int((miny - y0) / dy) + 1)
+            for r in range(r_lo, r_hi):
+                for c in range(c_lo, c_hi):
+                    cx = x0 + (c + 0.5) * dx
+                    cy = y0 + (r + 0.5) * dy
+                    if geom.intersects(_make_point(cx, cy)):
+                        z[r, c] = z[r, c] + lift
+
+        no_val = self.no_data_value[0]
+        z[np.isnan(z)] = no_val
+        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def enforce_breaklines(
+        self,
+        breaklines,
+        lift: float = 5.0,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Raise linear barriers (levees, walls, kerbs) above the surrounding DEM.
+
+        Args:
+            breaklines: ``GeoDataFrame`` of LineString geometries.
+            lift: Elevation added at each rasterised cell along the lines.
+            inplace: If True, update the instance; else return a new DEM.
+
+        Returns:
+            DEM | None: DEM with breaklines enforced.
+        """
+        import numpy as np
+
+        elev = self.values
+        gt = self.geotransform
+        rows, cols = elev.shape
+        mask = np.zeros((rows, cols), dtype=bool)
+
+        target_epsg = self.epsg
+        if (
+            getattr(breaklines, "crs", None) is not None
+            and target_epsg is not None
+            and breaklines.crs.to_epsg() != target_epsg
+        ):
+            breaklines = breaklines.to_crs(target_epsg)
+
+        for geom in breaklines.geometry:
+            if geom is None or geom.is_empty:
+                continue
+            try:
+                _ = list(geom.coords)
+                self._rasterise_line(geom, mask, gt)
+            except NotImplementedError:
+                for sub in geom.geoms:
+                    self._rasterise_line(sub, mask, gt)
+
+        z = elev.astype(np.float64, copy=True)
+        z[mask] = z[mask] + lift
+        no_val = self.no_data_value[0]
+        z[np.isnan(z)] = no_val
+        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def anudem_interpolate(self, *args, **kwargs):
+        """ANUDEM-style drainage-enforced interpolation (Hutchinson 1989).
+
+        Not implemented — the full biharmonic + multigrid + spline solver
+        is a substantial undertaking (Phase 4 P32). For DEM conditioning
+        today, use :meth:`burn_streams` plus the Phase 1 fill / breach
+        chain instead.
+        """
+        raise NotImplementedError(
+            "ANUDEM-style interpolation is deferred to Phase 4 P32. "
+            "Use DEM.burn_streams + fill_depressions for stream conditioning."
+        )
 
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
         """Deprecated alias for ``fill_depressions(method="priority_flood", epsilon=0.1)``.
