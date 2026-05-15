@@ -40,6 +40,27 @@ def watershed_d8(
 
     Returns:
         ``(rows, cols)`` int32 basin-ID raster. Cells not in any basin are 0.
+
+    Examples:
+        - A single seed at the end of a westward chain captures every cell
+          upstream of it:
+
+            >>> import numpy as np
+            >>> fdir = np.array([[6, 6, 6, -1]], dtype=np.int32)
+            >>> basins = watershed_d8(fdir, [(0, 3)], [1])
+            >>> [int(v) for v in basins[0]]
+            [1, 1, 1, 1]
+
+        - Two seeds with require_unique_basins=True keep first-claim:
+
+            >>> import numpy as np
+            >>> fdir = np.array([[6, 6, 6, -1]], dtype=np.int32)
+            >>> basins = watershed_d8(
+            ...     fdir, [(0, 3), (0, 1)], [1, 2],
+            ...     require_unique_basins=True,
+            ... )
+            >>> [int(v) for v in basins[0]]
+            [1, 1, 1, 1]
     """
     if len(seeds) != len(basin_ids):
         raise ValueError("seeds and basin_ids must have the same length")
