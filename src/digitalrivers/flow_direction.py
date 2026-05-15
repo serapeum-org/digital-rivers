@@ -221,6 +221,144 @@ class FlowDirection(Dataset):
             return np.ones(band0.shape, dtype=bool)
         return band0 != no_val
 
+    def basins(
+        self,
+        *,
+        min_area_cells: int | None = None,
+        min_area_km2: float | None = None,
+        merge_small: str = "drop",
+    ) -> "WatershedRaster":  # noqa: F821
+        """Partition the entire DEM into basins, one label per terminal outlet.
+
+        Detects every cell whose flow direction is the no-data sentinel
+        (cells with no defined downstream — either at the data envelope or
+        at internal sinks that survived the fill phase) and seeds a reverse
+        BFS from each. The result labels every valid cell with the ID of
+        the outlet it drains to.
+
+        Args:
+            min_area_cells: Optional minimum basin area in cells; basins
+                smaller than this are post-processed via ``merge_small``.
+            min_area_km2: Same threshold expressed in map km². Mutually
+                exclusive with ``min_area_cells``.
+            merge_small: ``"drop"`` (default) sets undersized basins to 0;
+                ``"merge_to_neighbour"`` relabels them with the ID of the
+                largest 8-neighbour basin (or 0 if no neighbour basin
+                exists).
+
+        Returns:
+            :class:`WatershedRaster` tagged with this FlowDirection's
+            routing. The ``outlets`` GeoDataFrame has one row per surviving
+            basin with the outlet ``row``/``col``/``x``/``y`` and
+            ``cell_count``.
+
+        Raises:
+            ValueError: If both area kwargs are supplied or
+                ``merge_small`` is unknown.
+        """
+        import numpy as np
+
+        from digitalrivers._watershed import watershed_d8
+        from digitalrivers.watershed_raster import WatershedRaster
+
+        if self.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"basins currently supports single-direction routing only; "
+                f"got {self.routing!r}"
+            )
+        if min_area_cells is not None and min_area_km2 is not None:
+            raise ValueError(
+                "Pass at most one of min_area_cells / min_area_km2"
+            )
+        if merge_small not in ("drop", "merge_to_neighbour"):
+            raise ValueError(
+                f"merge_small must be 'drop' or 'merge_to_neighbour'; "
+                f"got {merge_small!r}"
+            )
+
+        fdir = self.read_array().astype(np.int32, copy=False)
+        rows, cols = fdir.shape
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+
+        no_val = self.no_data_value[0] if self.no_data_value else None
+        # Outlet = cell whose direction code is not in [0, 7] (sink) but the
+        # cell itself is in the data envelope.
+        if no_val is None:
+            no_val = -9999
+        is_outlet = (fdir < 0) | (fdir > 7)
+
+        if min_area_km2 is not None:
+            cell_area_m2 = abs(dx * dy)
+            min_area_cells = int(round(min_area_km2 * 1.0e6 / cell_area_m2))
+
+        seeds: list[tuple[int, int]] = []
+        basin_ids: list[int] = []
+        outlet_records: list[dict] = []
+        bid = 1
+        for r, c in zip(*np.where(is_outlet)):
+            r = int(r)
+            c = int(c)
+            seeds.append((r, c))
+            basin_ids.append(bid)
+            outlet_records.append({
+                "basin_id": bid, "row": r, "col": c,
+                "x": x0 + (c + 0.5) * dx,
+                "y": y0 + (r + 0.5) * dy,
+            })
+            bid += 1
+
+        basins = watershed_d8(fdir, seeds, basin_ids, require_unique_basins=True)
+
+        # Area filter.
+        if min_area_cells is not None and min_area_cells > 1:
+            unique, counts = np.unique(basins, return_counts=True)
+            sizes = dict(zip(unique.tolist(), counts.tolist()))
+            small_ids = {b for b, n in sizes.items() if b != 0 and n < min_area_cells}
+            if merge_small == "drop":
+                for b in small_ids:
+                    basins[basins == b] = 0
+            else:  # merge_to_neighbour
+                for b in small_ids:
+                    mask = basins == b
+                    if not mask.any():
+                        continue
+                    neighbour_id = 0
+                    neighbour_best = -1
+                    for nb_id, nb_size in sizes.items():
+                        if nb_id in small_ids or nb_id == 0 or nb_id == b:
+                            continue
+                        if nb_size > neighbour_best:
+                            neighbour_best = nb_size
+                            neighbour_id = nb_id
+                    basins[mask] = neighbour_id
+            # Trim outlet records.
+            outlet_records = [
+                rec for rec in outlet_records if rec["basin_id"] not in small_ids
+            ]
+            for rec in outlet_records:
+                rec["cell_count"] = int(sizes.get(rec["basin_id"], 0))
+        else:
+            unique, counts = np.unique(basins, return_counts=True)
+            sizes = dict(zip(unique.tolist(), counts.tolist()))
+            for rec in outlet_records:
+                rec["cell_count"] = int(sizes.get(rec["basin_id"], 0))
+
+        plain = Dataset.create_from_array(
+            basins, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+        )
+
+        import geopandas as gpd
+        from shapely.geometry import Point
+        outlets_gdf = gpd.GeoDataFrame(
+            outlet_records,
+            geometry=[Point(rec["x"], rec["y"]) for rec in outlet_records],
+            crs=self.epsg,
+        )
+        return WatershedRaster.from_dataset(
+            plain, routing=self.routing, outlets=outlets_gdf,
+        )
+
     def watershed(
         self,
         pour_points,
