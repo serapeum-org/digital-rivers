@@ -226,15 +226,10 @@ class TestAccumulationProvenance:
             assert acc.routing == r
 
 
-class TestStubMethods:
-    """``Accumulation.streams`` remained stubbed until P8; ``FlowDirection.accumulate``
-    was implemented in P6 (the Kahn topological-sort dispatcher)."""
-
-    def test_accumulation_streams_is_stub(self, fd_array: np.ndarray):
-        ds = _make_plain_dataset(fd_array)
-        acc = Accumulation(ds.raster, routing="d8")
-        with pytest.raises(NotImplementedError, match="P8"):
-            acc.streams(threshold=10)
+# ``FlowDirection.accumulate`` was implemented in P6 (Kahn topological-sort dispatcher)
+# and ``Accumulation.streams`` was implemented in P8 (threshold-based extraction). Both
+# stubs are gone; their parity / correctness tests live in test_accumulation_routing.py
+# and test_stream_extraction.py respectively.
 
 
 class TestToDataset:
