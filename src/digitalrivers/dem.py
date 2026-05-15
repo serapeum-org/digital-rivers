@@ -699,6 +699,161 @@ class DEM(Dataset):
             return None
         return DEM(plain_ds.raster)
 
+    def subgrid_bathymetry(
+        self,
+        scale_factor: int,
+        n_bins: int = 10,
+    ):
+        """Build per-coarse-cell bathymetry tables (SFINCS-style).
+
+        For each coarse cell (``scale_factor × scale_factor`` block of fine
+        cells), compute a histogram-like table mapping a coarsened water-
+        depth level to the wetted area within the block. This is the
+        sub-grid representation SFINCS and similar reduced-order 2D models
+        use to recover small-scale topography without resolving it on the
+        coarse grid.
+
+        Args:
+            scale_factor: Integer aggregation factor (>= 2).
+            n_bins: Number of depth bins per coarse cell.
+
+        Returns:
+            ``pandas.DataFrame`` indexed by coarse-cell (row, col) with
+            ``n_bins + 1`` columns: ``z_min``, ``z_max``, plus
+            ``frac_below_<k>`` for ``k`` in ``[1, n_bins]`` giving the
+            fraction of fine cells at or below the k-th depth bin.
+
+        Raises:
+            ValueError: For ``scale_factor < 2`` or ``n_bins < 1``.
+        """
+        import numpy as np
+        import pandas as pd
+
+        if scale_factor < 2:
+            raise ValueError(
+                f"scale_factor must be >= 2; got {scale_factor}"
+            )
+        if n_bins < 1:
+            raise ValueError(f"n_bins must be >= 1; got {n_bins}")
+
+        elev = self.values
+        rows, cols = elev.shape
+        out_rows = rows // scale_factor
+        out_cols = cols // scale_factor
+
+        records: list[dict] = []
+        for br in range(out_rows):
+            for bc in range(out_cols):
+                block = elev[
+                    br * scale_factor : (br + 1) * scale_factor,
+                    bc * scale_factor : (bc + 1) * scale_factor,
+                ].ravel()
+                valid = block[np.isfinite(block)]
+                if valid.size == 0:
+                    continue
+                z_min = float(valid.min())
+                z_max = float(valid.max())
+                rec = {"row": br, "col": bc, "z_min": z_min, "z_max": z_max}
+                if z_max == z_min:
+                    fracs = [1.0] * n_bins
+                else:
+                    bin_edges = np.linspace(z_min, z_max, n_bins + 1)
+                    for k, edge in enumerate(bin_edges[1:], start=1):
+                        rec[f"frac_below_{k}"] = float(
+                            (valid <= edge).sum() / valid.size
+                        )
+                records.append(rec)
+        df = pd.DataFrame(records).set_index(["row", "col"])
+        return df
+
+    def export(
+        self,
+        path: str,
+        target: str,
+        *,
+        breaklines=None,
+        walls=None,
+        buildings=None,
+        manning_n=None,
+        boundary_conditions=None,
+        validate: bool = True,
+        **kwargs,
+    ) -> dict:
+        """Export the DEM to a hydrodynamic-model format.
+
+        v1 status: only ``target="lisflood_fp"`` is fully implemented (writes
+        an Arc-ASCII ``.dem.asc``). The other targets (``hec_ras``,
+        ``tuflow``, ``sfincs``, ``iber``, ``gmsh``) ship as
+        ``NotImplementedError`` pointing at the spec; native writers will
+        land in follow-up commits.
+
+        Args:
+            path: Output file path.
+            target: One of ``"hec_ras"``, ``"tuflow"``, ``"sfincs"``,
+                ``"lisflood_fp"``, ``"iber"``, ``"gmsh"``.
+            breaklines / walls / buildings / manning_n / boundary_conditions:
+                Reserved for target-specific bundles. Currently ignored by
+                the LISFLOOD-FP writer.
+            validate: When True (default), refuse to export a DEM with
+                internal sinks to targets that require sinks-free input.
+            **kwargs: Target-specific options.
+
+        Returns:
+            ``dict`` mapping artefact label → file path written.
+
+        Raises:
+            ValueError: For unknown ``target``.
+            NotImplementedError: For targets other than ``lisflood_fp``.
+            RuntimeError: When ``validate=True`` and the DEM has internal
+                sinks.
+        """
+        import numpy as np
+
+        valid_targets = {
+            "hec_ras", "tuflow", "sfincs", "lisflood_fp", "iber", "gmsh",
+        }
+        if target not in valid_targets:
+            raise ValueError(
+                f"target must be one of {sorted(valid_targets)}; got {target!r}"
+            )
+
+        if validate:
+            from digitalrivers._pitremoval import local_minima_8
+            sinks = local_minima_8(self.values)
+            if int(sinks.sum()) > 0:
+                raise RuntimeError(
+                    f"DEM has {int(sinks.sum())} internal sinks; either fix "
+                    "them (DEM.fill_depressions) or pass validate=False"
+                )
+
+        if target != "lisflood_fp":
+            raise NotImplementedError(
+                f"export(target={target!r}) is not yet implemented; only "
+                "'lisflood_fp' (Arc-ASCII) is supported in this release"
+            )
+
+        elev = self.values
+        gt = self.geotransform
+        x0, dx, _, y0, _, dy = gt
+        rows, cols = elev.shape
+        nodata = float(self.no_data_value[0])
+        out = np.where(np.isnan(elev), nodata, elev)
+        # Compute the LISFLOOD-FP Arc-ASCII header.
+        cell_size = abs(dx)
+        # In Arc-ASCII the y-origin is the LOWER-left corner.
+        yllcorner = y0 + rows * dy
+        with open(path, "w") as fh:
+            fh.write(f"ncols {cols}\n")
+            fh.write(f"nrows {rows}\n")
+            fh.write(f"xllcorner {x0}\n")
+            fh.write(f"yllcorner {yllcorner}\n")
+            fh.write(f"cellsize {cell_size}\n")
+            fh.write(f"NODATA_value {nodata}\n")
+            for r in range(rows):
+                fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
+                fh.write("\n")
+        return {"dem_asc": path}
+
     def anudem_interpolate(self, *args, **kwargs):
         """ANUDEM-style drainage-enforced interpolation (Hutchinson 1989).
 
