@@ -14,6 +14,7 @@ from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
 from digitalrivers._breach import breach_depressions as _breach_depressions_array
+from digitalrivers._flats import resolve_flats as _resolve_flats_array
 from digitalrivers._pitremoval import fill_depressions as _fill_depressions_array
 from digitalrivers.flow_direction import FlowDirection
 
@@ -191,6 +192,65 @@ class DEM(Dataset):
             max_depth=max_depth,
             max_length=max_length,
             fill_remaining=fill_remaining,
+        )
+        no_val = self.no_data_value[0]
+        z_out[np.isnan(z_out)] = no_val
+        plain_ds = Dataset.dataset_like(self, z_out.astype(elev.dtype, copy=False))
+        if inplace:
+            self._update_inplace(plain_ds.raster)
+            return None
+        return DEM(plain_ds.raster)
+
+    def resolve_flats(
+        self,
+        max_iter: int = 1000,
+        epsilon: float = 1e-5,
+        connectivity: int = 8,
+        inplace: bool = False,
+    ) -> DEM | None:
+        """Impose a deterministic gradient on every flat plateau in the DEM.
+
+        After ``fill_depressions(method="wang_liu")`` (or ``"priority_flood"`` with
+        ``epsilon=0``), every closed depression is filled to its spill elevation — but the
+        interior of each filled depression is a flat plateau with no defined steepest
+        descent, so D8 flow direction over the result has ``NO_FLOW`` cells across every
+        plateau. ``resolve_flats`` nudges those cells so each has a unique downhill
+        neighbour: combined Garbrecht & Martz (1997) gradient — drain *towards* the
+        nearest outlet (LEC) with a tiebreak that drains *away from* the nearest rim
+        (HEC). The towards-lower gradient is weighted ``2x`` so it dominates and the
+        away-from-higher gradient acts as a deterministic tiebreaker.
+
+        Plateaus without a low-edge cell (closed depressions that survived the fill — they
+        should not exist if you ran ``fill_depressions`` first) are left untouched.
+
+        Args:
+            max_iter: Safety cap on BFS levels per plateau. Real plateaus rarely exceed
+                ``max(rows, cols)``; the default ``1000`` is essentially unbounded.
+            epsilon: Per-BFS-step elevation lift. Total lift over a plateau is at most
+                ``(2 * max_high_dist + max_low_dist) * epsilon``; choose small enough
+                that this stays well below the minimum elevation step between adjacent
+                non-plateau cells. Default ``1e-5`` is safe for ~1000-cell-wide plateaus.
+            connectivity: 4 or 8. Controls plateau-labelling and BFS step direction;
+                LEC/HEC classification always uses 8-connectivity (Garbrecht-Martz
+                convention). Default is 8.
+            inplace: If ``True`` the current instance is updated in place and ``None`` is
+                returned. If ``False`` (default) a new ``DEM`` is returned.
+
+        Returns:
+            DEM | None: A new ``DEM`` with flat plateaus resolved, or ``None`` when
+            ``inplace`` is ``True``.
+
+        Raises:
+            ValueError: If ``connectivity`` is not 4 or 8.
+        """
+        elev = self.values
+        nodata_mask = np.isnan(elev)
+        z_out = _resolve_flats_array(
+            elev.astype(np.float64, copy=False),
+            nodata_mask=nodata_mask,
+            epsilon=epsilon,
+            connectivity=connectivity,
+            max_iter=max_iter,
         )
         no_val = self.no_data_value[0]
         z_out[np.isnan(z_out)] = no_val
