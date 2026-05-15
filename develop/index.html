@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="GIS package">
+        <meta name="description" content="DEM and terrain processing utilities for GDAL-based GIS">
       
       
       
@@ -25,7 +25,7 @@
     
     
       
-        <title>pyramids</title>
+        <title>digital-rivers</title>
       
     
     
@@ -81,7 +81,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#current-release-info" class="md-skip">
+        <a href="#digital-rivers" class="md-skip">
           Skip to content
         </a>
       
@@ -101,7 +101,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="pyramids" class="md-header__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href="." title="digital-rivers" class="md-header__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -115,7 +115,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            pyramids
+            digital-rivers
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -344,13 +344,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="pyramids" class="md-nav__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href="." title="digital-rivers" class="md-nav__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    pyramids
+    digital-rivers
   </label>
   
     <div class="md-nav__source">
@@ -383,6 +383,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="." class="md-nav__link md-nav__link--active">
         
   
@@ -399,6 +417,69 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to next
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -861,6 +942,58 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it does
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-to-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where to next
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -892,72 +1025,37 @@
   
 
 
-<p><a href="https://digital-rivers.readthedocs.io/en/latest/?badge=latest"><img alt="Documentation Status" src="https://readthedocs.org/projects/digital-rivers/badge/?version=latest" /></a>
-<a href="https://img.shields.io/pypi/pyversions/digitalrivers"><img alt="Python Versions" src="https://img.shields.io/pypi/pyversions/digitalrivers.png" /></a>
-<a href="https://www.gnu.org/licenses/gpl-3.0"><img alt="License: GPL v3" src="https://img.shields.io/badge/License-GPLv3-blue.svg" /></a>
-<a href="https://github.com/pre-commit/pre-commit"><img alt="pre-commit" src="https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&amp;logoColor=white" /></a>
-<a href="https://lgtm.com/projects/g/MAfarrag/Hapi/context:python"><img alt="Language grade: Python" src="https://img.shields.io/lgtm/grade/python/g/MAfarrag/Hapi.svg?logo=lgtm&amp;logoWidth=18" /></a></p>
-<p><img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/MAfarrag/digitalrivers" />
-<img alt="GitHub forks" src="https://img.shields.io/github/forks/MAfarrag/digitalrivers?style=social" />
-<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/MAfarrag/digitalrivers?style=social" />
-<a href="https://codecov.io/gh/serapeum-org/digitalrivers"><img alt="codecov" src="https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graph/badge.svg?token=g0DV4dCa8N" /></a>
-<a href="https://www.codacy.com/gh/serapeum-org/digitalrivers/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=serapeum-org/digitalrivers&amp;utm_campaign=Badge_Grade"><img alt="Codacy Badge" src="https://app.codacy.com/project/badge/Grade/5e3aa4d0acc843d1a91caf33545ecf03" /></a></p>
-<p><img alt="GitHub commits since latest release (by SemVer including pre-releases)" src="https://img.shields.io/github/commits-since/mafarrag/digitalrivers/0.1.0?include_prereleases&amp;style=plastic" />
-<img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/mafarrag/digitalrivers" /></p>
-<h1 id="current-release-info"><a class="toclink" href="#current-release-info">Current release info</a><a class="headerlink" href="#current-release-info" title="Permanent link">#</a></h1>
-<table>
-<thead>
-<tr>
-<th>Name</th>
-<th>Downloads</th>
-<th>Version</th>
-<th>Platforms</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="https://anaconda.org/conda-forge/digitalrivers"><img alt="Conda Recipe" src="https://img.shields.io/badge/recipe-digitalrivers-green.svg" /></a></td>
-<td><a href="https://anaconda.org/conda-forge/digitalrivers"><img alt="Conda Downloads" src="https://img.shields.io/conda/dn/conda-forge/digitalrivers.svg" /></a> <a href="https://pepy.tech/project/digitalrivers"><img alt="Downloads" src="https://pepy.tech/badge/digitalrivers" /></a> <a href="https://pepy.tech/project/digitalrivers"><img alt="Downloads" src="https://pepy.tech/badge/digitalrivers/month" /></a>  <a href="https://pepy.tech/project/digitalrivers"><img alt="Downloads" src="https://pepy.tech/badge/digitalrivers/week" /></a>  <img alt="PyPI - Downloads" src="https://img.shields.io/pypi/dd/digitalrivers?color=blue&amp;style=flat-square" /></td>
-<td><a href="https://anaconda.org/conda-forge/digitalrivers"><img alt="Conda Version" src="https://img.shields.io/conda/vn/conda-forge/digitalrivers.svg" /></a> <a href="https://badge.fury.io/py/digitalrivers"><img alt="PyPI version" src="https://badge.fury.io/py/digitalrivers.svg" /></a></td>
-<td><a href="https://anaconda.org/conda-forge/digitalrivers"><img alt="Conda Platforms" src="https://img.shields.io/conda/pn/conda-forge/digitalrivers.svg" /></a> <a href="https://gitter.im/Hapi-Nile/Hapi?utm_source=badge&amp;utm_medium=badge&amp;utm_campaign=pr-badge&amp;utm_content=badge"><img alt="Join the chat at https://gitter.im/Hapi-Nile/Hapi" src="https://badges.gitter.im/Hapi-Nile/Hapi.svg" /></a></td>
-</tr>
-</tbody>
-</table>
-<h1 id="digitalrivers-gis-utility-package"><a class="toclink" href="#digitalrivers-gis-utility-package">digitalrivers - GIS utility package</a><a class="headerlink" href="#digitalrivers-gis-utility-package" title="Permanent link">#</a></h1>
-<p><strong>digitalrivers</strong> is a GIS utility package using gdal, ....</p>
-<p>digitalrivers</p>
-<p><img alt="1" src="/docs/images/package-work-flow/overall.png" /></p>
-<h2 id="main-features"><a class="toclink" href="#main-features">Main Features</a><a class="headerlink" href="#main-features" title="Permanent link">#</a></h2>
+<h1 id="digital-rivers"><a class="toclink" href="#digital-rivers">digital-rivers</a><a class="headerlink" href="#digital-rivers" title="Permanent link">#</a></h1>
+<p>A small GIS utility library for <strong>DEM processing</strong> and <strong>terrain analysis</strong>, built on GDAL and the <a href="https://github.com/serapeum-org/pyramids"><code>pyramids</code></a> raster wrapper.</p>
+<h2 id="what-it-does"><a class="toclink" href="#what-it-does">What it does</a><a class="headerlink" href="#what-it-does" title="Permanent link">#</a></h2>
 <ul>
-<li>GIS modules to enable the modeler to fully prepare the meteorological inputs and do all the preprocessing
-  needed to build the model (align rasters with the DEM), in addition to various methods to manipulate and
-  convert different forms of distributed data (rasters, NetCDF, shapefiles)</li>
+<li><strong><code>DEM</code></strong> — sink filling, D8 flow direction, flow accumulation, slope (max-downhill across 8 neighbours), and basin filtering.</li>
+<li><strong><code>Terrain</code></strong> — color relief, hill shade, slope, and aspect via GDAL's <code>DEMProcessing</code> utility.</li>
 </ul>
-<h2 id="future-work"><a class="toclink" href="#future-work">Future work</a><a class="headerlink" href="#future-work" title="Permanent link">#</a></h2>
+<p>Both classes subclass <code>pyramids.dataset.Dataset</code>, so every pyramids method (<code>crop</code>, <code>to_crs</code>, <code>plot</code>, <code>stats</code>, …) is available alongside the digital-rivers additions.</p>
+<h2 id="quick-start"><a class="toclink" href="#quick-start">Quick start</a><a class="headerlink" href="#quick-start" title="Permanent link">#</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">osgeo</span><span class="w"> </span><span class="kn">import</span> <span class="n">gdal</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.dem</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.terrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">Terrain</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">dem</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">(</span><span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="s2">&quot;dem.tif&quot;</span><span class="p">))</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">fd</span> <span class="o">=</span> <span class="n">dem</span><span class="o">.</span><span class="n">flow_direction</span><span class="p">()</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">acc</span> <span class="o">=</span> <span class="n">dem</span><span class="o">.</span><span class="n">flow_accumulation</span><span class="p">(</span><span class="n">fd</span><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">terrain</span> <span class="o">=</span> <span class="n">Terrain</span><span class="p">(</span><span class="s2">&quot;dem.tif&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">hill_shade</span> <span class="o">=</span> <span class="n">terrain</span><span class="o">.</span><span class="n">hill_shade</span><span class="p">()</span>
+</code></pre></div>
+<h2 id="where-to-next"><a class="toclink" href="#where-to-next">Where to next</a><a class="headerlink" href="#where-to-next" title="Permanent link">#</a></h2>
 <ul>
-<li>Developing a DEM processing module for generating the river network at different DEM spatial resolutions.</li>
+<li><a href="installation/">Installation</a> — Pixi/conda or pip-from-source instructions.</li>
+<li><a href="reference/dem/">DEM reference</a> — full API for hydrological analysis.</li>
+<li><a href="reference/terrain/">Terrain reference</a> — full API for visualisation.</li>
+<li><a href="change-log/">Change log</a></li>
+<li><a href="adr/">Architecture Decision Records</a></li>
 </ul>
-<h1 id="installing-digitalrivers"><a class="toclink" href="#installing-digitalrivers">Installing digitalrivers</a><a class="headerlink" href="#installing-digitalrivers" title="Permanent link">#</a></h1>
-<p>Installing <code>digitalrivers</code> from the <code>conda-forge</code> channel can be achieved by:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>conda install -c conda-forge digitalrivers=0.1.0
-</code></pre></div>
-<p>It is possible to list all the versions of <code>digitalrivers</code> available on your platform with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>conda search digitalrivers --channel conda-forge
-</code></pre></div>
-<h2 id="install-from-github"><a class="toclink" href="#install-from-github">Install from GitHub</a><a class="headerlink" href="#install-from-github" title="Permanent link">#</a></h2>
-<p>to install the last development to time, you can install the library from GitHub</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip install git+https://github.com/serapeum-org/digitalrivers
-</code></pre></div>
-<h2 id="pip"><a class="toclink" href="#pip">pip</a><a class="headerlink" href="#pip" title="Permanent link">#</a></h2>
-<p>to install the last release, you can easily use pip</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip install digitalrivers==0.1.0
-</code></pre></div>
-<h1 id="quick-start"><a class="toclink" href="#quick-start">Quick start</a><a class="headerlink" href="#quick-start" title="Permanent link">#</a></h1>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>  &gt;&gt;&gt; import digitalrivers
-</code></pre></div>
-<p><a href="https://digitalrivers.readthedocs.io/en/latest/?badge=latest">other code samples</a></p>
-<h2 id="coverage"><a class="toclink" href="#coverage">Coverage</a><a class="headerlink" href="#coverage" title="Permanent link">#</a></h2>
-<p><a href="https://codecov.io/gh/serapeum-org/digitalrivers"><img alt="codecov" src="https://codecov.io/gh/serapeum-org/digitalrivers/branch/main/graphs/sunburst.svg?token=g0DV4dCa8N" /></a></p>
+<h2 id="status"><a class="toclink" href="#status">Status</a><a class="headerlink" href="#status" title="Permanent link">#</a></h2>
+<p>Pre-release (v0.1.0). Not yet on PyPI or conda-forge — install from source. Supported Python: <strong>3.11–3.13</strong>.</p>
+<p>Source: <a href="https://github.com/serapeum-org/digital-rivers">https://github.com/serapeum-org/digital-rivers</a></p>
 
 
 
