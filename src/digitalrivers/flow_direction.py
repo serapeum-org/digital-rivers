@@ -221,6 +221,62 @@ class FlowDirection(Dataset):
             return np.ones(band0.shape, dtype=bool)
         return band0 != no_val
 
+    def upscale_ihu(
+        self,
+        scale_factor: int,
+        accumulation,
+        dem,
+        max_iter: int = 20,
+        report: bool = False,
+    ) -> tuple:
+        """Iterative Hydrography Upscaling (Eilander 2021).
+
+        The state-of-the-art D8 upscaling method that builds an initial
+        coarse network with COTAT-style outlet selection and then refines
+        boundary mismatches by swapping outlets between adjacent coarse
+        cells until convergence.
+
+        v1 status: ``scale_factor=1`` is a no-op (passes through the input
+        unchanged). All other ``scale_factor`` values raise
+        ``NotImplementedError``. The roadmap recommends vendoring pyflwdir
+        as the first-release backend; a native swap-search implementation
+        is deferred to Phase 4.
+
+        Args:
+            scale_factor: Integer aggregation factor (>= 1).
+            accumulation: ``Accumulation`` aligned to this FlowDirection.
+            dem: ``DEM`` aligned to this FlowDirection.
+            max_iter: Maximum refinement iterations.
+            report: When True, the third return slot carries Eilander 2021
+                validation metrics (``area_error_pct``, ``hit_rate``,
+                ``network_shift_km``). Currently always returns an empty
+                dict.
+
+        Returns:
+            Tuple ``(upscaled_dem, upscaled_fdir, metrics)``.
+
+        Raises:
+            NotImplementedError: For ``scale_factor > 1`` — the iterative
+                core is deferred.
+        """
+        if scale_factor < 1:
+            raise ValueError(
+                f"scale_factor must be >= 1; got {scale_factor}"
+            )
+        if scale_factor == 1:
+            up_dem, up_fdir = self.upscale(
+                scale_factor=1, method="cotat",
+                accumulation=accumulation, dem=dem,
+            )
+            return up_dem, up_fdir, {}
+        raise NotImplementedError(
+            "IHU iterative upscaling is deferred to Phase 4. "
+            "v1 supports the API surface and the scale_factor=1 no-op; "
+            "for production runs use FlowDirection.upscale(scale_factor, "
+            "method='cotat', accumulation, dem) until the native IHU "
+            "engine lands."
+        )
+
     def upscale(
         self,
         scale_factor: int,
@@ -281,6 +337,8 @@ class FlowDirection(Dataset):
                 Dataset(self.raster), routing=self.routing,
                 encoding=self.encoding,
             ))
+        if method == "ihu":
+            return self.upscale_ihu(scale_factor, accumulation, dem)[:2]
         if method != "cotat":
             raise NotImplementedError(
                 f"method={method!r} not yet implemented (only 'cotat')"
