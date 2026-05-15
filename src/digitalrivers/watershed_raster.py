@@ -68,6 +68,127 @@ class WatershedRaster(Dataset):
             META_ROUTING: self.routing,
         }
 
+    def statistics(
+        self,
+        dem=None,
+        accumulation=None,
+        slope=None,
+        streams=None,
+        metrics: list[str] | None = None,
+    ):
+        """Per-basin descriptor table.
+
+        Returns one row per basin label with the requested metrics. Available
+        metrics (subset of P17 spec):
+
+        - ``area_km2``: number of cells × cell area (km²).
+        - ``min_elev``, ``max_elev``, ``mean_elev``, ``std_elev``: elevation
+          statistics from ``dem`` (required for the elev metrics).
+        - ``hypsometric_integral``: Strahler (1952)
+          ``(mean_elev - min_elev) / (max_elev - min_elev)``.
+        - ``mean_slope``: mean of the ``slope`` raster across the basin.
+        - ``drainage_density_km_per_km2``: ``stream_length_km / area_km2``
+          (requires both ``streams`` and a cell-size; stream length uses cell
+          centres at the cell size).
+        - ``centroid_x``, ``centroid_y``: basin centroid in dataset CRS.
+
+        Args:
+            dem: Aligned DEM for elevation metrics.
+            accumulation: Reserved for future longest-flow-path metric.
+            slope: Aligned slope raster (m/m) for ``mean_slope``.
+            streams: Aligned StreamRaster for ``drainage_density_km_per_km2``.
+            metrics: Subset of the available metrics. ``None`` (default)
+                returns every metric for which inputs were supplied.
+
+        Returns:
+            ``pandas.DataFrame`` indexed by basin_id with one column per metric.
+        """
+        import numpy as np
+        import pandas as pd
+
+        gt = self.geotransform
+        cell_area_m2 = abs(gt[1] * gt[5])
+        labels = self.read_array().astype(np.int32, copy=False)
+        unique_ids = sorted({int(v) for v in np.unique(labels) if v != 0})
+
+        available: dict[str, list] = {"basin_id": [], "area_km2": []}
+        for bid in unique_ids:
+            mask = labels == bid
+            available["basin_id"].append(bid)
+            available["area_km2"].append(int(mask.sum()) * cell_area_m2 / 1.0e6)
+
+        if dem is not None:
+            elev = dem.read_array().astype(np.float64, copy=False)
+            no_val = dem.no_data_value[0] if dem.no_data_value else None
+            if no_val is not None:
+                elev = np.where(elev == no_val, np.nan, elev)
+            for col in ("min_elev", "max_elev", "mean_elev", "std_elev",
+                        "hypsometric_integral",
+                        "centroid_x", "centroid_y"):
+                available[col] = []
+            x0, dx, _, y0, _, dy = gt
+            for bid in unique_ids:
+                mask = labels == bid
+                vals = elev[mask]
+                vals_finite = vals[np.isfinite(vals)]
+                if vals_finite.size == 0:
+                    available["min_elev"].append(np.nan)
+                    available["max_elev"].append(np.nan)
+                    available["mean_elev"].append(np.nan)
+                    available["std_elev"].append(np.nan)
+                    available["hypsometric_integral"].append(np.nan)
+                else:
+                    mn = float(vals_finite.min())
+                    mx = float(vals_finite.max())
+                    mean = float(vals_finite.mean())
+                    std = float(vals_finite.std())
+                    available["min_elev"].append(mn)
+                    available["max_elev"].append(mx)
+                    available["mean_elev"].append(mean)
+                    available["std_elev"].append(std)
+                    hi = (mean - mn) / (mx - mn) if mx > mn else 0.0
+                    available["hypsometric_integral"].append(hi)
+                rs, cs = np.where(mask)
+                cx = x0 + (cs.mean() + 0.5) * dx
+                cy = y0 + (rs.mean() + 0.5) * dy
+                available["centroid_x"].append(float(cx))
+                available["centroid_y"].append(float(cy))
+
+        if slope is not None:
+            slope_arr = slope.read_array().astype(np.float64, copy=False)
+            no_val = slope.no_data_value[0] if slope.no_data_value else None
+            if no_val is not None:
+                slope_arr = np.where(slope_arr == no_val, np.nan, slope_arr)
+            available["mean_slope"] = []
+            for bid in unique_ids:
+                mask = labels == bid
+                vals = slope_arr[mask]
+                vals = vals[np.isfinite(vals)]
+                available["mean_slope"].append(
+                    float(vals.mean()) if vals.size else np.nan
+                )
+
+        if streams is not None:
+            sm = streams.read_array().astype(bool, copy=False)
+            available["drainage_density_km_per_km2"] = []
+            for bid in unique_ids:
+                mask = labels == bid
+                stream_count = int((sm & mask).sum())
+                length_km = stream_count * abs(gt[1]) / 1000.0
+                area_km2 = int(mask.sum()) * cell_area_m2 / 1.0e6
+                if area_km2 > 0:
+                    available["drainage_density_km_per_km2"].append(
+                        length_km / area_km2
+                    )
+                else:
+                    available["drainage_density_km_per_km2"].append(np.nan)
+
+        df = pd.DataFrame(available).set_index("basin_id")
+        if metrics is not None:
+            wanted = [m for m in metrics if m in df.columns]
+            df = df[wanted]
+        return df
+
     def to_polygons(self):
         """Vectorise the labelled raster to per-basin polygons.
 
