@@ -180,6 +180,172 @@ class Accumulation(Dataset):
             plain, threshold=cells_threshold, routing=self.routing
         )
 
+    def snap_pour_points(
+        self,
+        points,
+        radius_cells: int | None = None,
+        radius_m: float | None = None,
+        method: str = "max_accumulation",
+        streams=None,
+        min_acc: float | None = None,
+        report: bool = False,
+    ):
+        """Snap pour-point geometries to nearby high-accumulation / stream cells.
+
+        For each input point, scan a square neighbourhood of the given radius
+        and pick the cell that wins under the chosen ``method``:
+
+        * ``"max_accumulation"`` (ArcGIS-style): the cell with the largest
+          accumulation in the neighbourhood. First-seen-wins on ties.
+        * ``"jenson"`` (Jenson & Domingue 1988): the nearest stream cell in
+          the neighbourhood (squared Euclidean against cell centres). Requires
+          a ``StreamRaster``.
+
+        Args:
+            points: ``GeoDataFrame`` of Point geometries in any CRS (will be
+                reprojected to the dataset's CRS).
+            radius_cells: Search-window radius in cells. Exactly one of
+                ``radius_cells`` / ``radius_m`` must be supplied.
+            radius_m: Search-window radius in map units (typically metres).
+            method: ``"max_accumulation"`` (default) or ``"jenson"``.
+            streams: ``StreamRaster`` required when ``method="jenson"``.
+            min_acc: Optional floor on accepted snap-target accumulation.
+                Candidates with ``acc < min_acc`` are excluded; if no candidate
+                qualifies the point is left at its original location.
+            report: Reserved for future per-point diagnostics.
+
+        Returns:
+            ``GeoDataFrame`` with the input columns plus ``pre_snap_geometry``
+            (the original geometry), ``snapped_x``, ``snapped_y``,
+            ``snap_distance_m`` (Euclidean distance moved, NaN if unmoved),
+            and ``snap_acc`` (the accumulation at the snapped cell). The
+            ``geometry`` column is updated to the snapped points.
+
+        Raises:
+            ValueError: If neither or both of ``radius_cells`` / ``radius_m``
+                are supplied, or if ``method="jenson"`` and ``streams`` is
+                ``None``, or if ``method`` is unknown.
+        """
+        import geopandas as gpd
+        import numpy as np
+        from shapely.geometry import Point
+
+        if method not in ("max_accumulation", "jenson"):
+            raise ValueError(
+                f"method must be 'max_accumulation' or 'jenson'; got {method!r}"
+            )
+        if (radius_cells is None) == (radius_m is None):
+            raise ValueError(
+                "Exactly one of radius_cells / radius_m must be supplied"
+            )
+        if method == "jenson" and streams is None:
+            raise ValueError("method='jenson' requires the streams= argument")
+
+        gt = self.geotransform
+        cell_x = abs(gt[1])
+        if radius_cells is None:
+            r = max(int(round(radius_m / cell_x)), 0)
+        else:
+            r = int(radius_cells)
+
+        acc_arr = self.read_array().astype(np.float64, copy=False)
+        no_val = self.no_data_value[0] if self.no_data_value else None
+        if streams is not None:
+            stream_arr = streams.read_array().astype(bool, copy=False)
+            if stream_arr.shape != acc_arr.shape:
+                raise ValueError(
+                    f"streams shape {stream_arr.shape} != accumulation shape "
+                    f"{acc_arr.shape}"
+                )
+        else:
+            stream_arr = None
+
+        # Reproject input to dataset CRS if mismatched.
+        target_epsg = self.epsg
+        if (
+            getattr(points, "crs", None) is not None
+            and target_epsg is not None
+            and points.crs.to_epsg() != target_epsg
+        ):
+            points = points.to_crs(target_epsg)
+
+        rows, cols = acc_arr.shape
+        x0 = gt[0]
+        y0 = gt[3]
+        dx = gt[1]
+        dy = gt[5]
+
+        pre_geom = list(points.geometry)
+        snapped_xs: list[float] = []
+        snapped_ys: list[float] = []
+        snap_distances: list[float] = []
+        snap_accs: list[float] = []
+
+        for pt in pre_geom:
+            px, py = float(pt.x), float(pt.y)
+            col0 = int((px - x0) / dx)
+            row0 = int((py - y0) / dy)
+            if not (0 <= row0 < rows and 0 <= col0 < cols):
+                snapped_xs.append(px)
+                snapped_ys.append(py)
+                snap_distances.append(np.nan)
+                snap_accs.append(np.nan)
+                continue
+
+            r_lo = max(0, row0 - r)
+            r_hi = min(rows - 1, row0 + r)
+            c_lo = max(0, col0 - r)
+            c_hi = min(cols - 1, col0 + r)
+
+            best_r, best_c = row0, col0
+            if method == "max_accumulation":
+                best_acc = -np.inf
+                for rr in range(r_lo, r_hi + 1):
+                    for cc in range(c_lo, c_hi + 1):
+                        v = acc_arr[rr, cc]
+                        if no_val is not None and v == no_val:
+                            continue
+                        if min_acc is not None and v < min_acc:
+                            continue
+                        if v > best_acc:
+                            best_acc = v
+                            best_r, best_c = rr, cc
+                if not np.isfinite(best_acc):
+                    best_r, best_c = row0, col0
+            else:  # jenson
+                best_d2 = np.inf
+                for rr in range(r_lo, r_hi + 1):
+                    for cc in range(c_lo, c_hi + 1):
+                        if not stream_arr[rr, cc]:
+                            continue
+                        if min_acc is not None and acc_arr[rr, cc] < min_acc:
+                            continue
+                        cx = x0 + (cc + 0.5) * dx
+                        cy = y0 + (rr + 0.5) * dy
+                        d2 = (cx - px) ** 2 + (cy - py) ** 2
+                        if d2 < best_d2:
+                            best_d2 = d2
+                            best_r, best_c = rr, cc
+                if not np.isfinite(best_d2):
+                    best_r, best_c = row0, col0
+
+            snapped_x = x0 + (best_c + 0.5) * dx
+            snapped_y = y0 + (best_r + 0.5) * dy
+            distance = float(np.hypot(snapped_x - px, snapped_y - py))
+            snapped_xs.append(snapped_x)
+            snapped_ys.append(snapped_y)
+            snap_distances.append(distance if distance > 0 else 0.0)
+            snap_accs.append(float(acc_arr[best_r, best_c]))
+
+        out = points.copy()
+        out["pre_snap_geometry"] = pre_geom
+        out["snapped_x"] = snapped_xs
+        out["snapped_y"] = snapped_ys
+        out["snap_distance_m"] = snap_distances
+        out["snap_acc"] = snap_accs
+        out["geometry"] = [Point(x, y) for x, y in zip(snapped_xs, snapped_ys)]
+        return out
+
     def __repr__(self) -> str:
         return (
             f"<Accumulation rows={self.rows} cols={self.columns} "
