@@ -123,6 +123,153 @@ class StreamRaster(Dataset):
             threshold = float(tag)
         return cls(ds.raster, threshold=threshold, routing=resolved_routing)
 
+    def subbasins(
+        self,
+        flow_direction,
+        method: str = "link",
+    ) -> "WatershedRaster":  # noqa: F821
+        """Partition the basin into one sub-basin per stream link.
+
+        Each cell is labelled with the ID of the first downstream stream
+        link it joins. Confluence cells belong to the new downstream link
+        (WhiteboxTools / TauDEM convention). Off-stream cells inherit the
+        link ID of the first stream cell their flow path reaches.
+
+        Args:
+            flow_direction: Single-direction ``FlowDirection`` aligned to this
+                stream raster.
+            method: ``"link"`` (default) — one sub-basin per link. The
+                ``"min_order"`` and ``"isobasin"`` modes from the spec are
+                deferred.
+
+        Returns:
+            :class:`WatershedRaster` tagged with this stream raster's
+            ``routing`` (via the FlowDirection). Background cells (those that
+            never reach a stream) are 0.
+
+        Raises:
+            ValueError: If ``method`` is not ``"link"`` or
+                ``flow_direction`` is multi-direction.
+        """
+        import numpy as np
+
+        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.watershed_raster import WatershedRaster
+
+        if method != "link":
+            raise ValueError(
+                f"method must be 'link' (other modes deferred); got {method!r}"
+            )
+        if not isinstance(flow_direction, FlowDirection):
+            raise ValueError("flow_direction must be a FlowDirection instance")
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"subbasins currently supports single-direction routing only; "
+                f"got {flow_direction.routing!r}"
+            )
+
+        stream_mask = self.read_array().astype(bool, copy=False)
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        if stream_mask.shape != fdir.shape:
+            raise ValueError(
+                f"flow_direction shape {fdir.shape} != stream raster shape "
+                f"{stream_mask.shape}"
+            )
+
+        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
+        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+        rows, cols = stream_mask.shape
+
+        # Incoming-stream count per stream cell (for confluence detection).
+        nup = np.zeros(stream_mask.shape, dtype=np.int8)
+        for k in range(8):
+            dr = int(d_row[k])
+            dc = int(d_col[k])
+            src_r = slice(max(0, dr), min(rows, rows + dr))
+            src_c = slice(max(0, dc), min(cols, cols + dc))
+            dst_r = slice(max(0, -dr), min(rows, rows - dr))
+            dst_c = slice(max(0, -dc), min(cols, cols - dc))
+            sm_src = stream_mask[src_r, src_c]
+            fd_src = fdir[src_r, src_c]
+            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
+            nup[dst_r, dst_c] += inflow.astype(np.int8)
+
+        link_id = np.zeros((rows, cols), dtype=np.int32)
+        next_id = 1
+        # Heads and downstream-of-confluence cells start new links.
+        # Build link IDs by walking from every head/confluence-downstream entry.
+        starts = stream_mask & ((nup == 0) | (nup >= 2))
+        for r0, c0 in np.argwhere(starts):
+            r0 = int(r0)
+            c0 = int(c0)
+            if link_id[r0, c0] != 0:
+                continue
+            current = next_id
+            next_id += 1
+            link_id[r0, c0] = current
+            r, c = r0, c0
+            while True:
+                d = int(fdir[r, c])
+                if d < 0 or d > 7:
+                    break
+                nr = r + int(d_row[d])
+                nc = c + int(d_col[d])
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    break
+                if not stream_mask[nr, nc]:
+                    break
+                if nup[nr, nc] >= 2:
+                    break  # confluence — handled by its own iteration
+                if link_id[nr, nc] != 0:
+                    break  # already assigned by an earlier walk
+                link_id[nr, nc] = current
+                r, c = nr, nc
+
+        # Off-stream cells: walk downstream until hitting a labelled cell.
+        out = link_id.copy()
+        for r0 in range(rows):
+            for c0 in range(cols):
+                if out[r0, c0] != 0:
+                    continue
+                path: list[tuple[int, int]] = []
+                r, c = r0, c0
+                tail_id = 0
+                while True:
+                    if out[r, c] != 0:
+                        tail_id = int(out[r, c])
+                        break
+                    path.append((r, c))
+                    d = int(fdir[r, c])
+                    if d < 0 or d > 7:
+                        break
+                    nr = r + int(d_row[d])
+                    nc = c + int(d_col[d])
+                    if not (0 <= nr < rows and 0 <= nc < cols):
+                        break
+                    r, c = nr, nc
+                if tail_id != 0:
+                    for pr, pc in path:
+                        out[pr, pc] = tail_id
+
+        plain = Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+        )
+
+        import geopandas as gpd
+        unique_ids = sorted({int(v) for v in np.unique(out) if v != 0})
+        outlets_gdf = gpd.GeoDataFrame(
+            {"basin_id": unique_ids,
+             "cell_count": [int((out == bid).sum()) for bid in unique_ids]},
+            geometry=gpd.points_from_xy(
+                [0.0] * len(unique_ids), [0.0] * len(unique_ids),
+            ),
+            crs=self.epsg,
+        )
+        return WatershedRaster.from_dataset(
+            plain, routing=flow_direction.routing, outlets=outlets_gdf,
+        )
+
     def order(
         self,
         method: str = "strahler",
