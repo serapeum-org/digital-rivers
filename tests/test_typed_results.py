@@ -227,11 +227,8 @@ class TestAccumulationProvenance:
 
 
 class TestStubMethods:
-    """`accumulate` and `streams` raise NotImplementedError until P8."""
-
-    def test_flow_direction_accumulate_is_stub(self, flow_direction: FlowDirection):
-        with pytest.raises(NotImplementedError, match="P8"):
-            flow_direction.accumulate()
+    """``Accumulation.streams`` remained stubbed until P8; ``FlowDirection.accumulate``
+    was implemented in P6 (the Kahn topological-sort dispatcher)."""
 
     def test_accumulation_streams_is_stub(self, fd_array: np.ndarray):
         ds = _make_plain_dataset(fd_array)

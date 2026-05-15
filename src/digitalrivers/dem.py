@@ -457,7 +457,15 @@ class DEM(Dataset):
             slope_valid = ~np.all(np.isnan(slopes), axis=2)
             valid_cells_mask = valid_mask & slope_valid
             arr = np.full(elev.shape, Dataset.default_no_data_value, dtype=np.int32)
-            arr[valid_cells_mask] = np.nanargmax(slopes[valid_cells_mask], axis=1)
+            if valid_cells_mask.any():
+                best_dir = np.nanargmax(slopes[valid_cells_mask], axis=1)
+                # Only commit a direction where the steepest slope is strictly downhill;
+                # cells whose best 8-neighbour is at equal or higher elevation are sinks
+                # and stay at the no-data sentinel (spec P5: "max(s_k) ≤ 0 → sink").
+                rr, cc = np.where(valid_cells_mask)
+                max_slope = slopes[rr, cc, best_dir]
+                downhill = max_slope > 0
+                arr[rr[downhill], cc[downhill]] = best_dir[downhill]
             if forced is not None:
                 indices = self.map_to_array_coordinates(forced)
                 for i, ind in enumerate(indices):
@@ -605,45 +613,50 @@ class DEM(Dataset):
         return None
 
     def flow_accumulation(
-        self, flow_direction: "DEM", dir_offsets: dict = None
-    ) -> "Dataset":
-        """Compute the flow-accumulation raster from a flow-direction grid.
+        self,
+        flow_direction,
+        weights: Dataset | None = None,
+        dir_offsets: dict = None,
+    ) -> Dataset:
+        """Compute flow accumulation under the given routing scheme.
 
-        Each cell's value represents the number of upstream cells that
-        drain into it (not counting itself).  The algorithm iterates
-        over every valid cell and calls ``accumulate_flow``.
+        Generalised dispatcher that delegates to ``FlowDirection.accumulate(...)``
+        and returns an ``int32`` cast for backwards compatibility with the
+        previous D8-only output. For weighted or fractional accumulation, call
+        ``flow_direction.accumulate(weights)`` directly to get the underlying
+        ``Accumulation`` (float32) instead.
 
         Args:
-            flow_direction: A ``DEM`` (or ``Dataset``) containing the D8
-                flow-direction raster with values in ``{0 .. 7}``.
-            dir_offsets: Direction-offset mapping.  Defaults to the
-                module-level ``DIR_OFFSETS``.
+            flow_direction: A ``FlowDirection`` (preferred — its routing tag
+                dispatches the algorithm) or a bare ``Dataset`` (assumed to be
+                a D8 direction-code raster for back-compat).
+            weights: Optional per-cell weight raster aligned to the DEM.
+            dir_offsets: Deprecated/ignored. Kept for signature compatibility.
 
         Returns:
-            Dataset: ``int32`` raster where each cell holds its upstream
-                count.  No-data cells retain
-                ``Dataset.default_no_data_value``.
+            Dataset: ``int32`` accumulation raster. No-data cells retain
+            ``Dataset.default_no_data_value``. Cell values are the count of
+            (or weighted sum over) strictly-upstream cells — the cell's own
+            weight does not contribute to its own value.
         """
-        if dir_offsets is None:
-            dir_offsets = DIR_OFFSETS
+        del dir_offsets  # legacy positional kwarg, no longer used
 
-        fd_array = flow_direction.read_array()
-        rows, cols = fd_array.shape
-        acc = np.full((rows, cols), Dataset.default_no_data_value, dtype=np.int32)
+        if not isinstance(flow_direction, FlowDirection):
+            # Wrap a bare Dataset as D8 for back-compat callers.
+            flow_direction = FlowDirection.from_dataset(flow_direction, routing="d8")
+
+        acc = flow_direction.accumulate(weights=weights)
+        arr = acc.read_array().astype(np.int32, copy=False)
+        # Restore the dataset no-data sentinel where the original DEM is no-data.
         elev = self.values
-        # Initialize with -1 to indicate unprocessed cells
-        acc[~np.isnan(elev)] = -1
-
-        for i in range(rows):
-            for j in range(cols):
-                if acc[i, j] == -1:  # Only process unprocessed cells
-                    self.accumulate_flow(i, j, fd_array, acc, dir_offsets)
-
-        src = self.create_from_array(
-            acc, geo=self.geotransform, epsg=self.epsg,
+        nodata_mask = np.isnan(elev)
+        arr[nodata_mask] = Dataset.default_no_data_value
+        return Dataset.create_from_array(
+            arr,
+            geo=self.geotransform,
+            epsg=self.epsg,
             no_data_value=self.default_no_data_value,
         )
-        return src
 
     def convert_flow_direction_to_cell_indices(self) -> np.ndarray:
         """Convert D8 direction codes to downstream cell row/column indices.

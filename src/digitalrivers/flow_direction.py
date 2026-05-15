@@ -147,23 +147,79 @@ class FlowDirection(Dataset):
         return cls(ds.raster, routing=resolved_routing, encoding=resolved_encoding)
 
     def accumulate(self, weights: Dataset | None = None) -> "Accumulation":  # noqa: F821
-        """Produce a typed ``Accumulation`` surface from this flow-direction.
+        """Run flow accumulation over this raster's routing scheme.
+
+        Implements a Kahn topological-sort sweep that handles all five routing
+        schemes (D8, Rho8, D∞, MFD-Quinn, MFD-Holmgren) via a single algorithm,
+        dispatched by ``self.routing``.
+
+        Output semantics: ``out[cell] = sum of weights over strictly-upstream
+        cells`` — the cell's own weight does not contribute to its own count.
+        This matches the legacy ``DEM.flow_accumulation`` convention.
 
         Args:
-            weights: Optional per-cell weight raster. ``None`` means
-                count-based accumulation.
+            weights: Per-cell weight raster (rainfall, runoff coefficient,
+                whatever). Must align with this FlowDirection's shape. ``None``
+                means unit weights (cell-count accumulation).
 
         Returns:
-            An ``Accumulation`` carrying this object's ``routing`` as
-            provenance.
-
-        Raises:
-            NotImplementedError: Implementation lands in P8.
+            Accumulation carrying this object's ``routing`` for provenance.
         """
-        raise NotImplementedError(
-            "FlowDirection.accumulate is implemented in P8. "
-            "For now use DEM.flow_accumulation(flow_dir.to_dataset())."
+        import numpy as np
+
+        from digitalrivers._accumulation import accumulate as _accumulate_array
+        from digitalrivers.accumulation import Accumulation
+
+        fd_arr = self.read_array()
+        valid_mask = self._valid_mask_from_array(fd_arr)
+        if weights is not None:
+            w_arr = weights.read_array()
+            if w_arr.shape != valid_mask.shape:
+                raise ValueError(
+                    f"weights shape {w_arr.shape} does not match flow_direction "
+                    f"shape {valid_mask.shape}"
+                )
+        else:
+            w_arr = None
+        acc = _accumulate_array(fd_arr, self.routing, valid_mask, weights=w_arr)
+        acc_f32 = acc.astype(np.float32, copy=False)
+        plain = Dataset.create_from_array(
+            acc_f32,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=self.default_no_data_value,
         )
+        return Accumulation.from_dataset(plain, routing=self.routing)
+
+    def _valid_mask_from_array(self, arr) -> "np.ndarray":  # noqa: F821
+        """Compute the (rows, cols) bool mask of valid-data cells from the raster.
+
+        For accumulation purposes ``valid`` means "this cell can hold and receive a
+        contribution". For D8/Rho8 we cannot distinguish a sink (cell with no
+        outgoing direction but still in the data envelope) from a truly-outside
+        cell at the flow-direction level — both share the no-data sentinel. We
+        treat all in-bounds cells as valid; truly-outside cells naturally end up
+        with accumulation 0 because no valid direction points at them, and
+        callers that want to mask them in the output do so against the original
+        DEM (this is what ``DEM.flow_accumulation`` does).
+
+        Multi-band MFD/D∞ rasters use band 0 as the routing-specific validity
+        indicator (angle ``>= 0`` for D∞, any non-zero fraction for MFD).
+        """
+        import numpy as np
+
+        if arr.ndim == 2:
+            # D8 / Rho8: treat every in-bounds cell as a valid receiver. Sinks
+            # (direction == no_data) are kept in the graph so they accumulate.
+            return np.ones(arr.shape, dtype=bool)
+        # Multi-band routings.
+        band0 = arr[0]
+        if self.routing == "dinf":
+            return band0 >= 0
+        no_val = self.no_data_value[0] if self.no_data_value else None
+        if no_val is None:
+            return np.ones(band0.shape, dtype=bool)
+        return band0 != no_val
 
     def __repr__(self) -> str:
         return (
