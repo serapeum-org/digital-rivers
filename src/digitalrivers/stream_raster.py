@@ -123,6 +123,199 @@ class StreamRaster(Dataset):
             threshold = float(tag)
         return cls(ds.raster, threshold=threshold, routing=resolved_routing)
 
+    def to_vector(
+        self,
+        flow_direction,
+        dem=None,
+        single_direction: str = "max",
+    ):
+        """Vectorise the stream raster into a ``GeoDataFrame`` of LineString links.
+
+        Walks the flow-direction raster from every head and every cell
+        downstream of a confluence until it reaches a confluence or an outlet.
+        Each resulting LineString is one stream link.
+
+        Args:
+            flow_direction: ``FlowDirection`` raster aligned to this stream
+                raster. Must be a single-direction routing (``d8`` or ``rho8``)
+                — multi-direction inputs raise. (D∞ / MFD inputs would need a
+                separate dominant-direction collapse, deferred.)
+            dem: Optional ``DEM`` aligned to the stream raster. When supplied,
+                the link attributes include ``drop_m`` and ``mean_slope``.
+            single_direction: Reserved for future multi-direction collapse
+                (``"max"`` for argmax-of-fractions; ``"weighted"`` for
+                weighted-mean direction). Ignored when ``flow_direction`` is
+                already single-direction.
+
+        Returns:
+            ``geopandas.GeoDataFrame`` with columns:
+              - ``link_id`` (int64): 0-based sequential link identifier.
+              - ``from_node`` (int64): node ID at the upstream end (head /
+                confluence).
+              - ``to_node`` (int64): node ID at the downstream end.
+              - ``length_m`` (float64): sum of per-step distances using the
+                D8 grid-lengths lookup (``cell_size`` cardinal,
+                ``cell_size * sqrt(2)`` diagonal).
+              - ``drop_m`` (float64): ``z[from] - z[to]`` (positive if the
+                link descends; clamped to 0 otherwise). NaN if ``dem`` is
+                None.
+              - ``mean_slope`` (float64): ``drop_m / length_m`` (m/m). NaN if
+                ``dem`` is None or ``length_m == 0``.
+              - ``geometry``: shapely ``LineString`` in the dataset's CRS,
+                vertices at cell centres.
+
+        Raises:
+            ValueError: If ``flow_direction`` is multi-direction.
+            ValueError: If shapes do not match.
+        """
+        import geopandas as gpd
+        import numpy as np
+        from shapely.geometry import LineString
+
+        from digitalrivers.flow_direction import FlowDirection  # for type-narrow
+
+        if not isinstance(flow_direction, FlowDirection):
+            raise TypeError(
+                f"flow_direction must be a FlowDirection; got {type(flow_direction).__name__}"
+            )
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"to_vector currently supports single-direction routing only; "
+                f"got {flow_direction.routing!r}. Collapse the flow direction to "
+                f"D8 first."
+            )
+
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        stream_mask = self.read_array().astype(bool, copy=False)
+        if fdir.shape != stream_mask.shape:
+            raise ValueError(
+                f"flow_direction shape {fdir.shape} != stream raster shape "
+                f"{stream_mask.shape}"
+            )
+
+        if dem is not None:
+            z = dem.read_array().astype(np.float64, copy=False)
+            no_val = dem.no_data_value[0] if dem.no_data_value else None
+            if no_val is not None:
+                z = np.where(z == no_val, np.nan, z)
+            if z.shape != stream_mask.shape:
+                raise ValueError(
+                    f"dem shape {z.shape} != stream raster shape {stream_mask.shape}"
+                )
+        else:
+            z = None
+
+        # 8-direction offsets matching DIR_OFFSETS (0=S, 1=SW, ..., 7=SE).
+        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
+        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        # Inverse direction: if cell at offset (dr, dc) has direction = inv[k],
+        # it is flowing INTO us.
+        inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+        grid_lengths = np.array(
+            [1.0, np.sqrt(2.0), 1.0, np.sqrt(2.0),
+             1.0, np.sqrt(2.0), 1.0, np.sqrt(2.0)],
+            dtype=np.float64,
+        ) * float(self.cell_size)
+
+        rows, cols = stream_mask.shape
+
+        # Step 1 — incoming-stream count per stream cell.
+        nup = np.zeros(stream_mask.shape, dtype=np.int8)
+        for k in range(8):
+            dr = int(d_row[k])
+            dc = int(d_col[k])
+            src_r = slice(max(0, dr), min(rows, rows + dr))
+            src_c = slice(max(0, dc), min(cols, cols + dc))
+            dst_r = slice(max(0, -dr), min(rows, rows - dr))
+            dst_c = slice(max(0, -dc), min(cols, cols - dc))
+            sm_src = stream_mask[src_r, src_c]
+            fd_src = fdir[src_r, src_c]
+            # A neighbour at (src) points into (dst) iff its direction equals inv[k].
+            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
+            nup[dst_r, dst_c] += inflow.astype(np.int8)
+
+        # Step 2 — find link starts.
+        heads_or_confluences_mask = stream_mask & ((nup == 0) | (nup >= 2))
+
+        # Step 3 — walk each link.
+        def _trace(start_r: int, start_c: int):
+            path = [(start_r, start_c)]
+            r, c = start_r, start_c
+            length = 0.0
+            while True:
+                d = int(fdir[r, c])
+                if d < 0 or d > 7:
+                    break  # sink / outlet
+                nr = r + int(d_row[d])
+                nc = c + int(d_col[d])
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    break
+                if not stream_mask[nr, nc]:
+                    break
+                length += float(grid_lengths[d])
+                path.append((nr, nc))
+                if nup[nr, nc] >= 2:
+                    break
+                r, c = nr, nc
+            return path, length
+
+        # Assign node IDs: every distinct head / confluence / link-end is a node.
+        node_id_grid = np.full(stream_mask.shape, -1, dtype=np.int64)
+        next_node_id = 0
+
+        def _get_node_id(r: int, c: int) -> int:
+            nonlocal next_node_id
+            if node_id_grid[r, c] < 0:
+                node_id_grid[r, c] = next_node_id
+                next_node_id += 1
+            return int(node_id_grid[r, c])
+
+        gt = self.geotransform
+        records: list[dict] = []
+        link_id = 0
+        starts = np.argwhere(heads_or_confluences_mask)
+        for r0, c0 in starts:
+            r0 = int(r0)
+            c0 = int(c0)
+            # Skip a confluence cell if it has no outgoing direction (it's an outlet
+            # confluence — handled when its upstream link arrives, no link begins here).
+            d_start = int(fdir[r0, c0])
+            if d_start < 0 or d_start > 7:
+                continue
+            path, length_m = _trace(r0, c0)
+            if len(path) < 2:
+                continue
+            from_node = _get_node_id(r0, c0)
+            r_end, c_end = path[-1]
+            to_node = _get_node_id(r_end, c_end)
+
+            xs = [gt[0] + (c + 0.5) * gt[1] + (r + 0.5) * gt[2] for r, c in path]
+            ys = [gt[3] + (c + 0.5) * gt[4] + (r + 0.5) * gt[5] for r, c in path]
+            geom = LineString(zip(xs, ys))
+
+            if z is not None:
+                z_from = float(z[r0, c0])
+                z_to = float(z[r_end, c_end])
+                drop_m = max(0.0, z_from - z_to)
+                mean_slope = drop_m / length_m if length_m > 0 else np.nan
+            else:
+                drop_m = np.nan
+                mean_slope = np.nan
+
+            records.append({
+                "link_id": link_id,
+                "from_node": from_node,
+                "to_node": to_node,
+                "length_m": length_m,
+                "drop_m": drop_m,
+                "mean_slope": mean_slope,
+                "geometry": geom,
+            })
+            link_id += 1
+
+        crs = self.epsg
+        return gpd.GeoDataFrame(records, geometry="geometry", crs=crs)
+
     def __repr__(self) -> str:
         return (
             f"<StreamRaster rows={self.rows} cols={self.columns} "
