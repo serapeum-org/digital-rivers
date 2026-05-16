@@ -140,8 +140,8 @@ publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*"
 default = { solve-group = "default" }
 dev = { features = ["dev", "viz"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
-py311 = { features = ["py311", "dev"], solve-group = "py311" }
-py312 = { features = ["py312", "dev"], solve-group = "py312" }
+py311 = { features = ["py311", "dev", "viz"], solve-group = "py311" }
+py312 = { features = ["py312", "dev", "viz"], solve-group = "py312" }
 
 
 [tool.pixi.feature.py311.dependencies]
