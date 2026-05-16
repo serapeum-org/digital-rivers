@@ -19,9 +19,10 @@ def test_native_cotat_upscale_stub_raises():
         stubs.native_cotat_upscale()
 
 
-def test_native_ihu_upscale_stub_raises():
-    """P29 raises NotImplementedError citing Eilander 2021."""
-    with pytest.raises(NotImplementedError, match="P29"):
+def test_native_ihu_upscale_stub_points_to_working_api():
+    """P29 stub now points callers at the working IHU implementation
+    on FlowDirection.upscale_ihu / .upscale(method='ihu')."""
+    with pytest.raises(NotImplementedError, match="upscale_ihu"):
         stubs.native_ihu_upscale()
 
 
