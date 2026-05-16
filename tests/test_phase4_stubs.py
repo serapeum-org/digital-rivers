@@ -38,21 +38,22 @@ def test_cloud_io_stub_raises():
         stubs.cloud_io()
 
 
-def test_anudem_solver_stub_raises():
-    """P32 raises with the ANUDEM solver deferral note."""
-    with pytest.raises(NotImplementedError, match="P32"):
+def test_anudem_solver_stub_points_to_biharmonic():
+    """P32 umbrella now points callers at the working biharmonic method
+    on DEM.anudem_interpolate."""
+    with pytest.raises(NotImplementedError, match="anudem_interpolate"):
         stubs.anudem_solver()
 
 
-def test_mesh_quality_optimise_stub_raises():
-    """P33 raises with the mesh-optimisation deferral note."""
-    with pytest.raises(NotImplementedError, match="P33"):
+def test_mesh_quality_optimise_stub_points_to_mesh_module():
+    """P33 umbrella now points callers at Mesh.laplacian_smooth."""
+    with pytest.raises(NotImplementedError, match="laplacian_smooth"):
         stubs.mesh_quality_optimise()
 
 
-def test_pdal_pipeline_stub_raises():
-    """P34 raises with the PDAL deferral note."""
-    with pytest.raises(NotImplementedError, match="P34"):
+def test_pdal_pipeline_stub_points_to_grid_lidar_points():
+    """P34 umbrella now points callers at the working grid_lidar_points."""
+    with pytest.raises(NotImplementedError, match="grid_lidar_points"):
         stubs.pdal_lidar_pipeline()
 
 

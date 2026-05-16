@@ -227,11 +227,16 @@ def cloud_io(*args, **kwargs):
 
 
 def anudem_solver(*args, **kwargs):
-    """Full ANUDEM interpolation (P32, Hutchinson 1989).
+    """Full ANUDEM (P32, Hutchinson 1989) — partial via P25.
 
-    Biharmonic objective with drainage-enforcement constraints, solved by
-    multigrid + spline. Phase 3 P25 ships only the API stub; this is the
-    full solver. Effort: L (5+ days).
+    DEM.anudem_interpolate(method="biharmonic") solves Δ²z = 0 via
+    alternating Laplacian sweeps, providing the biharmonic objective
+    half of Hutchinson 1989 (without multigrid acceleration or the
+    drainage-enforcement constraints). For drainage enforcement combine
+    with DEM.burn_streams before or after.
+
+    The full multigrid + spline + drainage-enforcement solver remains
+    a follow-up.
 
     References:
         Hutchinson M. F. (1989). "A new procedure for gridding elevation
@@ -239,8 +244,10 @@ def anudem_solver(*args, **kwargs):
         Journal of Hydrology 106(3-4):211-232.
     """
     raise NotImplementedError(
-        "ANUDEM solver (P32) deferred. Use DEM.burn_streams + "
-        "DEM.fill_depressions for stream-enforced DEMs."
+        "anudem_solver umbrella API: use "
+        "DEM.anudem_interpolate(method='biharmonic') for the biharmonic "
+        "core, or method='laplacian' (default) for a faster harmonic "
+        "extension. Drainage enforcement: chain with DEM.burn_streams."
     )
 
 
@@ -249,30 +256,135 @@ def mesh_quality_optimise(*args, **kwargs):
 
     Operates on the meshes produced by Phase 3 P26 exporters; applies
     Laplacian smoothing, edge flips, and refinement around breaklines to
-    improve element aspect ratios. Effort: M.
+    improve element aspect ratios. The Laplacian-smoothing half is
+    available via :class:`digitalrivers.mesh.Mesh` and
+    :meth:`Mesh.laplacian_smooth`; edge flips and breakline-aware
+    refinement remain deferred.
 
     References:
         Persson P.-O., Strang G. (2004). "A simple mesh generator in
         MATLAB." SIAM Review 46(2):329-345.
     """
     raise NotImplementedError(
-        "Mesh optimisation (P33) deferred. Phase 3 P26 exports raw DEMs; "
-        "downstream mesh consumers handle quality themselves."
+        "mesh_quality_optimise umbrella API: use digitalrivers.mesh.Mesh "
+        "and Mesh.laplacian_smooth() for the smoothing half. Edge flips "
+        "and breakline-aware refinement remain deferred."
+    )
+
+
+def grid_lidar_points(
+    xs,
+    ys,
+    zs,
+    cell_size: float,
+    bounds=None,
+    aggregate: str = "min",
+    epsg: int = 4326,
+):
+    """Grid a LiDAR point cloud to a DEM (P34 partial).
+
+    Pragmatic LiDAR-to-DEM step that operates on raw ``(x, y, z)`` arrays
+    — useful when the caller has read LAS / LAZ externally (via ``laspy``,
+    ``pylas``, or PDAL) and wants a gridded surface. The full PDAL pipeline
+    (read + classify + ground-filter + grid + condition) remains deferred.
+
+    For each cell, aggregates the z values of every point that lands in
+    it. ``aggregate`` controls the aggregation: ``"min"`` (default — the
+    canonical bare-earth choice for first-return LiDAR), ``"max"``,
+    ``"mean"``, or ``"median"``. Cells with no points receive the dataset
+    no-data sentinel.
+
+    Args:
+        xs / ys / zs: 1-D arrays of point coordinates.
+        cell_size: output cell side length in map units (must match the
+            CRS).
+        bounds: ``(x_min, y_min, x_max, y_max)`` to clip the grid to. If
+            ``None``, the input points' bounding box is used.
+        aggregate: ``"min"`` (default), ``"max"``, ``"mean"``, ``"median"``.
+        epsg: EPSG code of the input coordinates.
+
+    Returns:
+        A pyramids ``Dataset`` of the gridded surface.
+
+    Raises:
+        ValueError: For mismatched input lengths or unknown ``aggregate``.
+    """
+    import numpy as np
+    from pyramids.dataset import Dataset
+
+    xs = np.asarray(xs, dtype=np.float64)
+    ys = np.asarray(ys, dtype=np.float64)
+    zs = np.asarray(zs, dtype=np.float64)
+    if not (len(xs) == len(ys) == len(zs)):
+        raise ValueError(
+            f"xs, ys, zs must have the same length; got {len(xs)}, "
+            f"{len(ys)}, {len(zs)}"
+        )
+    if aggregate not in ("min", "max", "mean", "median"):
+        raise ValueError(
+            f"aggregate must be one of 'min','max','mean','median'; "
+            f"got {aggregate!r}"
+        )
+    if bounds is None:
+        x_min, y_min = float(xs.min()), float(ys.min())
+        x_max, y_max = float(xs.max()), float(ys.max())
+    else:
+        x_min, y_min, x_max, y_max = bounds
+
+    cols = int(np.ceil((x_max - x_min) / cell_size))
+    rows = int(np.ceil((y_max - y_min) / cell_size))
+    # Map each point to its (row, col).
+    col_idx = np.clip(((xs - x_min) / cell_size).astype(np.int64), 0, cols - 1)
+    row_idx = np.clip(
+        ((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1
+    )
+
+    nodata = -9999.0
+    if aggregate == "min":
+        out = np.full((rows, cols), np.inf, dtype=np.float64)
+        for r, c, z in zip(row_idx, col_idx, zs):
+            if z < out[r, c]:
+                out[r, c] = z
+        out[~np.isfinite(out)] = nodata
+    elif aggregate == "max":
+        out = np.full((rows, cols), -np.inf, dtype=np.float64)
+        for r, c, z in zip(row_idx, col_idx, zs):
+            if z > out[r, c]:
+                out[r, c] = z
+        out[~np.isfinite(out)] = nodata
+    else:  # mean / median — collect points per cell
+        buckets: dict[tuple[int, int], list[float]] = {}
+        for r, c, z in zip(row_idx, col_idx, zs):
+            buckets.setdefault((int(r), int(c)), []).append(float(z))
+        out = np.full((rows, cols), nodata, dtype=np.float64)
+        for (r, c), vals in buckets.items():
+            arr = np.asarray(vals, dtype=np.float64)
+            out[r, c] = (
+                float(arr.mean()) if aggregate == "mean"
+                else float(np.median(arr))
+            )
+
+    geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
+    return Dataset.create_from_array(
+        out.astype(np.float32, copy=False),
+        geo=geo, epsg=epsg, no_data_value=nodata,
     )
 
 
 def pdal_lidar_pipeline(*args, **kwargs):
-    """PDAL-driven LiDAR -> conditioned DEM pipeline (P34).
+    """Full PDAL pipeline (P34) — umbrella.
 
-    Read raw .las / .laz, classify ground returns, grid to a DEM, then
-    chain Phase 1-3 conditioning operations. Effort: L.
-
-    References:
-        PDAL documentation: https://pdal.io/
+    The point-cloud-to-DEM gridding half ships as :func:`grid_lidar_points`
+    and works on raw ``(x, y, z)`` arrays. The full PDAL pipeline (LAS /
+    LAZ read + ground classification + filtering + grid + Phase 1-3
+    conditioning chain) remains deferred pending the PDAL conda-forge
+    dependency.
     """
     raise NotImplementedError(
-        "PDAL pipeline (P34) deferred. Pre-grid LiDAR externally and read "
-        "the resulting DEM via Dataset.read_file."
+        "pdal_lidar_pipeline umbrella API (P34) deferred. The gridding "
+        "half is available via digitalrivers._phase4_stubs.grid_lidar_points"
+        "; read LAS files externally with laspy / pylas / PDAL and pass "
+        "the resulting arrays into grid_lidar_points."
     )
 
 

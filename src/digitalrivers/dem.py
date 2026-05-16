@@ -1048,6 +1048,7 @@ class DEM(Dataset):
         mask=None,
         max_iter: int = 200,
         tol: float = 1e-3,
+        method: str = "laplacian",
         inplace: bool = False,
     ) -> DEM | None:
         """ANUDEM-lite: Laplacian-relaxation gap fill (P25).
@@ -1060,23 +1061,34 @@ class DEM(Dataset):
         4-connected neighbours; iteration stops when the maximum change
         in a sweep drops below ``tol`` or after ``max_iter`` sweeps.
 
+        Two solver methods are available:
+
+        - ``"laplacian"`` (default): solves Δz = 0 via the 4-neighbour
+          mean iteration. Fast, smooth interior, but only C⁰ continuity
+          at the anchor cells — the surface has visible "kinks" at
+          known points.
+        - ``"biharmonic"``: solves Δ²z = 0 by alternating two Laplacian
+          sweeps (relax ``u = Δz``, then relax ``z`` so ``Δz = u``).
+          C¹ continuity at anchors; closer to Hutchinson 1989 ANUDEM's
+          tension-spline objective but still without multigrid
+          acceleration or drainage enforcement.
+
         Limitations vs full ANUDEM:
 
-        - No biharmonic objective, no multigrid acceleration, no
-          drainage enforcement. The full Hutchinson 1989 solver is
-          Phase 4 P32.
-        - 4-neighbour Laplacian only; the algorithm is a discrete
-          harmonic-extension, not a tension-spline.
-        - No anchored stream centrelines. For drainage enforcement,
-          combine with :meth:`burn_streams` before or after.
+        - No multigrid acceleration; iteration cost is O(N · max_iter).
+        - No drainage enforcement. For stream-conditioned DEMs, combine
+          with :meth:`burn_streams` before or after.
+        - No tension parameter (Hutchinson's λ); the biharmonic mode
+          is a fixed-λ approximation.
 
         Args:
             mask: Optional bool array same shape as the DEM. ``True``
                 marks cells whose values must be preserved (in addition
                 to the existing finite cells). ``None`` keeps every
                 finite cell fixed.
-            max_iter: Maximum Gauss-Seidel sweeps.
+            max_iter: Maximum relaxation sweeps.
             tol: Convergence tolerance — stop when ``max |Δz| < tol``.
+            method: ``"laplacian"`` (default) or ``"biharmonic"``.
             inplace: If True, update the instance; else return a new DEM.
 
         Returns:
@@ -1086,6 +1098,11 @@ class DEM(Dataset):
             ValueError: If the input DEM has no finite cells.
         """
         import numpy as np
+
+        if method not in ("laplacian", "biharmonic"):
+            raise ValueError(
+                f"method must be 'laplacian' or 'biharmonic'; got {method!r}"
+            )
 
         elev = self.values
         rows, cols = elev.shape
@@ -1100,19 +1117,45 @@ class DEM(Dataset):
         # Seed unknown cells to the mean of known values to speed convergence.
         z = np.where(fixed, z, z[fixed].mean())
 
-        for _ in range(max_iter):
-            north = np.roll(z, 1, axis=0)
-            south = np.roll(z, -1, axis=0)
-            east = np.roll(z, -1, axis=1)
-            west = np.roll(z, 1, axis=1)
-            new_z = (north + south + east + west) / 4.0
-            # Boundary rolls wrap; mask those by using one-sided differences
-            # at edges — simpler: just keep edges fixed if they're finite.
-            new_z[fixed] = z[fixed]
-            diff = float(np.max(np.abs(new_z - z)))
-            z = new_z
-            if diff < tol:
-                break
+        if method == "laplacian":
+            for _ in range(max_iter):
+                north = np.roll(z, 1, axis=0)
+                south = np.roll(z, -1, axis=0)
+                east = np.roll(z, -1, axis=1)
+                west = np.roll(z, 1, axis=1)
+                new_z = (north + south + east + west) / 4.0
+                new_z[fixed] = z[fixed]
+                diff = float(np.max(np.abs(new_z - z)))
+                z = new_z
+                if diff < tol:
+                    break
+        else:  # biharmonic
+            # Alternate two Laplacian sweeps to approximate Δ²z = 0.
+            # Step A: compute u = Δz on the current z.
+            # Step B: relax z so Δz ≈ smoothed u (mean of neighbour u's).
+            # Composed, this approximates a biharmonic relaxation with C¹
+            # continuity at the anchors.
+            for _ in range(max_iter):
+                # Laplacian of z (5-point stencil).
+                north = np.roll(z, 1, axis=0)
+                south = np.roll(z, -1, axis=0)
+                east = np.roll(z, -1, axis=1)
+                west = np.roll(z, 1, axis=1)
+                u = north + south + east + west - 4.0 * z
+                # Smooth u (one Laplacian sweep on u).
+                un = np.roll(u, 1, axis=0)
+                us = np.roll(u, -1, axis=0)
+                ue = np.roll(u, -1, axis=1)
+                uw = np.roll(u, 1, axis=1)
+                u_smooth = (un + us + ue + uw) / 4.0
+                # Solve Δz = u_smooth → new z[i,j] =
+                # (sum of neighbours - u_smooth) / 4.
+                new_z = (north + south + east + west - u_smooth) / 4.0
+                new_z[fixed] = z[fixed]
+                diff = float(np.max(np.abs(new_z - z)))
+                z = new_z
+                if diff < tol:
+                    break
 
         no_val = self.no_data_value[0]
         z[~np.isfinite(z)] = no_val

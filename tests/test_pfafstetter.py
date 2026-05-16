@@ -59,13 +59,35 @@ def test_codes_in_pfafstetter_range():
         assert set(np.unique(nonzero).tolist()).issubset(set(range(1, 10)))
 
 
-def test_higher_level_not_implemented():
+def test_level_2_produces_two_digit_codes():
+    z = np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+    dem, fd, acc, sr = _build(z)
+    ws = fd.subbasins_pfafstetter(acc, sr, level=2)
+    nonzero = ws.read_array()[ws.read_array() != 0]
+    if nonzero.size:
+        codes = {int(v) for v in np.unique(nonzero)}
+        # Level-2 codes are two-digit (11..99): both digits in {1..9}.
+        for code in codes:
+            assert 11 <= code <= 99
+            parent, child = code // 10, code % 10
+            assert 1 <= parent <= 9
+            assert 1 <= child <= 9
+
+
+def test_level_below_one_rejected():
     z = np.array(
         [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
     )
     dem, fd, acc, sr = _build(z)
-    with pytest.raises(NotImplementedError, match="level=2"):
-        fd.subbasins_pfafstetter(acc, sr, level=2)
+    with pytest.raises(ValueError, match="level"):
+        fd.subbasins_pfafstetter(acc, sr, level=0)
 
 
 def test_unsupported_encoding_raises():

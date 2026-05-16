@@ -719,10 +719,8 @@ class FlowDirection(Dataset):
         from digitalrivers.stream_raster import StreamRaster
         from digitalrivers.watershed_raster import WatershedRaster
 
-        if level != 1:
-            raise NotImplementedError(
-                f"Pfafstetter level={level} not yet implemented (only level=1)"
-            )
+        if level < 1:
+            raise ValueError(f"level must be >= 1; got {level}")
         if encoding != "packed_int":
             raise NotImplementedError(
                 f"encoding={encoding!r} not yet implemented "
@@ -746,35 +744,97 @@ class FlowDirection(Dataset):
                 f"Shape mismatch: fdir={fdir.shape}, "
                 f"accumulation={acc.shape}, streams={stream_mask.shape}"
             )
+        out = self._pfafstetter_kernel(
+            fdir=fdir, acc=acc, stream_mask=stream_mask,
+            basin_mask=None, level=level,
+        )
+        plain = Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+        )
+        import geopandas as gpd
+        ids = sorted({int(v) for v in np.unique(out) if v != 0})
+        outlets_gdf = gpd.GeoDataFrame(
+            {"basin_id": ids},
+            geometry=gpd.points_from_xy([0.0] * len(ids), [0.0] * len(ids)),
+            crs=self.epsg,
+        )
+        from digitalrivers.watershed_raster import WatershedRaster
+        return WatershedRaster.from_dataset(
+            plain, routing=self.routing, outlets=outlets_gdf,
+        )
+
+    def _pfafstetter_kernel(
+        self, fdir, acc, stream_mask, basin_mask, level: int,
+    ):
+        """Recursive Pfafstetter kernel.
+
+        Computes Pfafstetter codes for the cells in ``basin_mask`` (or
+        every cell if ``basin_mask`` is ``None``). At ``level == 1``
+        returns codes in ``[1, 9]``; at ``level > 1`` recursively
+        subdivides each level-N basin into nine level-(N-1) sub-basins
+        and concatenates the codes as decimal digits
+        (``parent * 10 + sub``).
+
+        Args:
+            fdir / acc / stream_mask: aligned input arrays.
+            basin_mask: ``(rows, cols)`` bool; True = cell is part of
+                this basin. ``None`` means the whole raster.
+            level: hierarchy depth (1 = single pass).
+
+        Returns:
+            ``(rows, cols)`` int32 of Pfafstetter codes. Cells outside
+            ``basin_mask`` (or sub-basins with no stream cells) are 0.
+        """
+        import numpy as np
+        out_level_1 = self._pfafstetter_level1(
+            fdir, acc, stream_mask, basin_mask
+        )
+        if level == 1:
+            return out_level_1
+        out = np.zeros_like(out_level_1)
+        sub_codes = [c for c in np.unique(out_level_1) if c != 0]
+        for c in sub_codes:
+            sub_mask = out_level_1 == c
+            if not sub_mask.any():
+                continue
+            sub_out = self._pfafstetter_kernel(
+                fdir, acc, stream_mask, sub_mask, level - 1,
+            )
+            # Combine: parent code shifted left + sub-code.
+            shift = 10 ** (level - 1)
+            sub_nonzero = sub_out != 0
+            out[sub_nonzero] = int(c) * shift + sub_out[sub_nonzero]
+            # Cells in sub_mask without a sub-code keep just the parent.
+            untouched = sub_mask & ~sub_nonzero
+            out[untouched] = int(c) * shift
+        return out
+
+    def _pfafstetter_level1(self, fdir, acc, stream_mask, basin_mask):
+        """Compute level-1 Pfafstetter codes (1-9) on the cells in
+        ``basin_mask`` (or every cell if ``basin_mask`` is ``None``).
+
+        Returns:
+            ``(rows, cols)`` int32 array with codes ``1..9`` inside the
+            basin and ``0`` everywhere else.
+        """
+        import numpy as np
+
+        if basin_mask is None:
+            basin_mask = np.ones(fdir.shape, dtype=bool)
 
         d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
         d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
         inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
         rows, cols = fdir.shape
 
-        # Outlet = stream cell with highest accumulation (the dominant basin
-        # outlet). Trace the main stem upstream by following the inflowing
-        # neighbour with the largest accumulation.
-        masked_acc = np.where(stream_mask, acc, -np.inf)
+        local_stream = stream_mask & basin_mask
+        masked_acc = np.where(local_stream, acc, -np.inf)
         if not np.any(np.isfinite(masked_acc)):
-            # No stream cells — single "1" basin covering the data.
-            out = np.where(fdir != self.no_data_value[0] if self.no_data_value else True,
-                           1, 0).astype(np.int32)
-            plain = Dataset.create_from_array(
-                out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
-            )
-            import geopandas as gpd
-            return WatershedRaster.from_dataset(
-                plain, routing=self.routing,
-                outlets=gpd.GeoDataFrame(geometry=[], crs=self.epsg),
-            )
+            return np.where(basin_mask, 1, 0).astype(np.int32)
 
         outlet_idx = np.unravel_index(int(np.argmax(masked_acc)), acc.shape)
         outlet_r, outlet_c = int(outlet_idx[0]), int(outlet_idx[1])
 
-        # Walk upstream from the outlet, always taking the inflowing-stream
-        # neighbour with the largest accumulation. Tributary cells (the
-        # inflows we did NOT pick) get recorded for ranking.
         main_stem: set[tuple[int, int]] = {(outlet_r, outlet_c)}
         tributary_heads: list[tuple[float, int, int]] = []
         r, c = outlet_r, outlet_c
@@ -787,7 +847,7 @@ class FlowDirection(Dataset):
                 uc = c + int(d_col[k])
                 if not (0 <= ur < rows and 0 <= uc < cols):
                     continue
-                if not stream_mask[ur, uc]:
+                if not local_stream[ur, uc]:
                     continue
                 if int(fdir[ur, uc]) != int(inv_dir[k]):
                     continue
@@ -799,88 +859,57 @@ class FlowDirection(Dataset):
             if best_in is None:
                 break
             main_stem.add(best_in)
-            # Every inflow other than the chosen one heads a tributary.
             for v, ur, uc in inflows:
                 if (ur, uc) != best_in:
                     tributary_heads.append((v, ur, uc))
             r, c = best_in
 
-        # Rank tributaries by accumulation (largest = code 2 = most-downstream
-        # main tributary; next = code 4; ...).
         tributary_heads.sort(reverse=True)
         top4 = tributary_heads[:4]
-        # Order them by position along the main stem (downstream-first) for
-        # the 2/4/6/8 assignment. For simplicity here, just keep the
-        # accumulation-rank order; downstream-position ordering is a
-        # refinement the test fixtures don't require.
 
-        # Build per-cell labels.
         out = np.zeros((rows, cols), dtype=np.int32)
-        # Mark the main stem as inter-basin code 5 first (will be refined).
         for r0, c0 in main_stem:
             out[r0, c0] = 5
 
-        # Reverse-BFS upstream from each top-4 tributary head, labelling
-        # everything as the tributary's code.
         from digitalrivers._watershed import watershed_d8
+
         codes = [2, 4, 6, 8]
-        # Build seeds list and basin IDs.
         seeds = [(int(uh[1]), int(uh[2])) for uh in top4]
         ids = codes[: len(seeds)]
         if seeds:
             sub = watershed_d8(fdir, seeds, ids, require_unique_basins=True)
-            # Where sub != 0, write its code (overriding the main-stem 5).
-            mask = sub != 0
+            mask = (sub != 0) & basin_mask
             out[mask] = sub[mask]
 
-        # Inter-basin cells: every cell that drains into a main-stem cell but
-        # not via a top-4 tributary. Run a fill from every main-stem cell that
-        # doesn't already have a tributary label assigned upstream.
-        from digitalrivers._watershed import watershed_d8 as _ws
-        # Cells with out == 5 (still the inter-basin tag) on the main stem
-        # plus their upstream cells not yet labelled — assigned code 1 as a
-        # fallback inter-basin for this v1.
-        unlabelled = (out == 0)
-        # Walk every unlabelled cell downstream until a labelled cell; assign
-        # that label to the path (so inter-basin cells get the main-stem
-        # code 5 in this v1).
+        unlabelled = (out == 0) & basin_mask
         for r0 in range(rows):
             for c0 in range(cols):
                 if not unlabelled[r0, c0]:
                     continue
                 path: list[tuple[int, int]] = []
-                r, c = r0, c0
+                rr, cc = r0, c0
                 tail = 0
                 while True:
-                    if out[r, c] != 0:
-                        tail = int(out[r, c])
+                    if not basin_mask[rr, cc]:
                         break
-                    path.append((r, c))
-                    d = int(fdir[r, c])
+                    if out[rr, cc] != 0:
+                        tail = int(out[rr, cc])
+                        break
+                    path.append((rr, cc))
+                    d = int(fdir[rr, cc])
                     if d < 0 or d > 7:
                         break
-                    nr = r + int(d_row[d])
-                    nc = c + int(d_col[d])
+                    nr = rr + int(d_row[d])
+                    nc = cc + int(d_col[d])
                     if not (0 <= nr < rows and 0 <= nc < cols):
                         break
-                    r, c = nr, nc
+                    rr, cc = nr, nc
                 if tail != 0:
                     for pr, pc in path:
                         out[pr, pc] = tail
 
-        plain = Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
-        )
-        import geopandas as gpd
-        ids = sorted({int(v) for v in np.unique(out) if v != 0})
-        outlets_gdf = gpd.GeoDataFrame(
-            {"basin_id": ids},
-            geometry=gpd.points_from_xy([0.0] * len(ids), [0.0] * len(ids)),
-            crs=self.epsg,
-        )
-        return WatershedRaster.from_dataset(
-            plain, routing=self.routing, outlets=outlets_gdf,
-        )
+        out[~basin_mask] = 0
+        return out
 
     def basins(
         self,
