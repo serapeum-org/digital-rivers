@@ -1,10 +1,16 @@
-"""Tests for ``grid_lidar_points`` (P34 backfill — gridding half)."""
+"""Tests for ``digitalrivers.lidar`` (grid_lidar_points + umbrella stub)."""
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from digitalrivers.phase4 import grid_lidar_points
+from digitalrivers.lidar import grid_lidar_points, pdal_lidar_pipeline
+
+
+def test_pdal_pipeline_umbrella_points_to_gridder():
+    """The umbrella stub raises and tells callers about grid_lidar_points."""
+    with pytest.raises(NotImplementedError, match="grid_lidar_points"):
+        pdal_lidar_pipeline()
 
 
 def test_grid_min_picks_lowest_per_cell():
