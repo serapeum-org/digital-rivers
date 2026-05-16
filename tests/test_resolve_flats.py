@@ -1,4 +1,4 @@
-"""Tests for ``DEM.resolve_flats`` and the underlying ``_flats`` module (P4).
+"""Tests for `DEM.resolve_flats` and the underlying `_flats` module (P4).
 
 Covers plateau detection, LEC/HEC classification, BFS-level computation, and the combined
 gradient lift on synthetic single-outlet, two-outlet, HEC-less, and LEC-less plateaus,

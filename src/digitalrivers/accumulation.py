@@ -1,8 +1,8 @@
 """Typed flow-accumulation raster.
 
-The ``Accumulation.routing`` attribute is for *provenance only*: it records
+The `Accumulation.routing` attribute is for *provenance only*: it records
 which routing scheme produced the upstream counts so that downstream
-``Accumulation.streams(threshold)`` extraction can validate routing
+`Accumulation.streams(threshold)` extraction can validate routing
 compatibility. The accumulation surface itself (a scalar count or weighted
 sum per cell) does not depend on the routing scheme.
 """
@@ -27,25 +27,25 @@ if TYPE_CHECKING:
 def _resolve_envelope(
     envelope: Dataset | np.ndarray, shape: tuple[int, int]
 ) -> np.ndarray:
-    """Coerce an envelope spec into a bool mask aligned to ``shape``.
+    """Coerce an envelope spec into a bool mask aligned to `shape`.
 
-    ``envelope`` may be a :class:`Dataset` (its no-data sentinel becomes the
+    `envelope` may be a :class:`Dataset` (its no-data sentinel becomes the
     outside-envelope marker), a bool ndarray, or any ndarray that gets cast
-    to bool. For Datasets that lack a ``no_data_value``, finite-vs-NaN is the
+    to bool. For Datasets that lack a `no_data_value`, finite-vs-NaN is the
     inclusion criterion.
 
     Args:
-        envelope: Either a pyramids ``Dataset`` or a 2-D ndarray of the same
+        envelope: Either a pyramids `Dataset` or a 2-D ndarray of the same
             shape as the accumulation. Datasets are read; ndarrays are cast
             to bool if not already.
-        shape: ``(rows, cols)`` the returned mask must match.
+        shape: `(rows, cols)` the returned mask must match.
 
     Returns:
-        ``(rows, cols)`` bool ndarray. True = cell is inside the data
+        `(rows, cols)` bool ndarray. True = cell is inside the data
         envelope and may participate in stream extraction.
 
     Raises:
-        ValueError: If the resolved mask shape does not match ``shape``.
+        ValueError: If the resolved mask shape does not match `shape`.
 
     Examples:
         - Resolve a bool ndarray (passthrough with shape validation):
@@ -103,13 +103,13 @@ class Accumulation(Dataset):
 
     Args:
         src: GDAL dataset wrapping the accumulation raster.
-        access: ``"read_only"`` (default) or ``"write"``.
-        routing: Routing scheme of the ``FlowDirection`` that produced this
+        access: `"read_only"` (default) or `"write"`.
+        routing: Routing scheme of the `FlowDirection` that produced this
             accumulation. Required keyword-only argument. Used as provenance
-            so ``streams(threshold)`` can validate compatibility downstream.
+            so `streams(threshold)` can validate compatibility downstream.
 
     Raises:
-        ValueError: If ``routing`` is not a recognised value.
+        ValueError: If `routing` is not a recognised value.
     """
 
     routing: str
@@ -130,15 +130,15 @@ class Accumulation(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str) -> Accumulation:
-        """Promote a plain ``Dataset`` into an ``Accumulation``."""
+        """Promote a plain `Dataset` into an `Accumulation`."""
         return cls(ds.raster, routing=routing)
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying ``Dataset``."""
+        """Drop the typed wrapper and return the underlying `Dataset`."""
         return Dataset(self.raster)
 
     def persist_metadata(self) -> None:
-        """Write ``routing`` to the underlying raster's metadata tags."""
+        """Write `routing` to the underlying raster's metadata tags."""
         self.meta_data = {
             META_CLASS: type(self).__name__,
             META_ROUTING: self.routing,
@@ -146,12 +146,12 @@ class Accumulation(Dataset):
 
     @classmethod
     def open(cls, path: str, *, routing: str | None = None) -> Accumulation:
-        """Open an ``Accumulation`` GeoTIFF.
+        """Open an `Accumulation` GeoTIFF.
 
-        Resolution order: explicit ``routing=`` > ``DR_ROUTING`` tag > raise.
+        Resolution order: explicit `routing=` > `DR_ROUTING` tag > raise.
 
         Raises:
-            ValueError: If neither ``routing=`` nor a ``DR_ROUTING`` tag is
+            ValueError: If neither `routing=` nor a `DR_ROUTING` tag is
                 available.
         """
         ds = Dataset.read_file(path)
@@ -175,46 +175,46 @@ class Accumulation(Dataset):
         """Extract a stream-network raster from this accumulation surface.
 
         A cell is a stream cell when its accumulation (or its slope-area
-        support, if ``slope_dem`` and ``area_slope_exponent`` are supplied)
+        support, if `slope_dem` and `area_slope_exponent` are supplied)
         meets or exceeds the threshold.
 
         **No-data semantics.** The accumulation raster carries the dataset's
-        ``no_data_value`` sentinel, but kahn-sort accumulation produces
+        `no_data_value` sentinel, but kahn-sort accumulation produces
         non-negative sums for every in-grid cell — the sentinel never appears
-        in valid output, so the built-in ``acc != no_val`` gate is a no-op for
+        in valid output, so the built-in `acc != no_val` gate is a no-op for
         accumulations produced by :meth:`FlowDirection.accumulate`. To
         actually mask cells outside the source-DEM data envelope, pass the
-        envelope mask (or the source DEM) via the ``envelope`` kwarg. When
+        envelope mask (or the source DEM) via the `envelope` kwarg. When
         omitted, every in-grid cell is considered valid.
 
         Args:
             threshold: Minimum accumulation for stream classification. Units
-                determined by the ``units`` kwarg.
-            units: ``"cells"`` (default — direct comparison with the raster),
-                ``"km2"``, or ``"m2"``. Area units are converted to cell
+                determined by the `units` kwarg.
+            units: `"cells"` (default — direct comparison with the raster),
+                `"km2"`, or `"m2"`. Area units are converted to cell
                 counts using the dataset's square cell size.
             slope_dem: Slope raster (m/m) for the Montgomery & Foufoula-
                 Georgiou (1993) area-slope criterion. When supplied alongside
-                ``area_slope_exponent``, the threshold is applied to
-                ``acc * slope ** area_slope_exponent`` instead of ``acc``.
+                `area_slope_exponent`, the threshold is applied to
+                `acc * slope ** area_slope_exponent` instead of `acc`.
             area_slope_exponent: Theta in the area-slope formula
-                ``A * S^theta >= k``. Typical value ≈ 2.
-            envelope: Optional source-DEM envelope. Either a ``Dataset`` whose
+                `A * S^theta >= k`. Typical value ≈ 2.
+            envelope: Optional source-DEM envelope. Either a `Dataset` whose
                 no-data sentinel marks outside-envelope cells, or a bool
                 ndarray same shape as this accumulation (True = inside the
                 envelope). When provided, cells outside the envelope cannot
                 become stream cells regardless of accumulation.
 
         Returns:
-            StreamRaster carrying ``threshold`` (in cells) and this
-            Accumulation's ``routing`` tag. The underlying raster is ``uint8``
-            with ``1`` at stream cells and ``0`` at non-stream cells; the
+            StreamRaster carrying `threshold` (in cells) and this
+            Accumulation's `routing` tag. The underlying raster is `uint8`
+            with `1` at stream cells and `0` at non-stream cells; the
             input's no-data positions are propagated.
 
         Raises:
-            ValueError: If ``units`` is not recognised, if only one of
-                ``slope_dem`` / ``area_slope_exponent`` is supplied, or if
-                ``envelope`` has a shape that does not match the accumulation
+            ValueError: If `units` is not recognised, if only one of
+                `slope_dem` / `area_slope_exponent` is supplied, or if
+                `envelope` has a shape that does not match the accumulation
                 raster.
 
         Examples:
@@ -334,45 +334,45 @@ class Accumulation(Dataset):
         """Snap pour-point geometries to nearby high-accumulation / stream cells.
 
         For each input point, scan a square neighbourhood of the given radius
-        and pick the cell that wins under the chosen ``method``:
+        and pick the cell that wins under the chosen `method`:
 
-        * ``"max_accumulation"`` (ArcGIS-style): the cell with the largest
+        * `"max_accumulation"` (ArcGIS-style): the cell with the largest
           accumulation in the neighbourhood. First-seen-wins on ties.
-        * ``"jenson"`` (Jenson & Domingue 1988): the nearest stream cell in
+        * `"jenson"` (Jenson & Domingue 1988): the nearest stream cell in
           the neighbourhood (squared Euclidean against cell centres). Requires
-          a ``StreamRaster``.
+          a `StreamRaster`.
 
         Args:
-            points: ``GeoDataFrame`` of Point geometries in any CRS (will be
+            points: `GeoDataFrame` of Point geometries in any CRS (will be
                 reprojected to the dataset's CRS).
             radius_cells: Search-window radius in cells. Exactly one of
-                ``radius_cells`` / ``radius_m`` must be supplied.
+                `radius_cells` / `radius_m` must be supplied.
             radius_m: Search-window radius in map units (typically metres).
-            method: ``"max_accumulation"`` (default) or ``"jenson"``.
-            streams: ``StreamRaster`` required when ``method="jenson"``.
+            method: `"max_accumulation"` (default) or `"jenson"`.
+            streams: `StreamRaster` required when `method="jenson"`.
             min_acc: Optional floor on accepted snap-target accumulation.
-                Candidates with ``acc < min_acc`` are excluded; if no candidate
+                Candidates with `acc < min_acc` are excluded; if no candidate
                 qualifies the point is left at its original location.
             report: Reserved for future per-point diagnostics.
 
         Returns:
-            ``GeoDataFrame`` with the input columns plus ``pre_snap_geometry``
-            (the original geometry), ``snapped_x``, ``snapped_y``,
-            ``snap_distance_m`` (Euclidean distance moved in the dataset's
+            `GeoDataFrame` with the input columns plus `pre_snap_geometry`
+            (the original geometry), `snapped_x`, `snapped_y`,
+            `snap_distance_m` (Euclidean distance moved in the dataset's
             map-unit system — metres in projected CRSs, degrees in
-            geographic CRSs — NaN if unmoved), and ``snap_acc`` (the
-            accumulation at the snapped cell). The ``geometry`` column is
+            geographic CRSs — NaN if unmoved), and `snap_acc` (the
+            accumulation at the snapped cell). The `geometry` column is
             updated to the snapped points.
 
         Raises:
-            ValueError: If neither or both of ``radius_cells`` / ``radius_m``
-                are supplied, or if ``method="jenson"`` and ``streams`` is
-                ``None``, or if ``method`` is unknown.
+            ValueError: If neither or both of `radius_cells` / `radius_m`
+                are supplied, or if `method="jenson"` and `streams` is
+                `None`, or if `method` is unknown.
 
         Examples:
             - Snapping a point that already sits on the maximum-accumulation
               cell leaves the location unchanged and reports
-              ``snap_distance_m == NaN``:
+              `snap_distance_m == NaN`:
 
                 >>> import numpy as np
                 >>> import geopandas as gpd

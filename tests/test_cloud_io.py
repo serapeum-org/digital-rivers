@@ -1,4 +1,4 @@
-"""Tests for ``digitalrivers.cloud_io`` (tile_windows, write_cog, umbrellas)."""
+"""Tests for `digitalrivers.cloud_io` (tile_windows, write_cog, umbrellas)."""
 from __future__ import annotations
 
 import os
@@ -11,19 +11,19 @@ from digitalrivers import cloud_io
 
 
 def test_dask_backend_umbrella_raises():
-    """``dask_backend`` is a deferred umbrella stub pointing at tile_windows."""
+    """`dask_backend` is a deferred umbrella stub pointing at tile_windows."""
     with pytest.raises(NotImplementedError, match="tile_windows"):
         cloud_io.dask_backend()
 
 
 def test_cloud_storage_umbrella_raises():
-    """``cloud_storage`` (Zarr/S3/GCS factories) is deferred."""
+    """`cloud_storage` (Zarr/S3/GCS factories) is deferred."""
     with pytest.raises(NotImplementedError, match="write_cog"):
         cloud_io.cloud_storage()
 
 
 def test_tile_windows_partitions_dataset_into_tiles():
-    """``tile_windows`` yields edge-clipped ``(row, col, h, w)`` windows."""
+    """`tile_windows` yields edge-clipped `(row, col, h, w)` windows."""
     ds = Dataset.create_from_array(
         np.zeros((10, 10), dtype=np.float32),
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
@@ -46,7 +46,7 @@ def test_tile_windows_invalid_sizes_raise():
 
 
 def test_write_cog_writes_a_file(tmp_path):
-    """``write_cog`` writes a COG via GDAL's COG driver."""
+    """`write_cog` writes a COG via GDAL's COG driver."""
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
     ds = Dataset.create_from_array(
         z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,

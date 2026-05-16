@@ -2,12 +2,12 @@
 
 Each test pins a behaviour that was previously asserted weakly or not at all:
 
-* C1: Breach ``least_cost`` with a no-data outlet on the first hop.
+* C1: Breach `least_cost` with a no-data outlet on the first hop.
 * C2: D∞ exact mass conservation on a planar tilt.
 * C3: MFD-Holmgren convergence toward D8-like fractions at high exponent.
 * C4: Rho8 reproducibility under a fixed seed.
-* C5: ``Accumulation.streams(units="km2"/"m2")`` round-trip.
-* C6: ``DEM.flow_accumulation`` truncation warning + envelope mask for D∞/MFD.
+* C5: `Accumulation.streams(units="km2"/"m2")` round-trip.
+* C6: `DEM.flow_accumulation` truncation warning + envelope mask for D∞/MFD.
 """
 from __future__ import annotations
 
@@ -151,7 +151,7 @@ def test_rho8_different_seeds_can_diverge():
 
 
 def test_streams_km2_threshold_equivalent_to_cells_for_unit_cells():
-    """With 1 m cells, ``units='m2', threshold=4`` ≡ ``units='cells', threshold=4``."""
+    """With 1 m cells, `units='m2', threshold=4` ≡ `units='cells', threshold=4`."""
     z = np.array(
         [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
     )
@@ -164,7 +164,7 @@ def test_streams_km2_threshold_equivalent_to_cells_for_unit_cells():
 
 
 def test_streams_km2_threshold_converts_to_cells():
-    """With 1 m cells, ``units='km2', threshold=1e-6`` ≡ ``threshold=1 cell``."""
+    """With 1 m cells, `units='km2', threshold=1e-6` ≡ `threshold=1 cell`."""
     z = np.array(
         [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
     )
@@ -258,7 +258,7 @@ from digitalrivers._conditioning.pitremoval import local_minima_8
 
 
 class TestLocalMinima8EdgeCases:
-    """Extra coverage for the vectorised ``local_minima_8`` (I4 fix)."""
+    """Extra coverage for the vectorised `local_minima_8` (I4 fix)."""
 
     def test_interior_nan_cell_excluded(self):
         """A NaN cell never qualifies as a local minimum."""
@@ -276,7 +276,7 @@ class TestLocalMinima8EdgeCases:
         assert not out.any()
 
     def test_separate_nodata_mask_is_honoured(self):
-        """Cells flagged by ``nodata_mask`` are excluded from output AND
+        """Cells flagged by `nodata_mask` are excluded from output AND
         from neighbour comparisons."""
         z = np.array(
             [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float64
@@ -287,7 +287,7 @@ class TestLocalMinima8EdgeCases:
         assert not bool(out[1, 1])
 
     def test_nodata_mask_combines_with_nan_in_z(self):
-        """NaN positions + ``nodata_mask`` are unioned for invalidity."""
+        """NaN positions + `nodata_mask` are unioned for invalidity."""
         z = np.array(
             [[5, 5, 5], [5, np.nan, 5], [5, 5, 5]], dtype=np.float64
         )
@@ -298,7 +298,7 @@ class TestLocalMinima8EdgeCases:
         assert not out.any()
 
     def test_strict_inequality_rejects_plateau_centre(self):
-        """``z[r, c] == min(neighbours)`` is NOT a strict local minimum."""
+        """`z[r, c] == min(neighbours)` is NOT a strict local minimum."""
         z = np.full((3, 3), 5.0, dtype=np.float64)
         out = local_minima_8(z)
         assert not out.any()

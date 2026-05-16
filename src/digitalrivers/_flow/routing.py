@@ -2,21 +2,21 @@
 
 Four routing schemes alongside the existing D8:
 
-* ``"d8"`` (already in dem.py) — single-direction steepest descent.
-* ``"dinf"`` — Tarboton (1997). 8 triangular facets per cell; output is a 2-band raster
+* `"d8"` (already in dem.py) — single-direction steepest descent.
+* `"dinf"` — Tarboton (1997). 8 triangular facets per cell; output is a 2-band raster
   (angle in radians CCW from east, slope magnitude). Aspect is split between two
   neighbours proportional to the within-facet angle.
-* ``"mfd_quinn"`` — Quinn et al. (1991). Multi-direction; distributes flow to every
-  downslope neighbour proportional to ``s_k * L_k`` where ``L_k`` is the contour-length
+* `"mfd_quinn"` — Quinn et al. (1991). Multi-direction; distributes flow to every
+  downslope neighbour proportional to `s_k * L_k` where `L_k` is the contour-length
   factor (0.5 for cardinals, 0.354 for diagonals). Output: 8-band float32 stack.
-* ``"mfd_holmgren"`` — Holmgren (1994). Same family, no contour-length weighting,
-  tunable exponent ``p``; high ``p`` (4–6) mimics D8, ``p=1`` mimics Quinn.
-* ``"rho8"`` — Fairfield & Leymarie (1991). Stochastic single-direction; cardinal slopes
-  are perturbed by ``/(2 - U)`` where ``U ~ Uniform(0, 1)``, then steepest is picked.
+* `"mfd_holmgren"` — Holmgren (1994). Same family, no contour-length weighting,
+  tunable exponent `p`; high `p` (4–6) mimics D8, `p=1` mimics Quinn.
+* `"rho8"` — Fairfield & Leymarie (1991). Stochastic single-direction; cardinal slopes
+  are perturbed by `/(2 - U)` where `U ~ Uniform(0, 1)`, then steepest is picked.
 
-Output direction codes follow the ``DIR_OFFSETS`` convention from ``dem.py``:
-``0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE``. All multi-band outputs index axis 0
-(bands) in that order for MFD, and ``(angle, magnitude)`` for D∞.
+Output direction codes follow the `DIR_OFFSETS` convention from `dem.py`:
+`0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`. All multi-band outputs index axis 0
+(bands) in that order for MFD, and `(angle, magnitude)` for D∞.
 """
 from __future__ import annotations
 
@@ -37,8 +37,8 @@ def _dinf_facet_tables() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
     """Tarboton facet adjacency tables for the 8 D∞ facets.
 
     Each facet K is defined by a (cardinal_dir_idx, diagonal_dir_idx) pair and a
-    ``(ac, af)`` rule for converting the within-facet angle ``r ∈ [0, π/4]`` into the
-    global aspect angle ``ac * π/2 + af * r`` (radians CCW from east, mod 2π).
+    `(ac, af)` rule for converting the within-facet angle `r ∈ [0, π/4]` into the
+    global aspect angle `ac * π/2 + af * r` (radians CCW from east, mod 2π).
 
     Returns:
         Tuple of four (8,) arrays:
@@ -64,11 +64,11 @@ def _dinf_facet_tables() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
 
 
 def _padded_elevation(z: np.ndarray) -> np.ndarray:
-    """Return a NaN-padded copy of ``z`` so 8-neighbour lookups never go out of bounds.
+    """Return a NaN-padded copy of `z` so 8-neighbour lookups never go out of bounds.
 
-    Padding rows and columns hold ``NaN``; any computation using a NaN neighbour
-    propagates ``NaN`` through arithmetic and is filtered out by ``nanargmax`` /
-    ``np.where`` checks downstream.
+    Padding rows and columns hold `NaN`; any computation using a NaN neighbour
+    propagates `NaN` through arithmetic and is filtered out by `nanargmax` /
+    `np.where` checks downstream.
     """
     rows, cols = z.shape
     padded = np.full((rows + 2, cols + 2), np.nan, dtype=np.float64)
@@ -86,15 +86,15 @@ def dinf_flow_direction(
         cell_size: square cell side length in map units.
 
     Returns:
-        Tuple ``(angle, magnitude)``:
-            angle: ``(rows, cols)`` float32, aspect in radians CCW from east in
-                ``[0, 2π)``. ``-1.0`` marks cells with no downhill flow (sinks,
+        Tuple `(angle, magnitude)`:
+            angle: `(rows, cols)` float32, aspect in radians CCW from east in
+                `[0, 2π)`. `-1.0` marks cells with no downhill flow (sinks,
                 no-data, all-flat neighbourhoods).
-            magnitude: ``(rows, cols)`` float32, slope magnitude along the chosen
-                facet. ``0.0`` where ``angle == -1``.
+            magnitude: `(rows, cols)` float32, slope magnitude along the chosen
+                facet. `0.0` where `angle == -1`.
 
     Examples:
-        - A planar surface tilted so water flows east (``Z = -x``) gives an
+        - A planar surface tilted so water flows east (`Z = -x`) gives an
           aspect angle ≈ 0 (CCW from east) on interior cells:
 
             >>> import numpy as np
@@ -180,17 +180,17 @@ def mfd_flow_direction(
     """Multi-flow direction (Quinn 1991 / Holmgren 1994 / Freeman 1991).
 
     Args:
-        slopes: ``(rows, cols, 8)`` float32 slopes-to-neighbour, ordered by
-            ``DIR_OFFSETS``. NaN slopes represent boundary/no-data neighbours.
-        elev_mask: ``(rows, cols)`` bool — True where the centre cell has a valid
+        slopes: `(rows, cols, 8)` float32 slopes-to-neighbour, ordered by
+            `DIR_OFFSETS`. NaN slopes represent boundary/no-data neighbours.
+        elev_mask: `(rows, cols)` bool — True where the centre cell has a valid
             elevation (not NaN / not no-data).
-        weighting: ``"quinn"`` applies contour-length weights (0.5 cardinal,
-            0.354 diagonal). ``"holmgren"`` uses raw exponent (no length factor).
-        exponent: ``p`` in the weight formula. Quinn defaults to 1.0; Holmgren
+        weighting: `"quinn"` applies contour-length weights (0.5 cardinal,
+            0.354 diagonal). `"holmgren"` uses raw exponent (no length factor).
+        exponent: `p` in the weight formula. Quinn defaults to 1.0; Holmgren
             typical 4–10 (high p mimics D8, p=1 mimics Quinn).
 
     Returns:
-        ``(rows, cols, 8)`` float32 fraction stack. Each cell's fractions sum to 1.0
+        `(rows, cols, 8)` float32 fraction stack. Each cell's fractions sum to 1.0
         if any downslope neighbour exists, else all zero (sink / no-flow cell).
     """
     rows, cols, _ = slopes.shape
@@ -223,18 +223,18 @@ def rho8_flow_direction(
 ) -> np.ndarray:
     """Rho8 stochastic single-direction (Fairfield & Leymarie 1991).
 
-    Cardinal slopes are divided by ``2 - U`` where ``U ~ Uniform(0, 1)`` per cell; this
+    Cardinal slopes are divided by `2 - U` where `U ~ Uniform(0, 1)` per cell; this
     randomly weighs cardinal vs diagonal preference so that, integrated over many
     realisations, the expected flow direction matches the gradient aspect.
 
     Args:
-        slopes: ``(rows, cols, 8)`` float32 slopes-to-neighbour.
-        elev_mask: ``(rows, cols)`` bool, True for valid-elevation cells.
-        rng: NumPy ``Generator``; pass ``np.random.default_rng(seed)`` for
+        slopes: `(rows, cols, 8)` float32 slopes-to-neighbour.
+        elev_mask: `(rows, cols)` bool, True for valid-elevation cells.
+        rng: NumPy `Generator`; pass `np.random.default_rng(seed)` for
             reproducibility.
 
     Returns:
-        ``(rows, cols)`` int32 direction code (0–7) or the no-data sentinel for cells
+        `(rows, cols)` int32 direction code (0–7) or the no-data sentinel for cells
         with no downslope neighbour / invalid elevation.
     """
     rows, cols, _ = slopes.shape

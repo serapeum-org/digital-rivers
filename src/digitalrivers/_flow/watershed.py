@@ -24,22 +24,22 @@ def watershed_d8(
 ) -> np.ndarray:
     """Reverse-BFS watershed labelling.
 
-    For each ``(seed, basin_id)`` pair, walk upstream from the seed and label
+    For each `(seed, basin_id)` pair, walk upstream from the seed and label
     every contributing cell with that ID. Seeds are processed in the order given;
-    when ``require_unique_basins=False`` an inner seed's basin overwrites the
+    when `require_unique_basins=False` an inner seed's basin overwrites the
     outer one's cells (so the outer basin contains a hole). When
-    ``require_unique_basins=True`` the first seed to claim a cell wins.
+    `require_unique_basins=True` the first seed to claim a cell wins.
 
     Args:
-        fdir: ``(rows, cols)`` int32 direction-code raster (DIR_OFFSETS codes).
-        seeds: list of ``(row, col)`` integer cell positions.
-        basin_ids: list of integer IDs, parallel to ``seeds``.
+        fdir: `(rows, cols)` int32 direction-code raster (DIR_OFFSETS codes).
+        seeds: list of `(row, col)` integer cell positions.
+        basin_ids: list of integer IDs, parallel to `seeds`.
         require_unique_basins: if True, the first basin to claim a cell keeps
             it; if False (default), later basins overwrite earlier ones along
             shared upstream paths.
 
     Returns:
-        ``(rows, cols)`` int32 basin-ID raster. Cells not in any basin are 0.
+        `(rows, cols)` int32 basin-ID raster. Cells not in any basin are 0.
 
     Examples:
         - A single seed at the end of a westward chain captures every cell
@@ -67,7 +67,7 @@ def watershed_d8(
     rows, cols = fdir.shape
     out = np.zeros((rows, cols), dtype=np.int32)
 
-    # In ``require_unique_basins=False`` mode the contract is "later seeds
+    # In `require_unique_basins=False` mode the contract is "later seeds
     # overwrite earlier seeds along shared upstream paths" — which is
     # equivalent to "process seeds in reverse order, first-claim wins".
     # The reversed form costs O(N) total because each cell is visited at

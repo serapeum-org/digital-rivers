@@ -1,4 +1,4 @@
-"""Tests for the biharmonic mode of ``DEM.anudem_interpolate`` (P32 backfill)."""
+"""Tests for the biharmonic mode of `DEM.anudem_interpolate` (P32 backfill)."""
 from __future__ import annotations
 
 import numpy as np
@@ -87,14 +87,14 @@ def test_biharmonic_high_tol_stops_immediately():
 
 
 def test_biharmonic_with_explicit_mask_treats_cells_as_fixed():
-    """The ``mask`` kwarg adds extra anchor cells to the relaxation."""
+    """The `mask` kwarg adds extra anchor cells to the relaxation."""
     z = np.array(
         [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
         dtype=np.float32,
     )
     dem = _make_dem(z)
     # Pin every known cell explicitly via mask (redundant — already finite),
-    # which exercises the ``fixed = fixed | mask`` branch.
+    # which exercises the `fixed = fixed | mask` branch.
     extra = np.array(
         [[True, True, True], [True, False, True], [True, True, True]],
         dtype=bool,
@@ -127,7 +127,7 @@ def test_biharmonic_no_anchors_raises():
 
 
 def test_biharmonic_inplace_returns_none():
-    """``inplace=True`` updates the instance and returns None."""
+    """`inplace=True` updates the instance and returns None."""
     z = np.array(
         [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
         dtype=np.float32,

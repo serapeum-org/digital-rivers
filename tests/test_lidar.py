@@ -1,4 +1,4 @@
-"""Tests for ``digitalrivers.lidar`` (grid_lidar_points + umbrella stub)."""
+"""Tests for `digitalrivers.lidar` (grid_lidar_points + umbrella stub)."""
 from __future__ import annotations
 
 import numpy as np

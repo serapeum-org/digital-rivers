@@ -24,9 +24,9 @@ class TestProperties:
 
 
 def test_fill_sinks_deprecated_alias(coello_dem_4000: gdal.Dataset):
-    """``DEM.fill_sinks`` now aliases ``fill_depressions(method='priority_flood', epsilon=0.1)``
+    """`DEM.fill_sinks` now aliases `fill_depressions(method='priority_flood', epsilon=0.1)`
     and emits a DeprecationWarning. The historical pixel-equality fixture
-    (``elev_sink_free``) was computed by the old single-pass algorithm and is no
+    (`elev_sink_free`) was computed by the old single-pass algorithm and is no
     longer reproducible — behavioural assertions take its place."""
     import warnings
 

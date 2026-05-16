@@ -1,4 +1,4 @@
-"""Tests for ``digitalrivers.mesh.Mesh`` (P33 backfill)."""
+"""Tests for `digitalrivers.mesh.Mesh` (P33 backfill)."""
 from __future__ import annotations
 
 import numpy as np
@@ -131,14 +131,14 @@ def test_init_accepts_3d_vertices():
 
 
 def test_smooth_no_iterations_returns_copy(two_triangle_quad):
-    """``n_iterations=0`` returns a fresh Mesh with identical vertices."""
+    """`n_iterations=0` returns a fresh Mesh with identical vertices."""
     smoothed = two_triangle_quad.laplacian_smooth(n_iterations=0)
     np.testing.assert_array_equal(smoothed.vertices, two_triangle_quad.vertices)
     assert smoothed is not two_triangle_quad
 
 
 def test_smooth_zero_relaxation_is_identity():
-    """``relaxation=0`` leaves all vertices unchanged even for many iters."""
+    """`relaxation=0` leaves all vertices unchanged even for many iters."""
     vertices = np.array(
         [
             [0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [1.5, 1.5],
@@ -154,7 +154,7 @@ def test_smooth_zero_relaxation_is_identity():
 
 
 def test_smooth_hold_boundary_false_moves_all_vertices():
-    """With ``hold_boundary=False`` and ``relaxation=1.0``, every vertex
+    """With `hold_boundary=False` and `relaxation=1.0`, every vertex
     snaps onto its neighbour centroid each iteration."""
     vertices = np.array(
         [

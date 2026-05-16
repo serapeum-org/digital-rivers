@@ -1,9 +1,9 @@
 """Flat-area resolution for DEM hydro pre-processing (P4).
 
-After ``fill_depressions(method="wang_liu")`` (or ``priority_flood`` with ``epsilon=0``),
+After `fill_depressions(method="wang_liu")` (or `priority_flood` with `epsilon=0`),
 every closed depression is filled to its spill elevation — but the interior of each
 filled depression is now a *flat plateau* with no defined steepest descent. D8 flow
-direction over the result has ``NO_FLOW`` cells across every plateau.
+direction over the result has `NO_FLOW` cells across every plateau.
 
 This module imposes an artificial gradient on each plateau so that flow has a unique
 deterministic direction. The algorithm is Garbrecht & Martz (1997) with the Barnes
@@ -16,10 +16,10 @@ deterministic direction. The algorithm is Garbrecht & Martz (1997) with the Barn
    - **HEC** (high-edge cell) if at least one 8-neighbour has strictly higher elevation
      (the rim).
    A cell can be both.
-3. BFS from LECs inward → ``g_low`` (distance to nearest outlet, level 1 at the outlet).
-4. BFS from HECs inward → ``g_high`` (distance to nearest rim). Invert per-plateau so
+3. BFS from LECs inward → `g_low` (distance to nearest outlet, level 1 at the outlet).
+4. BFS from HECs inward → `g_high` (distance to nearest rim). Invert per-plateau so
    cells far from the rim get the smallest value.
-5. Add ``(2 * g_high_inverted + g_low) * epsilon`` to plateau cells. The ``2x`` weighting
+5. Add `(2 * g_high_inverted + g_low) * epsilon` to plateau cells. The `2x` weighting
    makes "drain towards the outlet" dominate, with "drain away from higher terrain"
    acting as a deterministic tiebreaker for cells equidistant between two outlets.
 
@@ -143,8 +143,8 @@ def _bfs_levels(
     neighbours: tuple[tuple[int, int], ...],
     max_iter: int,
 ) -> np.ndarray:
-    """BFS-level grid: cell ``c`` gets level ``k`` if its shortest plateau-internal path to
-    any seed has ``k - 1`` hops. Seeds themselves are level 1. Non-plateau cells stay at 0.
+    """BFS-level grid: cell `c` gets level `k` if its shortest plateau-internal path to
+    any seed has `k - 1` hops. Seeds themselves are level 1. Non-plateau cells stay at 0.
 
     BFS stays within a single plateau (a step to a neighbour with a different label is
     not taken).
@@ -185,10 +185,10 @@ def _invert_per_plateau(
     labels: np.ndarray,
     num_plateaus: int,
 ) -> np.ndarray:
-    """For each plateau, invert ``g`` so cells far from the original seeds get 0 and cells
+    """For each plateau, invert `g` so cells far from the original seeds get 0 and cells
     next to a seed get the per-plateau maximum minus 1.
 
-    Used on the ``g_high`` grid so that "distance from HEC" becomes "elevation above the
+    Used on the `g_high` grid so that "distance from HEC" becomes "elevation above the
     plateau interior" — cells next to higher terrain get the largest bump, draining
     flow away from the rim.
     """
@@ -217,29 +217,29 @@ def resolve_flats(
     connectivity: int = 8,
     max_iter: int = 1000,
 ) -> np.ndarray:
-    """Impose a deterministic gradient on every flat plateau in ``z``.
+    """Impose a deterministic gradient on every flat plateau in `z`.
 
     Args:
         z: 2-D elevation array (any float dtype; promoted to float64 internally).
-        nodata_mask: 2-D bool mask, True at no-data cells. NaN positions in ``z`` are
+        nodata_mask: 2-D bool mask, True at no-data cells. NaN positions in `z` are
             added automatically.
         epsilon: Per-BFS-step elevation lift. Total lift over a plateau is at most
-            ``(2 * max_high_dist + max_low_dist) * epsilon``; pick small enough that this
+            `(2 * max_high_dist + max_low_dist) * epsilon`; pick small enough that this
             stays well below the minimum elevation step between adjacent non-plateau
-            cells. Default ``1e-5`` is safe for ~1000-cell-wide plateaus on metre-precision
+            cells. Default `1e-5` is safe for ~1000-cell-wide plateaus on metre-precision
             DEMs.
         connectivity: 4 or 8. Controls both the plateau-labelling and the BFS step.
             LEC/HEC classification always uses 8-connectivity regardless (Garbrecht-Martz
             convention). Default is 8.
         max_iter: Safety cap on BFS levels per plateau. Real plateaus rarely exceed
-            ``max(rows, cols)``; the default ``1000`` is essentially unbounded.
+            `max(rows, cols)`; the default `1000` is essentially unbounded.
 
     Returns:
         2-D float64 array with plateau cells nudged so each has a defined steepest
         descent. No-data positions hold NaN; the input is not mutated.
 
     Raises:
-        ValueError: If ``connectivity`` is not 4 or 8.
+        ValueError: If `connectivity` is not 4 or 8.
     """
     if connectivity not in (4, 8):
         raise ValueError(f"connectivity must be 4 or 8; got {connectivity}")

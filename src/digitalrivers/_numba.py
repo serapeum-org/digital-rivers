@@ -6,16 +6,16 @@ Numba JIT-compiled implementations of the hottest loops in the hydro pre-process
 * :func:`kahn_accumulate_d8_numba` — Kahn topological-sort flow accumulation for
   single-direction routings (D8 / Rho8).
 * :func:`priority_flood_numba` — depression-fill via Barnes 2014 Priority-Flood
-  with a hand-rolled binary heap (no ``heapq.typed.List`` dependency).
+  with a hand-rolled binary heap (no `heapq.typed.List` dependency).
 
-All kernels share a single direction-offset convention (``DIR_OFFSETS`` from
-``dem.py``: ``0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE``) passed as two
-``int32[:]`` arrays — never as a dict — to keep Numba's type inference happy.
+All kernels share a single direction-offset convention (`DIR_OFFSETS` from
+`dem.py`: `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`) passed as two
+`int32[:]` arrays — never as a dict — to keep Numba's type inference happy.
 
 Disabling Numba
 ---------------
 
-Set the env var ``DIGITALRIVERS_DISABLE_NUMBA=1`` (or fail to install Numba) and
+Set the env var `DIGITALRIVERS_DISABLE_NUMBA=1` (or fail to install Numba) and
 this module's decorators degrade to no-ops, producing identical bit-for-bit
 output from the pure-Python branch. Used for debugging (step-through in an IDE)
 and for CI on platforms without Numba wheels.
@@ -60,7 +60,7 @@ def is_numba_enabled() -> bool:
 
 
 def neighbour_offsets() -> tuple[np.ndarray, np.ndarray]:
-    """Return the (dr, dc) offset arrays as a tuple of ``int32`` arrays.
+    """Return the (dr, dc) offset arrays as a tuple of `int32` arrays.
 
     Convenience for callers that want to pass them into JIT kernels without
     importing the underscored module-level constants.
@@ -78,21 +78,21 @@ def d8_flow_direction_numba(
     d_row: np.ndarray,
     d_col: np.ndarray,
 ) -> np.ndarray:
-    """Steepest-descent D8 flow direction over ``elev``.
+    """Steepest-descent D8 flow direction over `elev`.
 
     Cells whose max 8-neighbour slope is non-positive (no strictly downhill
-    neighbour) are marked ``nodata_out`` — matches the P5 sink semantics. NaN
-    cells in the input also receive ``nodata_out``.
+    neighbour) are marked `nodata_out` — matches the P5 sink semantics. NaN
+    cells in the input also receive `nodata_out`.
 
     Args:
-        elev: ``(rows, cols)`` float32 elevation array; NaN = no-data.
+        elev: `(rows, cols)` float32 elevation array; NaN = no-data.
         cell_size: square cell side length in map units.
         nodata_out: int32 sentinel for sinks / no-data.
-        d_row: ``int32[8]`` row offset per direction (DIR_OFFSETS order).
-        d_col: ``int32[8]`` column offset per direction.
+        d_row: `int32[8]` row offset per direction (DIR_OFFSETS order).
+        d_col: `int32[8]` column offset per direction.
 
     Returns:
-        ``(rows, cols)`` int32 direction-code raster.
+        `(rows, cols)` int32 direction-code raster.
     """
     rows, cols = elev.shape
     out = np.full((rows, cols), nodata_out, dtype=np.int32)
@@ -140,20 +140,20 @@ def kahn_accumulate_d8_numba(
 ) -> np.ndarray:
     """Kahn topological-sort accumulation for single-direction routing.
 
-    Same semantics as the pure-Python ``_accumulation.kahn_accumulate`` with
-    ``K=1``: ``out[cell] = sum of weights over strictly-upstream cells`` (own
+    Same semantics as the pure-Python `_accumulation.kahn_accumulate` with
+    `K=1`: `out[cell] = sum of weights over strictly-upstream cells` (own
     weight is never counted at self).
 
     Args:
-        fdir: ``(rows, cols)`` int32 direction-code raster. Values outside
-            ``[0, 7]`` are sinks (no outgoing flow); they still accumulate
+        fdir: `(rows, cols)` int32 direction-code raster. Values outside
+            `[0, 7]` are sinks (no outgoing flow); they still accumulate
             inbound contributions.
-        weights: ``(rows, cols)`` float64 per-cell weight.
-        d_row: ``int32[8]`` row offsets (DIR_OFFSETS order).
-        d_col: ``int32[8]`` column offsets.
+        weights: `(rows, cols)` float64 per-cell weight.
+        d_row: `int32[8]` row offsets (DIR_OFFSETS order).
+        d_col: `int32[8]` column offsets.
 
     Returns:
-        ``(rows, cols)`` float64 accumulation grid.
+        `(rows, cols)` float64 accumulation grid.
     """
     rows, cols = fdir.shape
     indeg = np.zeros((rows, cols), dtype=np.int32)
@@ -210,9 +210,9 @@ def kahn_accumulate_d8_numba(
 @njit(cache=True, inline="always")
 def _heap_push(prio: np.ndarray, idx: np.ndarray, size: int,
                new_prio: float, new_idx: int) -> int:
-    """Push ``(new_prio, new_idx)`` onto a min-heap stored in
-    ``prio[:size]`` / ``idx[:size]``. Returns the new size. Tie-breaks via
-    ``idx`` so the order is deterministic across runs."""
+    """Push `(new_prio, new_idx)` onto a min-heap stored in
+    `prio[:size]` / `idx[:size]`. Returns the new size. Tie-breaks via
+    `idx` so the order is deterministic across runs."""
     i = size
     prio[i] = new_prio
     idx[i] = new_idx
@@ -280,21 +280,21 @@ def cotat_upscale_numba(
 ) -> np.ndarray:
     """Native Numba COTAT upscaling kernel (P28 / Reed 2003).
 
-    For each coarse cell (a ``scale_factor`` × ``scale_factor`` block of fine
+    For each coarse cell (a `scale_factor` × `scale_factor` block of fine
     cells), finds the fine cell with the largest accumulation as the
-    coarse-cell outlet, traces downstream along ``fdir`` until leaving the
+    coarse-cell outlet, traces downstream along `fdir` until leaving the
     block, then assigns the coarse-cell direction by comparing the source
     and destination coarse-cell coordinates.
 
     Args:
-        fdir: ``(rows, cols)`` int32 fine-resolution D8 directions.
-        acc: ``(rows, cols)`` float64 fine-resolution accumulation.
+        fdir: `(rows, cols)` int32 fine-resolution D8 directions.
+        acc: `(rows, cols)` float64 fine-resolution accumulation.
         scale_factor: integer coarsening factor (>= 2).
         d_row, d_col: int32 DIR_OFFSETS neighbour offsets.
         nodata_out: int32 sentinel for coarse cells with no defined outlet.
 
     Returns:
-        ``(rows // scale_factor, cols // scale_factor)`` int32 coarse-grid
+        `(rows // scale_factor, cols // scale_factor)` int32 coarse-grid
         D8 raster.
     """
     rows, cols = fdir.shape
@@ -352,20 +352,20 @@ def priority_flood_numba(
 ) -> np.ndarray:
     """Barnes 2014 Priority-Flood depression fill, JIT-compiled.
 
-    Output semantics match the pure-Python ``_pitremoval._priority_flood``:
-    cells along a depression path lift to the spill height (plus ``epsilon``
-    per step if ``epsilon > 0``); cells already strictly higher keep their
+    Output semantics match the pure-Python `_pitremoval._priority_flood`:
+    cells along a depression path lift to the spill height (plus `epsilon`
+    per step if `epsilon > 0`); cells already strictly higher keep their
     original elevation.
 
     Args:
-        elev: ``(rows, cols)`` float64 elevation.
-        nodata_mask: ``(rows, cols)`` bool — True at no-data cells.
+        elev: `(rows, cols)` float64 elevation.
+        nodata_mask: `(rows, cols)` bool — True at no-data cells.
         epsilon: per-step elevation lift inside depressions.
-        d_row: ``int32[8]`` row offsets.
-        d_col: ``int32[8]`` column offsets.
+        d_row: `int32[8]` row offsets.
+        d_col: `int32[8]` column offsets.
 
     Returns:
-        ``(rows, cols)`` float64 filled elevation. No-data positions are NaN.
+        `(rows, cols)` float64 filled elevation. No-data positions are NaN.
     """
     rows, cols = elev.shape
     out = elev.copy()
@@ -389,7 +389,7 @@ def priority_flood_numba(
     pit_tail = 0
 
     # Seed: array-boundary cells + cells adjacent to no-data. The hand-rolled
-    # heap's tie-break is via ``idx`` — we store the row-major linear index
+    # heap's tie-break is via `idx` — we store the row-major linear index
     # there, which is unique per cell and makes the pop order deterministic.
     for r in range(rows):
         for c in range(cols):

@@ -2,15 +2,15 @@
 
 Each test pins behaviour that was previously asserted weakly or not at all:
 
-* C1: ``subbasins_pfafstetter`` no-stream fallback returns a single basin.
-* C2: ``basins(merge_small="merge_to_neighbour")`` uses true 8-adjacency.
-* C3: ``WatershedRaster.statistics`` returns centroid columns even when no
+* C1: `subbasins_pfafstetter` no-stream fallback returns a single basin.
+* C2: `basins(merge_small="merge_to_neighbour")` uses true 8-adjacency.
+* C3: `WatershedRaster.statistics` returns centroid columns even when no
        DEM is provided.
-* C4: ``WatershedRaster.outlets`` carries real coordinates (not ``Point(0, 0)``)
-       for both Pfafstetter and ``StreamRaster.subbasins``.
-* C5: Diagonal cell length contributes ``sqrt(2)`` to drainage density when
-       ``flow_direction`` is supplied to ``statistics``.
-* C6: ``snap_distance_m`` is NaN when the snap target is the input cell.
+* C4: `WatershedRaster.outlets` carries real coordinates (not `Point(0, 0)`)
+       for both Pfafstetter and `StreamRaster.subbasins`.
+* C5: Diagonal cell length contributes `sqrt(2)` to drainage density when
+       `flow_direction` is supplied to `statistics`.
+* C6: `snap_distance_m` is NaN when the snap target is the input cell.
 """
 from __future__ import annotations
 
@@ -36,8 +36,8 @@ def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
 
 def test_pfafstetter_no_stream_fallback_returns_single_basin_one():
     """When the threshold is so high that no cells become streams, the
-    Pfafstetter fallback returns every cell labelled ``1`` (or 0 for
-    no-data) — no crash, no scalar ``np.where`` regression."""
+    Pfafstetter fallback returns every cell labelled `1` (or 0 for
+    no-data) — no crash, no scalar `np.where` regression."""
     z = np.array([[5, 5, 5], [5, 0, 5], [5, 5, 5]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
@@ -80,7 +80,7 @@ def test_merge_to_neighbour_picks_adjacent_not_globally_largest():
 
 
 def test_centroid_returned_when_only_slope_provided():
-    """``WatershedRaster.statistics(slope=...)`` returns the centroid
+    """`WatershedRaster.statistics(slope=...)` returns the centroid
     columns even without a DEM."""
     z = np.array([[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32)
     dem = _make_dem(z)
@@ -96,8 +96,8 @@ def test_centroid_returned_when_only_slope_provided():
 
 
 def test_centroid_returned_with_no_inputs():
-    """``WatershedRaster.statistics()`` (no kwargs) still includes
-    centroid columns and ``area_km2``."""
+    """`WatershedRaster.statistics()` (no kwargs) still includes
+    centroid columns and `area_km2`."""
     z = np.array([[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
@@ -113,7 +113,7 @@ def test_centroid_returned_with_no_inputs():
 
 def test_pfafstetter_outlets_have_non_placeholder_coords():
     """The Pfafstetter outlets GeoDataFrame must not be a column of
-    ``Point(0, 0)`` placeholders."""
+    `Point(0, 0)` placeholders."""
     z = np.array(
         [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
         dtype=np.float32,
@@ -131,7 +131,7 @@ def test_pfafstetter_outlets_have_non_placeholder_coords():
 
 
 def test_streamraster_subbasins_outlets_have_non_placeholder_coords():
-    """``StreamRaster.subbasins`` outlets must also be real coordinates."""
+    """`StreamRaster.subbasins` outlets must also be real coordinates."""
     z = np.array(
         [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
         dtype=np.float32,
@@ -151,8 +151,8 @@ def test_streamraster_subbasins_outlets_have_non_placeholder_coords():
 
 
 def test_drainage_density_diagonal_weighting():
-    """Supplying ``flow_direction`` upgrades the drainage-density stream
-    length: cells flowing diagonally count as ``sqrt(2)`` cell-lengths."""
+    """Supplying `flow_direction` upgrades the drainage-density stream
+    length: cells flowing diagonally count as `sqrt(2)` cell-lengths."""
     # Build a DEM whose flow is a single diagonal chain so every stream
     # cell has a diagonal D8 code (1, 3, 5, or 7).
     z = np.array(
@@ -179,7 +179,7 @@ def test_drainage_density_diagonal_weighting():
 
 def test_snap_distance_nan_when_unmoved():
     """If the snap target is the input pour-point cell itself, the
-    reported ``snap_distance_m`` is NaN per the docstring contract."""
+    reported `snap_distance_m` is NaN per the docstring contract."""
     import geopandas as gpd
     from shapely.geometry import Point
 
@@ -227,7 +227,7 @@ def test_snap_distance_finite_when_moved():
 
 
 class TestBasinCountLazy:
-    """``WatershedRaster.basin_count`` must be a lazy property — construction
+    """`WatershedRaster.basin_count` must be a lazy property — construction
     alone should not trigger a full-raster read."""
 
     def _build(self):
@@ -238,7 +238,7 @@ class TestBasinCountLazy:
         return dem.flow_direction(method="d8").basins()
 
     def test_basin_count_not_set_pre_access(self):
-        """The internal ``_basin_count`` cache starts as None."""
+        """The internal `_basin_count` cache starts as None."""
         ws = self._build()
         assert ws._basin_count is None
 
@@ -252,7 +252,7 @@ class TestBasinCountLazy:
         assert ws._basin_count == n
 
     def test_statistics_does_not_force_basin_count_read(self):
-        """Calling ``statistics()`` should not touch ``basin_count``."""
+        """Calling `statistics()` should not touch `basin_count`."""
         ws = self._build()
         _ = ws.statistics()
         assert ws._basin_count is None
@@ -263,7 +263,7 @@ class TestBasinCountLazy:
 
 def test_drainage_density_with_flow_direction_higher_for_diagonal_chain():
     """A pure-diagonal stream chain produces strictly higher density when
-    ``flow_direction`` is passed (sqrt(2) per cell) than the unweighted
+    `flow_direction` is passed (sqrt(2) per cell) than the unweighted
     fallback (1.0 per cell)."""
     z = np.array(
         [[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32
@@ -298,7 +298,7 @@ def test_resolve_no_val_returns_band0_sentinel():
 
 
 def test_resolve_no_val_short_circuits_on_falsy_attribute():
-    """The helper returns None for any falsy ``no_data_value`` —
+    """The helper returns None for any falsy `no_data_value` —
     explicit None, empty tuple, etc. Exercised via a minimal stand-in
     rather than depending on pyramids' default-sentinel behaviour."""
     from digitalrivers._metadata import resolve_no_val
@@ -318,7 +318,7 @@ def test_resolve_no_val_short_circuits_on_falsy_attribute():
 
 
 def test_streamraster_subbasins_outlet_is_link_terminus():
-    """Each ``StreamRaster.subbasins`` outlet must correspond to a cell
+    """Each `StreamRaster.subbasins` outlet must correspond to a cell
     whose D8 successor either lands in a different basin or off-grid —
     i.e., the most-downstream cell of that link."""
     z = np.array(
@@ -386,7 +386,7 @@ def test_watershed_d8_non_unique_mode_visits_each_cell_at_most_once():
 def test_pfafstetter_tributary_codes_are_spatially_ordered_downstream_first():
     """N4 fix: the four tributary codes (2, 4, 6, 8) must be assigned in
     along-main-stem position order, downstream-first. The downstream-most
-    tributary gets ``2``, the next upstream ``4``, etc."""
+    tributary gets `2`, the next upstream `4`, etc."""
     # 5-row DEM whose main stem is row 2 (descends east), with one
     # tributary entering at each interior column. Outlet is at (2, 5).
     z = np.array(
@@ -432,7 +432,7 @@ def test_merge_to_neighbour_relabels_to_zero_when_no_qualifying_neighbour():
     )
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
-    # Force every basin into ``small_ids`` so merge_to_neighbour cannot
+    # Force every basin into `small_ids` so merge_to_neighbour cannot
     # find a survivor. With min_area_cells far above the total cell
     # count, all basins are small.
     ws = fd.basins(min_area_cells=10**6, merge_small="merge_to_neighbour")

@@ -4,9 +4,9 @@ Verifies:
 
 * The fast-path produces bit-for-bit identical output to the pure-Python branch
   on the affected algorithms (priority-flood fill, D8 accumulation).
-* The ``DIGITALRIVERS_DISABLE_NUMBA=1`` env var cleanly disables the JIT path
+* The `DIGITALRIVERS_DISABLE_NUMBA=1` env var cleanly disables the JIT path
   (requires re-importing the kernel module after setting the env var).
-* The kernel module exposes a public ``is_numba_enabled`` predicate.
+* The kernel module exposes a public `is_numba_enabled` predicate.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def test_is_numba_enabled_predicate_exists():
 
 def test_env_var_disables_numba_on_reimport(monkeypatch):
     """Setting DIGITALRIVERS_DISABLE_NUMBA=1 and re-importing the module must
-    return ``is_numba_enabled() is False``. This is how CI exercises the fallback
+    return `is_numba_enabled() is False`. This is how CI exercises the fallback
     path without needing a Numba-free environment."""
     monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
     # Re-import the module under the new env.

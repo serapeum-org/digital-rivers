@@ -3,7 +3,7 @@
 Greedy hill-climbing implementation of IHU. Starts from a COTAT initial
 network, then iteratively swaps each coarse cell's outlet to whichever fine
 candidate reduces a global drainage-area-error metric. Converges when no
-single-cell swap improves the metric, or after ``max_iter`` sweeps.
+single-cell swap improves the metric, or after `max_iter` sweeps.
 
 References:
     Eilander D., van Verseveld W., Yamazaki D., Weerts A., Winsemius H. C.,
@@ -15,18 +15,18 @@ Algorithm sketch:
 
 1. For each fine cell, trace its downstream walk until it leaves the
    containing coarse cell. Record the last-in-block cell and the coarse-grid
-   offset (``exit_dr``, ``exit_dc``) it exits to. Cells that never leave
+   offset (`exit_dr`, `exit_dc`) it exits to. Cells that never leave
    their block (sinks within the block) get no exit info and are not
    candidate outlets.
 2. Per coarse cell, list candidate outlets — every fine cell whose
    downstream walk does exit the block. Sort by accumulation descending so
    the COTAT outlet (max-acc) is candidates[0].
-3. Initialise current outlets = ``candidates[block][0]`` for every block.
+3. Initialise current outlets = `candidates[block][0]` for every block.
 4. Hill-climb: for each iteration, for each coarse cell, try every
    alternative outlet candidate in turn and accept the first swap that
    reduces the global error.
-5. Global error: ``sum over coarse cells of |fine_acc[outlet] -
-   coarse_acc[cell] * scale_factor^2|``. The coarse accumulation is
+5. Global error: `sum over coarse cells of |fine_acc[outlet] -
+   coarse_acc[cell] * scale_factor^2|`. The coarse accumulation is
    recomputed via Kahn topological sweep (Phase 1 P6) for each trial.
 
 The metric runs O(coarse_cells^2 * candidates_per_cell * max_iter). Pure
@@ -45,11 +45,11 @@ _DIR_DC = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
 def _precompute_exit_info(fdir: np.ndarray, scale_factor: int) -> tuple:
     """For every fine cell, trace downstream until leaving its block.
 
-    Returns four ``(rows, cols)`` int32 arrays:
+    Returns four `(rows, cols)` int32 arrays:
 
-    - ``has_exit``: 1 if the downstream walk exits the block, 0 otherwise.
-    - ``exit_dr``, ``exit_dc``: coarse-grid offsets to the destination block
-      (-1 where ``has_exit == 0``).
+    - `has_exit`: 1 if the downstream walk exits the block, 0 otherwise.
+    - `exit_dr`, `exit_dc`: coarse-grid offsets to the destination block
+      (-1 where `has_exit == 0`).
     """
     rows, cols = fdir.shape
     has_exit = np.zeros((rows, cols), dtype=np.int8)
@@ -87,7 +87,7 @@ def _coarse_accumulation_from_outlets(
     """Coarse-grid Kahn topological-sort accumulation. Unit weights.
 
     Each cell's outgoing direction is derived from its outlet's
-    ``(exit_dr, exit_dc)`` offset; cells without an outlet are sinks.
+    `(exit_dr, exit_dc)` offset; cells without an outlet are sinks.
     Returns the float64 accumulation grid.
     """
     coarse_fdir = np.full((out_rows, out_cols), -1, dtype=np.int32)
@@ -137,20 +137,20 @@ def _global_error(
     outlets: dict, fine_acc: np.ndarray, out_rows: int, out_cols: int,
     scale_factor: int,
 ) -> float:
-    """Sum over coarse cells of ``|fine_outlet_acc - coarse_acc * sf^2|``.
+    """Sum over coarse cells of `|fine_outlet_acc - coarse_acc * sf^2|`.
 
     This is the simplified axis-aligned form of the Eilander 2021 IHU
     drainage-area-error metric. The paper compares each coarse outlet's
     fine-grid upstream area against the cell's *true* upstream-subgrid
     count from the coarse topology; we approximate that with
-    ``(coarse_acc + 1) * sf^2``, which assumes every upstream coarse cell
-    contributes exactly ``sf^2`` fine cells.
+    `(coarse_acc + 1) * sf^2`, which assumes every upstream coarse cell
+    contributes exactly `sf^2` fine cells.
 
-    The approximation is exact for interior cells whose entire ``sf x sf``
+    The approximation is exact for interior cells whose entire `sf x sf`
     block sits inside the basin. It over-penalises cells near basin
-    boundaries (where some of the ``sf x sf`` block falls outside the
+    boundaries (where some of the `sf x sf` block falls outside the
     basin) — those cells' "true" subgrid contribution is less than
-    ``sf^2``. Practical impact is small for ``sf <= 10`` on basins that
+    `sf^2`. Practical impact is small for `sf <= 10` on basins that
     are mostly interior; the convergence direction is preserved because
     the over-penalty is monotonic in coarse_acc.
 
@@ -180,26 +180,26 @@ def ihu_upscale(
     accumulation sweep over the coarse grid, so the run is
     O(N · K · max_iter) where N is the number of coarse cells and K is
     the average number of outlet candidates per coarse cell (bounded
-    above by ``scale_factor ** 2``). On a 50×50 coarse output with
-    ``max_iter=20`` the work fits in seconds; on a continental
+    above by `scale_factor ** 2`). On a 50×50 coarse output with
+    `max_iter=20` the work fits in seconds; on a continental
     coarse grid prefer the pyflwdir vendor path.
 
     Args:
-        fdir: ``(rows, cols)`` int32 fine-resolution D8 direction codes.
-        acc: ``(rows, cols)`` float64 fine accumulation.
+        fdir: `(rows, cols)` int32 fine-resolution D8 direction codes.
+        acc: `(rows, cols)` float64 fine accumulation.
         scale_factor: integer aggregation factor.
         max_iter: hill-climbing sweep cap. Higher values run longer; the
             engine short-circuits once an iteration produces no swap.
 
     Returns:
-        Tuple ``(coarse_fdir, metrics, outlets)``:
-            coarse_fdir: ``(rows // sf, cols // sf)`` int32 with values 0-7
+        Tuple `(coarse_fdir, metrics, outlets)`:
+            coarse_fdir: `(rows // sf, cols // sf)` int32 with values 0-7
                 or -1 for cells without an outlet candidate.
-            metrics: dict carrying ``"final_error"``, ``"iterations"``,
-                ``"swaps"``, ``"swaps_per_iteration"`` (per-iteration list),
-                and ``"converged"`` (bool).
-            outlets: dict mapping coarse-cell ``(br, bc)`` → outlet record
-                ``(fine_acc, fine_row, fine_col, exit_dr, exit_dc)``.
+            metrics: dict carrying `"final_error"`, `"iterations"`,
+                `"swaps"`, `"swaps_per_iteration"` (per-iteration list),
+                and `"converged"` (bool).
+            outlets: dict mapping coarse-cell `(br, bc)` → outlet record
+                `(fine_acc, fine_row, fine_col, exit_dr, exit_dc)`.
                 Useful for downstream callers that want to inspect the
                 final outlet network.
 

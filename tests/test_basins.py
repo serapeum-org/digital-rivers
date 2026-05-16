@@ -1,4 +1,4 @@
-"""Tests for ``FlowDirection.basins`` (P14)."""
+"""Tests for `FlowDirection.basins` (P14)."""
 from __future__ import annotations
 
 import numpy as np
@@ -110,7 +110,7 @@ def test_multi_direction_routing_rejected():
 
 
 class TestMergeToNeighbour8Adjacency:
-    """Extra coverage for the 8-connected ``merge_to_neighbour`` path (I1)."""
+    """Extra coverage for the 8-connected `merge_to_neighbour` path (I1)."""
 
     def test_picks_largest_8_neighbour_when_multiple_candidates(self):
         """A small basin touching two larger basins of different sizes
@@ -145,7 +145,7 @@ class TestMergeToNeighbour8Adjacency:
         assert arr.shape == (5, 5)
 
     def test_min_area_zero_keeps_all_basins(self):
-        """With ``min_area_cells=None`` (default) no merging happens."""
+        """With `min_area_cells=None` (default) no merging happens."""
         z = np.array(
             [[0, 5, 5], [5, 5, 5], [5, 5, 0]], dtype=np.float32
         )

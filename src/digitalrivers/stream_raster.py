@@ -1,9 +1,9 @@
 """Typed stream-network raster.
 
-``StreamRaster.__init__`` enforces the *ismulti guard* from TopoToolbox
-MATLAB ``@STREAMobj/STREAMobj.m:36`` — stream extraction from a
+`StreamRaster.__init__` enforces the *ismulti guard* from TopoToolbox
+MATLAB `@STREAMobj/STREAMobj.m:36` — stream extraction from a
 multi-direction flow scheme is not well-defined, so the constructor rejects
-any ``routing`` outside the supported single-direction set up front.
+any `routing` outside the supported single-direction set up front.
 """
 from __future__ import annotations
 
@@ -28,18 +28,18 @@ class StreamRaster(Dataset):
 
     Args:
         src: GDAL dataset wrapping the stream raster.
-        access: ``"read_only"`` (default) or ``"write"``.
+        access: `"read_only"` (default) or `"write"`.
         threshold: Accumulation threshold used to extract this stream
             network. Stored for provenance and round-trip persistence.
             Required keyword-only.
-        routing: Routing scheme of the ``FlowDirection`` that produced the
+        routing: Routing scheme of the `FlowDirection` that produced the
             upstream accumulation. Required keyword-only. Must be in
-            ``_SUPPORTED_ROUTING``.
+            `_SUPPORTED_ROUTING`.
 
     Raises:
-        ValueError: If ``routing`` is not a recognised value at all.
-        TypeError: If ``routing`` is a multi-direction scheme. Convert the
-            ``FlowDirection`` to D8 first.
+        ValueError: If `routing` is not a recognised value at all.
+        TypeError: If `routing` is a multi-direction scheme. Convert the
+            `FlowDirection` to D8 first.
     """
 
     threshold: float | int
@@ -77,15 +77,15 @@ class StreamRaster(Dataset):
         threshold: float | int,
         routing: str,
     ) -> StreamRaster:
-        """Promote a plain ``Dataset`` into a ``StreamRaster``."""
+        """Promote a plain `Dataset` into a `StreamRaster`."""
         return cls(ds.raster, threshold=threshold, routing=routing)
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying ``Dataset``."""
+        """Drop the typed wrapper and return the underlying `Dataset`."""
         return Dataset(self.raster)
 
     def persist_metadata(self) -> None:
-        """Write ``routing`` and ``threshold`` to the raster's metadata tags."""
+        """Write `routing` and `threshold` to the raster's metadata tags."""
         self.meta_data = {
             META_CLASS: type(self).__name__,
             META_ROUTING: self.routing,
@@ -100,14 +100,14 @@ class StreamRaster(Dataset):
         threshold: float | int | None = None,
         routing: str | None = None,
     ) -> StreamRaster:
-        """Open a ``StreamRaster`` GeoTIFF.
+        """Open a `StreamRaster` GeoTIFF.
 
-        Resolution order: explicit kwargs > ``DR_*`` metadata tags > raise.
-        ``threshold`` is parsed from the tag as a float (it was written via
-        ``str(self.threshold)``).
+        Resolution order: explicit kwargs > `DR_*` metadata tags > raise.
+        `threshold` is parsed from the tag as a float (it was written via
+        `str(self.threshold)`).
 
         Raises:
-            ValueError: If either ``routing`` or ``threshold`` cannot be
+            ValueError: If either `routing` or `threshold` cannot be
                 resolved from kwargs or metadata tags.
         """
         ds = Dataset.read_file(path)
@@ -141,20 +141,20 @@ class StreamRaster(Dataset):
         link ID of the first stream cell their flow path reaches.
 
         Args:
-            flow_direction: Single-direction ``FlowDirection`` aligned to this
+            flow_direction: Single-direction `FlowDirection` aligned to this
                 stream raster.
-            method: ``"link"`` (default) — one sub-basin per link. The
-                ``"min_order"`` and ``"isobasin"`` modes from the spec are
+            method: `"link"` (default) — one sub-basin per link. The
+                `"min_order"` and `"isobasin"` modes from the spec are
                 deferred.
 
         Returns:
             :class:`WatershedRaster` tagged with this stream raster's
-            ``routing`` (via the FlowDirection). Background cells (those that
+            `routing` (via the FlowDirection). Background cells (those that
             never reach a stream) are 0.
 
         Raises:
-            ValueError: If ``method`` is not ``"link"`` or
-                ``flow_direction`` is multi-direction.
+            ValueError: If `method` is not `"link"` or
+                `flow_direction` is multi-direction.
         """
         import numpy as np
 
@@ -307,19 +307,19 @@ class StreamRaster(Dataset):
         """Compute Strahler / Shreve / Horton stream order on this raster.
 
         Args:
-            method: ``"strahler"`` (default), ``"shreve"``, or ``"horton"``.
-            flow_direction: Single-direction (``d8`` / ``rho8``) FlowDirection
+            method: `"strahler"` (default), `"shreve"`, or `"horton"`.
+            flow_direction: Single-direction (`d8` / `rho8`) FlowDirection
                 aligned to this stream raster. Required — the topology walks
                 the flow-direction edges.
 
         Returns:
-            A new ``StreamRaster`` whose underlying raster is uint16 (uint32
-            for ``shreve``) and holds the stream order; non-stream cells hold
-            ``0``. The returned object preserves this raster's ``threshold``
-            and ``routing`` tags for downstream consumers.
+            A new `StreamRaster` whose underlying raster is uint16 (uint32
+            for `shreve`) and holds the stream order; non-stream cells hold
+            `0`. The returned object preserves this raster's `threshold`
+            and `routing` tags for downstream consumers.
 
         Raises:
-            ValueError: If ``method`` is unknown or ``flow_direction`` is
+            ValueError: If `method` is unknown or `flow_direction` is
                 missing / multi-direction.
         """
         import numpy as np
@@ -367,43 +367,43 @@ class StreamRaster(Dataset):
         dem=None,
         single_direction: str = "max",
     ):
-        """Vectorise the stream raster into a ``GeoDataFrame`` of LineString links.
+        """Vectorise the stream raster into a `GeoDataFrame` of LineString links.
 
         Walks the flow-direction raster from every head and every cell
         downstream of a confluence until it reaches a confluence or an outlet.
         Each resulting LineString is one stream link.
 
         Args:
-            flow_direction: ``FlowDirection`` raster aligned to this stream
-                raster. Must be a single-direction routing (``d8`` or ``rho8``)
+            flow_direction: `FlowDirection` raster aligned to this stream
+                raster. Must be a single-direction routing (`d8` or `rho8`)
                 — multi-direction inputs raise. (D∞ / MFD inputs would need a
                 separate dominant-direction collapse, deferred.)
-            dem: Optional ``DEM`` aligned to the stream raster. When supplied,
-                the link attributes include ``drop_m`` and ``mean_slope``.
+            dem: Optional `DEM` aligned to the stream raster. When supplied,
+                the link attributes include `drop_m` and `mean_slope`.
             single_direction: Reserved for future multi-direction collapse
-                (``"max"`` for argmax-of-fractions; ``"weighted"`` for
-                weighted-mean direction). Ignored when ``flow_direction`` is
+                (`"max"` for argmax-of-fractions; `"weighted"` for
+                weighted-mean direction). Ignored when `flow_direction` is
                 already single-direction.
 
         Returns:
-            ``geopandas.GeoDataFrame`` with columns:
-              - ``link_id`` (int64): 0-based sequential link identifier.
-              - ``from_node`` (int64): node ID at the upstream end (head /
+            `geopandas.GeoDataFrame` with columns:
+              - `link_id` (int64): 0-based sequential link identifier.
+              - `from_node` (int64): node ID at the upstream end (head /
                 confluence).
-              - ``to_node`` (int64): node ID at the downstream end.
-              - ``length_m`` (float64): sum of per-step distances using the
-                D8 grid-lengths lookup (``cell_size`` cardinal,
-                ``cell_size * sqrt(2)`` diagonal).
-              - ``drop_m`` (float64): ``z[from] - z[to]`` (positive if the
-                link descends; clamped to 0 otherwise). NaN if ``dem`` is
+              - `to_node` (int64): node ID at the downstream end.
+              - `length_m` (float64): sum of per-step distances using the
+                D8 grid-lengths lookup (`cell_size` cardinal,
+                `cell_size * sqrt(2)` diagonal).
+              - `drop_m` (float64): `z[from] - z[to]` (positive if the
+                link descends; clamped to 0 otherwise). NaN if `dem` is
                 None.
-              - ``mean_slope`` (float64): ``drop_m / length_m`` (m/m). NaN if
-                ``dem`` is None or ``length_m == 0``.
-              - ``geometry``: shapely ``LineString`` in the dataset's CRS,
+              - `mean_slope` (float64): `drop_m / length_m` (m/m). NaN if
+                `dem` is None or `length_m == 0`.
+              - `geometry`: shapely `LineString` in the dataset's CRS,
                 vertices at cell centres.
 
         Raises:
-            ValueError: If ``flow_direction`` is multi-direction.
+            ValueError: If `flow_direction` is multi-direction.
             ValueError: If shapes do not match.
         """
         import geopandas as gpd

@@ -2,12 +2,12 @@
 
 Three methods are exposed via :func:`fill_depressions`:
 
-* ``"priority_flood"`` — Barnes, Lehman & Mulla (2014) Priority-Flood with the two-queue plateau
-  optimisation. With ``epsilon > 0`` it produces a strictly monotonic surface; with ``epsilon == 0``
+* `"priority_flood"` — Barnes, Lehman & Mulla (2014) Priority-Flood with the two-queue plateau
+  optimisation. With `epsilon > 0` it produces a strictly monotonic surface; with `epsilon == 0`
   it produces flat fills (mathematically equivalent to Wang & Liu, just with a faster plateau drain).
-* ``"wang_liu"`` — Wang & Liu (2006). Flat fill, no epsilon. Implemented as Priority-Flood with the
+* `"wang_liu"` — Wang & Liu (2006). Flat fill, no epsilon. Implemented as Priority-Flood with the
   pit queue disabled, which produces the same output more transparently.
-* ``"planchon_darboux"`` — Planchon & Darboux (2002). Iterative directional-sweep algorithm.
+* `"planchon_darboux"` — Planchon & Darboux (2002). Iterative directional-sweep algorithm.
   Slower than Priority-Flood on large DEMs, kept for low-relief reference.
 
 No-data handling is consistent across the three: cells flagged no-data are treated as outlets
@@ -38,18 +38,18 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
 
     Boundary cells (first/last row and column) are excluded — they have fewer than 8
     neighbours and the comparison is ill-defined. NaN cells (and cells flagged by
-    ``nodata_mask`` if provided) are excluded from the output AND ignored when computing
+    `nodata_mask` if provided) are excluded from the output AND ignored when computing
     a candidate cell's neighbour minimum.
 
     This is the generic local-minima detector that the breach algorithm uses to find pits
     and the depression-fill tests use as a "no internal sinks remain" assertion. It is
-    earmarked for promotion to ``pyramids.morphology`` (see
-    ``planning/pyramids/pyramids-feat-morphology-utils.md``).
+    earmarked for promotion to `pyramids.morphology` (see
+    `planning/pyramids/pyramids-feat-morphology-utils.md`).
 
     Args:
-        z: 2-D float array. NaN marks no-data unless a separate ``nodata_mask`` is given.
+        z: 2-D float array. NaN marks no-data unless a separate `nodata_mask` is given.
         nodata_mask: Optional 2-D bool array, True at no-data cells. Combined with NaN
-            positions in ``z`` if both are present.
+            positions in `z` if both are present.
 
     Returns:
         2-D bool array, True at strict 8-connected local minima.
@@ -128,8 +128,8 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
 def _nodata_adjacent(nodata_mask: np.ndarray) -> np.ndarray:
     """Boolean mask of data cells touching a no-data cell (8-connectivity).
 
-    Pure-NumPy 8-connected binary dilation of ``nodata_mask`` minus the mask itself.
-    Equivalent to ``scipy.ndimage.binary_dilation(nodata_mask) & ~nodata_mask`` but
+    Pure-NumPy 8-connected binary dilation of `nodata_mask` minus the mask itself.
+    Equivalent to `scipy.ndimage.binary_dilation(nodata_mask) & ~nodata_mask` but
     without the scipy dependency.
 
     Args:
@@ -162,7 +162,7 @@ def _seed_mask(nodata_mask: np.ndarray) -> np.ndarray:
         nodata_mask: 2-D bool array, True where the cell is no-data.
 
     Returns:
-        2-D bool array of seed positions. Disjoint from ``nodata_mask``.
+        2-D bool array of seed positions. Disjoint from `nodata_mask`.
     """
     rows, cols = nodata_mask.shape
     seed = np.zeros((rows, cols), dtype=bool)
@@ -187,8 +187,8 @@ def _priority_flood(
         z: 2-D float64 elevation array. No-data positions may hold any value; the algorithm
             never reads them.
         nodata_mask: 2-D bool array, True at no-data cells.
-        epsilon: Per-step elevation lift inside depressions. ``0.0`` produces flat fills.
-            ``epsilon > 0`` produces a strictly monotonic surface with cumulative lift
+        epsilon: Per-step elevation lift inside depressions. `0.0` produces flat fills.
+            `epsilon > 0` produces a strictly monotonic surface with cumulative lift
             proportional to plateau width.
         use_pit_queue: If True, route same-or-lower-elevation neighbours through a FIFO pit
             queue (Barnes 2014 two-queue optimisation — keeps plateau drain at O(1) per cell
@@ -248,7 +248,7 @@ def _planchon_darboux(
 ) -> np.ndarray:
     """Planchon & Darboux (2002) iterative directional-sweep depression fill.
 
-    Initialises ``W = +inf`` interior and ``W = Z`` on seed cells (raster boundary plus data
+    Initialises `W = +inf` interior and `W = Z` on seed cells (raster boundary plus data
     cells adjacent to no-data), then repeats four directional sweeps until no cell is updated.
     Each sweep visits cells in a different scan order so that updates propagate from every seed
     direction.
@@ -263,7 +263,7 @@ def _planchon_darboux(
         2-D float64 filled-elevation array. No-data positions are set to NaN.
 
     Raises:
-        ValueError: If ``epsilon`` is not strictly positive.
+        ValueError: If `epsilon` is not strictly positive.
     """
     if not (epsilon > 0):
         raise ValueError(
@@ -317,10 +317,10 @@ def _planchon_darboux(
 def _priority_flood_with_numba(
     z: np.ndarray, nodata_mask: np.ndarray, epsilon: float
 ) -> np.ndarray:
-    """Numba-accelerated entry point for the default ``priority_flood`` path.
+    """Numba-accelerated entry point for the default `priority_flood` path.
 
     Falls back to the pure-Python :func:`_priority_flood` (with pit-queue) when
-    Numba is disabled / unavailable via the ``DIGITALRIVERS_DISABLE_NUMBA`` env
+    Numba is disabled / unavailable via the `DIGITALRIVERS_DISABLE_NUMBA` env
     var. The Numba kernel is bit-for-bit identical on synthetic fixtures; on
     real DEMs it is ≥ 20× faster on cold runs and ≥ 50× faster warm.
     """
@@ -350,23 +350,23 @@ def fill_depressions(
 
     Args:
         z: 2-D elevation array (any float dtype; promoted to float64 internally).
-        nodata_mask: 2-D bool mask, True at no-data cells. If ``None``, no cell is treated
-            as no-data and only the array boundary acts as a drainage seed. ``NaN`` cells in
-            ``z`` are added to the mask automatically.
-        method: One of ``"priority_flood"`` (default), ``"wang_liu"``, ``"planchon_darboux"``.
-        epsilon: Per-step elevation lift inside depressions. ``0.0`` produces flat fills
-            (ignored entirely by ``wang_liu``; rejected by ``planchon_darboux`` which requires
-            ``> 0``). Positive values guarantee a strict downhill path at the cost of slight
+        nodata_mask: 2-D bool mask, True at no-data cells. If `None`, no cell is treated
+            as no-data and only the array boundary acts as a drainage seed. `NaN` cells in
+            `z` are added to the mask automatically.
+        method: One of `"priority_flood"` (default), `"wang_liu"`, `"planchon_darboux"`.
+        epsilon: Per-step elevation lift inside depressions. `0.0` produces flat fills
+            (ignored entirely by `wang_liu`; rejected by `planchon_darboux` which requires
+            `> 0`). Positive values guarantee a strict downhill path at the cost of slight
             elevation inflation proportional to plateau width.
 
     Returns:
         2-D float64 array. No-data positions hold NaN; all other cells satisfy
-        ``z_fill >= z`` and every interior cell has at least one 8-neighbour with strictly
+        `z_fill >= z` and every interior cell has at least one 8-neighbour with strictly
         lower (epsilon > 0) or equal-or-lower (epsilon == 0) elevation.
 
     Raises:
-        ValueError: If ``method`` is unknown, or ``planchon_darboux`` is requested with
-            ``epsilon <= 0``.
+        ValueError: If `method` is unknown, or `planchon_darboux` is requested with
+            `epsilon <= 0`.
     """
     if method not in VALID_METHODS:
         raise ValueError(

@@ -1,4 +1,4 @@
-"""Tests for ``DEM.hand`` (P11)."""
+"""Tests for `DEM.hand` (P11)."""
 from __future__ import annotations
 
 import numpy as np
@@ -178,7 +178,7 @@ class TestDEMHand:
 
 
 class TestHandOrphanMemoisation:
-    """``hand_d8`` must memoise unreachable cells so a long orphan chain
+    """`hand_d8` must memoise unreachable cells so a long orphan chain
     does not pessimise to O(N²) (I5 fix)."""
 
     def test_orphan_chain_all_nan(self):

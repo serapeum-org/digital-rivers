@@ -1,4 +1,4 @@
-"""Tests for ``DEM.export`` (P26) and ``DEM.subgrid_bathymetry`` (P27)."""
+"""Tests for `DEM.export` (P26) and `DEM.subgrid_bathymetry` (P27)."""
 from __future__ import annotations
 
 import os

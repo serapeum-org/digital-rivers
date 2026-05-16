@@ -5,11 +5,11 @@ Each test pins behaviour that was previously asserted weakly or not at all:
 * C1: MultiLineString input on burn methods.
 * C2: Stream that exits the raster (out-of-bounds clip).
 * C3: CRS reprojection path for mismatched EPSGs.
-* C4: ``subgrid_bathymetry`` with a flat block (regression for B1).
-* C5: ``subgrid_bathymetry`` with a fully no-data block.
-* C6: ``DEM.export(validate=True)`` success path.
-* C7: ``enforce_culverts`` with multiple roads crossing the same stream.
-* C8: ``enforce_breaklines(inplace=True)`` and per-feature attribute hint.
+* C4: `subgrid_bathymetry` with a flat block (regression for B1).
+* C5: `subgrid_bathymetry` with a fully no-data block.
+* C6: `DEM.export(validate=True)` success path.
+* C7: `enforce_culverts` with multiple roads crossing the same stream.
+* C8: `enforce_breaklines(inplace=True)` and per-feature attribute hint.
 """
 from __future__ import annotations
 
@@ -199,7 +199,7 @@ def test_enforce_breaklines_inplace_returns_none():
 
 
 def test_rasterise_line_floor_oversampled_hits_diagonal_cells():
-    """After the I1 unification, ``_rasterise_line`` is the single source
+    """After the I1 unification, `_rasterise_line` is the single source
     of cell-snapping for every Phase-3 line-burning method. A diagonal
     line through a 5×5 grid hits every diagonal cell along its path."""
     z = np.full((5, 5), 0.0, dtype=np.float32)
@@ -258,7 +258,7 @@ class TestPolygonCellIndices:
         assert np.issubdtype(cs.dtype, np.integer)
 
     def test_multipolygon_callers_iterate_components(self):
-        """``hydroflatten`` accepts MultiPolygon by iterating components."""
+        """`hydroflatten` accepts MultiPolygon by iterating components."""
         from shapely.geometry import MultiPolygon, Polygon
 
         z = np.full((5, 5), 10.0, dtype=np.float32)
@@ -361,7 +361,7 @@ def test_enforce_breaklines_empty_layer_is_no_op():
 
 
 class TestReprojectIfNeeded:
-    """Coverage for the N7 helper that replaces ``to_epsg() != target_epsg``
+    """Coverage for the N7 helper that replaces `to_epsg() != target_epsg`
     integer comparison with proper CRS equality."""
 
     def test_same_crs_returns_layer_untouched(self):

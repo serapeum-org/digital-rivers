@@ -21,15 +21,15 @@ class WatershedRaster(Dataset):
 
     Args:
         src: GDAL dataset wrapping the int32 basin-ID raster (0 = no basin).
-        access: ``"read_only"`` (default) or ``"write"``.
+        access: `"read_only"` (default) or `"write"`.
         routing: Routing scheme of the source FlowDirection. Required
             keyword-only.
-        outlets: ``GeoDataFrame`` with one row per pour point used to build the
+        outlets: `GeoDataFrame` with one row per pour point used to build the
             raster; required keyword-only.
 
     Attributes:
         routing: Routing scheme tag.
-        outlets: ``GeoDataFrame`` of pour points and snap diagnostics.
+        outlets: `GeoDataFrame` of pour points and snap diagnostics.
         basin_count: Number of distinct basin labels (excluding background 0).
     """
 
@@ -50,7 +50,7 @@ class WatershedRaster(Dataset):
             )
         self.routing = routing
         self.outlets = outlets
-        # ``basin_count`` is computed lazily on first access to avoid an
+        # `basin_count` is computed lazily on first access to avoid an
         # eager full-raster read at construction time (continental-scale
         # rasters would otherwise pay the I/O on every wrap).
         self._basin_count: int | None = None
@@ -60,12 +60,12 @@ class WatershedRaster(Dataset):
         """Number of distinct non-zero basin labels in the raster.
 
         Lazily computed on first access and cached on the instance — wraps
-        like :meth:`from_dataset` that build a ``WatershedRaster`` for a
-        continental-scale raster do not pay the full-raster ``np.unique``
+        like :meth:`from_dataset` that build a `WatershedRaster` for a
+        continental-scale raster do not pay the full-raster `np.unique`
         cost until something actually asks for the count.
 
         Returns:
-            ``int`` — number of distinct basin labels (excluding ``0``).
+            `int` — number of distinct basin labels (excluding `0`).
 
         Examples:
             - A small DEM with two opposite-corner sinks produces a
@@ -95,7 +95,7 @@ class WatershedRaster(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str, outlets) -> "WatershedRaster":
-        """Promote a plain ``Dataset`` into a ``WatershedRaster``."""
+        """Promote a plain `Dataset` into a `WatershedRaster`."""
         return cls(ds.raster, routing=routing, outlets=outlets)
 
     def persist_metadata(self) -> None:
@@ -119,35 +119,35 @@ class WatershedRaster(Dataset):
         Returns one row per basin label with the requested metrics. Available
         metrics (subset of P17 spec):
 
-        - ``area_km2``: number of cells × cell area (km²).
-        - ``min_elev``, ``max_elev``, ``mean_elev``, ``std_elev``: elevation
-          statistics from ``dem`` (required for the elev metrics).
-        - ``hypsometric_integral``: Strahler (1952)
-          ``(mean_elev - min_elev) / (max_elev - min_elev)``.
-        - ``mean_slope``: mean of the ``slope`` raster across the basin.
-        - ``drainage_density_km_per_km2``: ``stream_length_km / area_km2``
-          (requires ``streams``). When ``flow_direction`` is also supplied,
-          diagonal stream cells (D8 codes 1/3/5/7) contribute ``sqrt(2) *
-          cell_size`` instead of ``cell_size``; without ``flow_direction``
+        - `area_km2`: number of cells × cell area (km²).
+        - `min_elev`, `max_elev`, `mean_elev`, `std_elev`: elevation
+          statistics from `dem` (required for the elev metrics).
+        - `hypsometric_integral`: Strahler (1952)
+          `(mean_elev - min_elev) / (max_elev - min_elev)`.
+        - `mean_slope`: mean of the `slope` raster across the basin.
+        - `drainage_density_km_per_km2`: `stream_length_km / area_km2`
+          (requires `streams`). When `flow_direction` is also supplied,
+          diagonal stream cells (D8 codes 1/3/5/7) contribute `sqrt(2) *
+          cell_size` instead of `cell_size`; without `flow_direction`
           every stream cell is assumed cardinal, which under-estimates
           length on diagonal-heavy networks by ~5-10%.
-        - ``centroid_x``, ``centroid_y``: basin centroid in dataset CRS.
+        - `centroid_x`, `centroid_y`: basin centroid in dataset CRS.
           Always present, regardless of which optional inputs are supplied.
 
         Args:
             dem: Aligned DEM for elevation metrics.
             accumulation: Reserved for future longest-flow-path metric.
-            slope: Aligned slope raster (m/m) for ``mean_slope``.
-            streams: Aligned StreamRaster for ``drainage_density_km_per_km2``.
-            flow_direction: Aligned single-direction ``FlowDirection``.
-                When supplied alongside ``streams``, drainage density uses
-                cell-by-cell D8-aware lengths (``sqrt(2)`` for diagonals).
+            slope: Aligned slope raster (m/m) for `mean_slope`.
+            streams: Aligned StreamRaster for `drainage_density_km_per_km2`.
+            flow_direction: Aligned single-direction `FlowDirection`.
+                When supplied alongside `streams`, drainage density uses
+                cell-by-cell D8-aware lengths (`sqrt(2)` for diagonals).
                 Optional.
-            metrics: Subset of the available metrics. ``None`` (default)
+            metrics: Subset of the available metrics. `None` (default)
                 returns every metric for which inputs were supplied.
 
         Returns:
-            ``pandas.DataFrame`` indexed by basin_id with one column per metric.
+            `pandas.DataFrame` indexed by basin_id with one column per metric.
 
         Examples:
             - Without any optional input, the DataFrame still carries the
@@ -168,7 +168,7 @@ class WatershedRaster(Dataset):
                 >>> sorted(df.columns.tolist())
                 ['area_km2', 'centroid_x', 'centroid_y']
 
-            - With ``flow_direction`` the drainage-density column reflects
+            - With `flow_direction` the drainage-density column reflects
               actual D8 path lengths:
 
                 >>> import numpy as np
@@ -307,11 +307,11 @@ class WatershedRaster(Dataset):
 
         Each unique non-zero basin label becomes a single polygon (or
         MultiPolygon if the basin is disconnected). The output GeoDataFrame
-        carries the basin ID in the ``basin_id`` column.
+        carries the basin ID in the `basin_id` column.
 
         Returns:
-            ``geopandas.GeoDataFrame`` with columns ``basin_id`` (int) and
-            ``geometry`` (Polygon / MultiPolygon).
+            `geopandas.GeoDataFrame` with columns `basin_id` (int) and
+            `geometry` (Polygon / MultiPolygon).
         """
         import geopandas as gpd
         import numpy as np

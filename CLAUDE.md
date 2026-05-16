@@ -62,6 +62,7 @@ Tests use the Coello river basin dataset in `tests/data/coello/` (DEMs, flow dir
 - **Formatter**: Black (line-length 88, skip-string-normalization). Note that Black will still reformat Python files to 88; the 120-column rule sets the absolute ceiling for any file you write before formatters run.
 - **Linter**: Flake8 (excludes `examples/` and `tests/`; `E501` is ignored, so over-length lines won't fail lint but Black will still reformat).
 - **Docstrings**: Google style. Doctests inside `src/` modules are executed by the pre-commit `doctest` hook — keep examples runnable.
+- **Inline code in docstrings & Markdown**: Use **single backticks** (`` `like_this` ``) for inline code references — never reStructuredText-style double backticks (`` ``like_this`` ``). Triple-backtick fences for code blocks (```` ```python … ``` ````) are unaffected.
 - **Typing**: source files use `from __future__ import annotations`; prefer modern typing (`X | None`, `list[X]`, `dict[...]`) over `Optional`/`List`/`Dict`/`Union`.
 - **Commit messages**: Enforced by pre-commit hooks — capitalized, imperative mood, no trailing punctuation, summary max length, empty second line.
 

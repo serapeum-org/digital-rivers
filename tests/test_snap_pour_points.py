@@ -1,4 +1,4 @@
-"""Tests for ``Accumulation.snap_pour_points`` (P12)."""
+"""Tests for `Accumulation.snap_pour_points` (P12)."""
 from __future__ import annotations
 
 import geopandas as gpd
@@ -135,8 +135,8 @@ def test_point_outside_envelope_returns_nan():
 
 
 def test_jenson_method_nan_when_snap_target_is_input_cell():
-    """I2 regression for the ``method='jenson'`` path: an unmoved snap
-    also reports ``snap_distance_m == NaN``."""
+    """I2 regression for the `method='jenson'` path: an unmoved snap
+    also reports `snap_distance_m == NaN`."""
     z = np.array(
         [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
     )

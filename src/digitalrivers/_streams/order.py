@@ -1,11 +1,11 @@
 """Stream-network ordering schemes (P10): Strahler, Shreve, Horton.
 
 All three operate on a stream-cell mask plus a D8 flow-direction raster. Output is a
-2-D ``uint16`` raster of orders / magnitudes; non-stream cells hold ``0``.
+2-D `uint16` raster of orders / magnitudes; non-stream cells hold `0`.
 
 * **Strahler (1957)** — Kahn BFS over stream cells. Heads get order 1; at each
-  confluence the downstream order is ``max_in + 1`` iff at least two upstream
-  tributaries arrive carrying the same ``max_in``, else ``max_in``.
+  confluence the downstream order is `max_in + 1` iff at least two upstream
+  tributaries arrive carrying the same `max_in`, else `max_in`.
 * **Shreve (1966)** — additive magnitude. Heads = 1; downstream gets the sum
   of incoming magnitudes. Outlet equals the number of headwaters.
 * **Horton (1945)** — Strahler with main-stem promotion. After Strahler runs,
@@ -32,13 +32,13 @@ def _build_topology(
     """Compute (indeg, downstream_idx) for every stream cell.
 
     Args:
-        stream_mask: ``(rows, cols)`` bool.
-        fdir: ``(rows, cols)`` int — D8 direction codes 0–7 (or any sentinel).
+        stream_mask: `(rows, cols)` bool.
+        fdir: `(rows, cols)` int — D8 direction codes 0–7 (or any sentinel).
 
     Returns:
-        indeg: ``(rows, cols)`` int32 of incoming-stream-neighbour counts.
-        ds_idx: ``(rows, cols, 2)`` int32 of ``(dr, dc)`` to the downstream cell;
-            ``(-1, -1)`` for cells with no valid downstream (sink, off-grid, or
+        indeg: `(rows, cols)` int32 of incoming-stream-neighbour counts.
+        ds_idx: `(rows, cols, 2)` int32 of `(dr, dc)` to the downstream cell;
+            `(-1, -1)` for cells with no valid downstream (sink, off-grid, or
             non-stream downstream).
     """
     rows, cols = stream_mask.shape
@@ -81,11 +81,11 @@ def strahler(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     """Strahler stream order (Strahler 1957) via Kahn BFS over the stream graph.
 
     Args:
-        stream_mask: ``(rows, cols)`` bool, True at stream cells.
-        fdir: ``(rows, cols)`` int direction-code raster.
+        stream_mask: `(rows, cols)` bool, True at stream cells.
+        fdir: `(rows, cols)` int direction-code raster.
 
     Returns:
-        ``(rows, cols)`` uint16 of Strahler orders. Non-stream cells hold ``0``.
+        `(rows, cols)` uint16 of Strahler orders. Non-stream cells hold `0`.
 
     Examples:
         - Two single-cell head tributaries meeting at a confluence promote the
@@ -149,12 +149,12 @@ def shreve(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     """Shreve magnitude (Shreve 1966): heads = 1, downstream = sum of incoming.
 
     Args:
-        stream_mask: ``(rows, cols)`` bool.
-        fdir: ``(rows, cols)`` int direction-code raster.
+        stream_mask: `(rows, cols)` bool.
+        fdir: `(rows, cols)` int direction-code raster.
 
     Returns:
-        ``(rows, cols)`` uint32 of Shreve magnitudes. Non-stream cells hold ``0``.
-        ``uint32`` rather than ``uint16`` because magnitudes are total head
+        `(rows, cols)` uint32 of Shreve magnitudes. Non-stream cells hold `0`.
+        `uint32` rather than `uint16` because magnitudes are total head
         counts and easily exceed 65 535 on continental basins.
 
     Examples:
@@ -210,11 +210,11 @@ def horton(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     outgoing order; the shorter sibling keeps its local Strahler value.
 
     Args:
-        stream_mask: ``(rows, cols)`` bool.
-        fdir: ``(rows, cols)`` int direction-code raster.
+        stream_mask: `(rows, cols)` bool.
+        fdir: `(rows, cols)` int direction-code raster.
 
     Returns:
-        ``(rows, cols)`` uint16 of Horton orders.
+        `(rows, cols)` uint16 of Horton orders.
     """
     rows, cols = stream_mask.shape
     out = strahler(stream_mask, fdir).copy()

@@ -4,16 +4,16 @@ Two working halves ship today plus two umbrella stubs for the still-deferred
 features:
 
 * :func:`tile_windows` — chunked-iteration helper that yields
-  GDAL-compatible ``(row_off, col_off, n_rows, n_cols)`` windows for
+  GDAL-compatible `(row_off, col_off, n_rows, n_cols)` windows for
   streaming a continental DEM through any per-tile algorithm without
   materialising the full raster in memory.
 * :func:`write_cog` — Cloud-Optimised GeoTIFF writer wrapping GDAL's
   built-in COG driver.
 
-Deferred (umbrella raises ``NotImplementedError`` with a deferral note):
+Deferred (umbrella raises `NotImplementedError` with a deferral note):
 
 * :func:`dask_backend` — full Dask-graph integration on top of
-  ``tile_windows``.
+  `tile_windows`.
 * :func:`cloud_storage` — Zarr / S3 / GCS read & write factories.
 """
 from __future__ import annotations
@@ -25,19 +25,19 @@ def tile_windows(
     tile_cols: int = 1024,
     overlap: int = 0,
 ):
-    """Iterate ``(row_off, col_off, n_rows, n_cols)`` tile windows over a Dataset.
+    """Iterate `(row_off, col_off, n_rows, n_cols)` tile windows over a Dataset.
 
     Yields one window per tile so callers can stream a continental DEM
     through any per-tile algorithm without ever materialising the full
     raster in memory. Each window is a GDAL-compatible
-    ``(xoff, yoff, xsize, ysize)`` quadruple ready to pass into
-    ``Dataset.read_array(window=...)``.
+    `(xoff, yoff, xsize, ysize)` quadruple ready to pass into
+    `Dataset.read_array(window=...)`.
 
     Tile size defaults match the COG / Cloud-Optimised GeoTIFF spec
     (512×512 or 1024×1024 internal tiles).
 
     Args:
-        dataset: A pyramids ``Dataset`` (or subclass).
+        dataset: A pyramids `Dataset` (or subclass).
         tile_rows: Tile height in cells. Defaults to 1024.
         tile_cols: Tile width in cells. Defaults to 1024.
         overlap: Cells of overlap between adjacent tiles. Useful for
@@ -45,7 +45,7 @@ def tile_windows(
             direction, dilations). Default 0.
 
     Yields:
-        ``(row_off, col_off, n_rows, n_cols)`` int tuples in row-major
+        `(row_off, col_off, n_rows, n_cols)` int tuples in row-major
         order. Edge tiles are clipped to the dataset bounds.
 
     Examples:
@@ -86,7 +86,7 @@ def dask_backend(*args, **kwargs):
 
     Full Dask-graph integration remains deferred. The chunked-iteration
     half ships as :func:`tile_windows` — callers process continental DEMs
-    by looping ``for win in tile_windows(ds): chunk = ds.read_array(window=win)``
+    by looping `for win in tile_windows(ds): chunk = ds.read_array(window=win)`
     without loading the full mosaic in memory.
 
     References:
@@ -102,24 +102,24 @@ def dask_backend(*args, **kwargs):
 def write_cog(dataset, path: str, compress: str = "deflate") -> str:
     """Cloud-Optimised GeoTIFF writer.
 
-    Writes a pyramids ``Dataset`` to a COG file using GDAL's built-in COG
+    Writes a pyramids `Dataset` to a COG file using GDAL's built-in COG
     driver. COG is the standard cloud-native format for raster data:
     internally tiled, internally overviewed, and indexable by HTTP range
     requests — the foundation of every modern STAC-based pipeline.
 
     Args:
-        dataset: Any ``pyramids.Dataset`` (or subclass — DEM,
+        dataset: Any `pyramids.Dataset` (or subclass — DEM,
             FlowDirection, Accumulation, etc.).
-        path: Output ``.tif`` path.
-        compress: GDAL compression option (``"deflate"`` default,
-            ``"lzw"``, ``"zstd"``, ``"none"``).
+        path: Output `.tif` path.
+        compress: GDAL compression option (`"deflate"` default,
+            `"lzw"`, `"zstd"`, `"none"`).
 
     Returns:
         The output path on success.
 
     Raises:
         RuntimeError: If GDAL's COG driver fails (older GDAL builds may
-            need ``"GTIFF"`` with manual COG options instead).
+            need `"GTIFF"` with manual COG options instead).
 
     Examples:
         - Write a 5x5 DEM as a COG:

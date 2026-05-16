@@ -3,13 +3,13 @@ terrain analysis, and hydrologic modelling.
 
 Public surface exposed at the package root:
 
-* ``DEM`` — digital-elevation-model processor (filling, breaching, flow
+* `DEM` — digital-elevation-model processor (filling, breaching, flow
   direction, accumulation, slope, exporters, …).
-* ``Terrain`` — colour-relief raster generation.
-* ``FlowDirection`` / ``Accumulation`` / ``StreamRaster`` /
-  ``WatershedRaster`` — typed result classes with routing-scheme
+* `Terrain` — colour-relief raster generation.
+* `FlowDirection` / `Accumulation` / `StreamRaster` /
+  `WatershedRaster` — typed result classes with routing-scheme
   provenance tagging.
-* ``Mesh`` — triangle-mesh container with Laplacian smoothing and
+* `Mesh` — triangle-mesh container with Laplacian smoothing and
   aspect-ratio quality metrics (Phase 4 P33).
 """
 

@@ -1,6 +1,6 @@
 """DEM processing module.
 
-This module provides the ``DEM`` class for digital elevation model analysis,
+This module provides the `DEM` class for digital elevation model analysis,
 including depression filling, slope calculation, D8 flow direction, and flow
 accumulation.
 """
@@ -42,23 +42,23 @@ DIR_OFFSETS = {
 
 
 def _reproject_if_needed(layer, target_epsg: int | None):
-    """Return ``layer`` reprojected to ``target_epsg`` when its CRS differs.
+    """Return `layer` reprojected to `target_epsg` when its CRS differs.
 
-    Uses CRS object equality rather than ``to_epsg()`` integer comparison so
-    custom projections (where ``to_epsg()`` returns ``None``) are not falsely
+    Uses CRS object equality rather than `to_epsg()` integer comparison so
+    custom projections (where `to_epsg()` returns `None`) are not falsely
     flagged as mismatched — see the Phase-3 N7 review note.
 
     Args:
-        layer: ``GeoDataFrame`` (or any object with a ``crs`` attribute and a
-            ``to_crs(epsg)`` method). When the attribute is missing or its
-            value is ``None`` the layer is returned unchanged.
-        target_epsg: EPSG code of the destination CRS, or ``None`` to skip
+        layer: `GeoDataFrame` (or any object with a `crs` attribute and a
+            `to_crs(epsg)` method). When the attribute is missing or its
+            value is `None` the layer is returned unchanged.
+        target_epsg: EPSG code of the destination CRS, or `None` to skip
             reprojection entirely.
 
     Returns:
-        Either the original ``layer`` (when CRSes already match, or when
-        ``target_epsg`` is ``None``, or when ``layer`` carries no CRS) or a
-        new ``GeoDataFrame`` reprojected to ``target_epsg``.
+        Either the original `layer` (when CRSes already match, or when
+        `target_epsg` is `None`, or when `layer` carries no CRS) or a
+        new `GeoDataFrame` reprojected to `target_epsg`.
 
     Examples:
         - Same CRS short-circuit returns the original layer unchanged:
@@ -80,7 +80,7 @@ def _reproject_if_needed(layer, target_epsg: int | None):
             >>> int(reprojected.crs.to_epsg())
             3857
 
-        - ``target_epsg=None`` skips reprojection entirely:
+        - `target_epsg=None` skips reprojection entirely:
 
             >>> import geopandas as gpd
             >>> from shapely.geometry import Point
@@ -89,7 +89,7 @@ def _reproject_if_needed(layer, target_epsg: int | None):
             >>> _reproject_if_needed(layer, None) is layer
             True
 
-        - A layer with no ``crs`` attribute is returned untouched:
+        - A layer with no `crs` attribute is returned untouched:
 
             >>> import geopandas as gpd
             >>> from shapely.geometry import Point
@@ -126,7 +126,7 @@ class DEM(Dataset):
 
     Args:
         src: GDAL dataset containing a single-band elevation raster.
-        access: ``"read_only"`` (default) or ``"write"``.
+        access: `"read_only"` (default) or `"write"`.
     """
 
     def __init__(self, src: gdal.Dataset, access: str = "read_only"):
@@ -134,13 +134,13 @@ class DEM(Dataset):
 
     @property
     def values(self):
-        """Elevation array with no-data cells replaced by ``np.nan``.
+        """Elevation array with no-data cells replaced by `np.nan`.
 
-        Reads band 0 as ``float32`` and masks every cell whose value is
+        Reads band 0 as `float32` and masks every cell whose value is
         close to the raster's no-data value (relative tolerance 1e-5).
 
         Returns:
-            np.ndarray: 2-D ``float32`` array of shape ``(rows, columns)``.
+            np.ndarray: 2-D `float32` array of shape `(rows, columns)`.
         """
         values = self.read_array(band=0).astype(np.float32)
         # get the value stores in no data value cells
@@ -156,49 +156,49 @@ class DEM(Dataset):
     ) -> DEM | None:
         """Fill closed depressions in the DEM.
 
-        Three algorithms are available via the ``method`` argument:
+        Three algorithms are available via the `method` argument:
 
-        * ``"priority_flood"`` (default) — Barnes, Lehman & Mulla (2014) Priority-Flood
-          with the two-queue plateau optimisation. With ``epsilon == 0`` it produces flat
-          fills; with ``epsilon > 0`` it produces a strictly monotonic surface (every cell
+        * `"priority_flood"` (default) — Barnes, Lehman & Mulla (2014) Priority-Flood
+          with the two-queue plateau optimisation. With `epsilon == 0` it produces flat
+          fills; with `epsilon > 0` it produces a strictly monotonic surface (every cell
           has at least one strictly lower neighbour along the flood path) at the cost of
           a small elevation inflation proportional to plateau width.
-        * ``"wang_liu"`` — Wang & Liu (2006). Flat fill, no epsilon. Equivalent in output
-          to ``priority_flood`` with ``epsilon == 0``; kept as a named alternative for
+        * `"wang_liu"` — Wang & Liu (2006). Flat fill, no epsilon. Equivalent in output
+          to `priority_flood` with `epsilon == 0`; kept as a named alternative for
           callers who plan to resolve flats explicitly afterwards (P4).
-        * ``"planchon_darboux"`` — Planchon & Darboux (2002). Iterative directional-sweep
+        * `"planchon_darboux"` — Planchon & Darboux (2002). Iterative directional-sweep
           algorithm. Slower than Priority-Flood on large DEMs; kept as a low-relief
-          reference. Requires ``epsilon > 0``.
+          reference. Requires `epsilon > 0`.
 
         No-data handling is uniform across methods: cells flagged no-data act as outlets
         (they cannot be filled, and data cells adjacent to them are seeded as drainage
         sources alongside the true raster boundary).
 
         **Precision note.** Priority-flood / planchon-darboux compute the cumulative lift
-        in float64 but the output is cast back to the input dtype. For ``float32`` DEMs
-        with ``epsilon`` in the ``0.1``-class on wide plateaus, the accumulated lift can
+        in float64 but the output is cast back to the input dtype. For `float32` DEMs
+        with `epsilon` in the `0.1`-class on wide plateaus, the accumulated lift can
         approach float32's relative precision near the spill elevation and very long
-        plateaus may underflow to identical filled values. Prefer ``float64`` inputs
-        when running with ``epsilon > 0`` and large depressions; ``wang_liu`` /
-        ``epsilon=0`` are immune.
+        plateaus may underflow to identical filled values. Prefer `float64` inputs
+        when running with `epsilon > 0` and large depressions; `wang_liu` /
+        `epsilon=0` are immune.
 
         Args:
-            method: One of ``"priority_flood"``, ``"wang_liu"``, ``"planchon_darboux"``.
-            epsilon: Per-step elevation lift inside depressions. ``0.0`` (default for
-                ``priority_flood``) returns a non-strictly-decreasing surface — flats
+            method: One of `"priority_flood"`, `"wang_liu"`, `"planchon_darboux"`.
+            epsilon: Per-step elevation lift inside depressions. `0.0` (default for
+                `priority_flood`) returns a non-strictly-decreasing surface — flats
                 remain flat. Positive values guarantee a unique downhill path at the
-                cost of slight elevation inflation. ``planchon_darboux`` requires
-                ``epsilon > 0``.
-            inplace: If ``True`` the current instance is updated in place and ``None``
-                is returned. If ``False`` (default) a new ``DEM`` is returned.
+                cost of slight elevation inflation. `planchon_darboux` requires
+                `epsilon > 0`.
+            inplace: If `True` the current instance is updated in place and `None`
+                is returned. If `False` (default) a new `DEM` is returned.
 
         Returns:
-            DEM | None: A new ``DEM`` containing the filled elevation, or ``None`` when
-            ``inplace`` is ``True``.
+            DEM | None: A new `DEM` containing the filled elevation, or `None` when
+            `inplace` is `True`.
 
         Raises:
-            ValueError: If ``method`` is unknown, or ``planchon_darboux`` is requested
-                with ``epsilon <= 0``.
+            ValueError: If `method` is unknown, or `planchon_darboux` is requested
+                with `epsilon <= 0`.
         """
         elev = self.values
         nodata_mask = np.isnan(elev)
@@ -237,16 +237,16 @@ class DEM(Dataset):
         data artefacts and the natural drainage path is preserved by cutting the artefact
         away rather than inflating the surrounding terrain.
 
-        Three methods are available via the ``method`` argument:
+        Three methods are available via the `method` argument:
 
-        * ``"single_cell"`` — cheap O(n) preprocessing pass that resolves isolated 1-cell
+        * `"single_cell"` — cheap O(n) preprocessing pass that resolves isolated 1-cell
           pits by lowering an intermediate first-order neighbour to the midpoint of the
           pit and a lower second-order cell. Does nothing if no such configuration exists.
-        * ``"least_cost"`` (default) — Lindsay 2016 Dijkstra-from-each-pit. Carves a
+        * `"least_cost"` (default) — Lindsay 2016 Dijkstra-from-each-pit. Carves a
           strictly monotonic channel from the pit to the nearest outlet. Optional
-          ``max_depth`` and ``max_length`` constraints abort the breach for any pit whose
+          `max_depth` and `max_length` constraints abort the breach for any pit whose
           channel would exceed them; aborted pits are left unresolved.
-        * ``"hybrid"`` — try ``least_cost`` first; pits that fail their constraint fall
+        * `"hybrid"` — try `least_cost` first; pits that fail their constraint fall
           back to the Priority-Flood depression fill (P2). The breach phase has already
           lowered parts of the DEM where partial breaching occurred, so the fill operates
           on a modified surface and produces less overall lift than fill-only.
@@ -255,22 +255,22 @@ class DEM(Dataset):
         terminates the search.
 
         Args:
-            method: One of ``"single_cell"``, ``"least_cost"``, ``"hybrid"``.
-            max_depth: Maximum cumulative ``|Δz|`` for a single breach path. ``None``
+            method: One of `"single_cell"`, `"least_cost"`, `"hybrid"`.
+            max_depth: Maximum cumulative `|Δz|` for a single breach path. `None`
                 disables the constraint.
-            max_length: Maximum path length in cells. ``None`` disables.
-            fill_remaining: Only meaningful when ``method="hybrid"``. If ``True``
+            max_length: Maximum path length in cells. `None` disables.
+            fill_remaining: Only meaningful when `method="hybrid"`. If `True`
                 (default), unresolved pits are passed to Priority-Flood with
-                ``epsilon=0``. If ``False``, they are left as pits in the output.
-            inplace: If ``True`` the current instance is updated in place and ``None`` is
-                returned. If ``False`` (default) a new ``DEM`` is returned.
+                `epsilon=0`. If `False`, they are left as pits in the output.
+            inplace: If `True` the current instance is updated in place and `None` is
+                returned. If `False` (default) a new `DEM` is returned.
 
         Returns:
-            DEM | None: A new ``DEM`` containing the breached elevation, or ``None`` when
-            ``inplace`` is ``True``.
+            DEM | None: A new `DEM` containing the breached elevation, or `None` when
+            `inplace` is `True`.
 
         Raises:
-            ValueError: If ``method`` is unknown.
+            ValueError: If `method` is unknown.
         """
         elev = self.values
         nodata_mask = np.isnan(elev)
@@ -299,38 +299,38 @@ class DEM(Dataset):
     ) -> DEM | None:
         """Impose a deterministic gradient on every flat plateau in the DEM.
 
-        After ``fill_depressions(method="wang_liu")`` (or ``"priority_flood"`` with
-        ``epsilon=0``), every closed depression is filled to its spill elevation — but the
+        After `fill_depressions(method="wang_liu")` (or `"priority_flood"` with
+        `epsilon=0`), every closed depression is filled to its spill elevation — but the
         interior of each filled depression is a flat plateau with no defined steepest
-        descent, so D8 flow direction over the result has ``NO_FLOW`` cells across every
-        plateau. ``resolve_flats`` nudges those cells so each has a unique downhill
+        descent, so D8 flow direction over the result has `NO_FLOW` cells across every
+        plateau. `resolve_flats` nudges those cells so each has a unique downhill
         neighbour: combined Garbrecht & Martz (1997) gradient — drain *towards* the
         nearest outlet (LEC) with a tiebreak that drains *away from* the nearest rim
-        (HEC). The towards-lower gradient is weighted ``2x`` so it dominates and the
+        (HEC). The towards-lower gradient is weighted `2x` so it dominates and the
         away-from-higher gradient acts as a deterministic tiebreaker.
 
         Plateaus without a low-edge cell (closed depressions that survived the fill — they
-        should not exist if you ran ``fill_depressions`` first) are left untouched.
+        should not exist if you ran `fill_depressions` first) are left untouched.
 
         Args:
             max_iter: Safety cap on BFS levels per plateau. Real plateaus rarely exceed
-                ``max(rows, cols)``; the default ``1000`` is essentially unbounded.
+                `max(rows, cols)`; the default `1000` is essentially unbounded.
             epsilon: Per-BFS-step elevation lift. Total lift over a plateau is at most
-                ``(2 * max_high_dist + max_low_dist) * epsilon``; choose small enough
+                `(2 * max_high_dist + max_low_dist) * epsilon`; choose small enough
                 that this stays well below the minimum elevation step between adjacent
-                non-plateau cells. Default ``1e-5`` is safe for ~1000-cell-wide plateaus.
+                non-plateau cells. Default `1e-5` is safe for ~1000-cell-wide plateaus.
             connectivity: 4 or 8. Controls plateau-labelling and BFS step direction;
                 LEC/HEC classification always uses 8-connectivity (Garbrecht-Martz
                 convention). Default is 8.
-            inplace: If ``True`` the current instance is updated in place and ``None`` is
-                returned. If ``False`` (default) a new ``DEM`` is returned.
+            inplace: If `True` the current instance is updated in place and `None` is
+                returned. If `False` (default) a new `DEM` is returned.
 
         Returns:
-            DEM | None: A new ``DEM`` with flat plateaus resolved, or ``None`` when
-            ``inplace`` is ``True``.
+            DEM | None: A new `DEM` with flat plateaus resolved, or `None` when
+            `inplace` is `True`.
 
         Raises:
-            ValueError: If ``connectivity`` is not 4 or 8.
+            ValueError: If `connectivity` is not 4 or 8.
         """
         elev = self.values
         nodata_mask = np.isnan(elev)
@@ -357,23 +357,23 @@ class DEM(Dataset):
         """Compute Height Above Nearest Drainage (Rennó 2008 / Nobre 2011).
 
         For every cell, follows the flow-direction raster downstream until it
-        reaches a stream cell, and assigns ``elev[cell] - elev[stream_cell]``
+        reaches a stream cell, and assigns `elev[cell] - elev[stream_cell]`
         as the cell's HAND value. Stream cells themselves are 0; cells whose
         flow path does not reach a stream (orphans, sinks, no-data) are NaN.
 
         Args:
-            streams: ``StreamRaster`` aligned to this DEM. Only the underlying
+            streams: `StreamRaster` aligned to this DEM. Only the underlying
                 stream mask is read.
-            flow_direction: Single-direction ``FlowDirection`` (``d8`` /
-                ``rho8``) aligned to this DEM.
+            flow_direction: Single-direction `FlowDirection` (`d8` /
+                `rho8`) aligned to this DEM.
 
         Returns:
-            ``Dataset`` containing the float32 HAND raster. No-data cells use
+            `Dataset` containing the float32 HAND raster. No-data cells use
             this DEM's no-data sentinel (NaN in the underlying values
             property; the on-disk sentinel restored before write-back).
 
         Raises:
-            ValueError: If shapes do not match or ``flow_direction`` is
+            ValueError: If shapes do not match or `flow_direction` is
                 multi-direction.
         """
         from digitalrivers._streams.hand import hand_d8
@@ -427,21 +427,21 @@ class DEM(Dataset):
         """Condition the DEM by burning a vector stream network into it.
 
         Three methods are specified by P20; this implementation ships
-        ``"fill_burn"`` (Lindsay 2018 — used by WhiteboxTools' FillBurn) as
-        the default. ``"agree"`` (Hellweger 1997) and
-        ``"topological_breach"`` (Lindsay 2016) raise ``NotImplementedError``.
+        `"fill_burn"` (Lindsay 2018 — used by WhiteboxTools' FillBurn) as
+        the default. `"agree"` (Hellweger 1997) and
+        `"topological_breach"` (Lindsay 2016) raise `NotImplementedError`.
 
         Fill-burn algorithm:
 
-        1. Rasterise every LineString in ``streams`` onto a stream mask.
-        2. Lower every stream cell's elevation by ``constant_drop``.
-        3. Run ``fill_depressions(method="priority_flood")`` so the
+        1. Rasterise every LineString in `streams` onto a stream mask.
+        2. Lower every stream cell's elevation by `constant_drop`.
+        3. Run `fill_depressions(method="priority_flood")` so the
            surrounding cells drain naturally into the channel.
 
         Args:
-            streams: ``GeoDataFrame`` of LineString geometries.
-            method: ``"fill_burn"`` (default); ``"agree"`` and
-                ``"topological_breach"`` raise ``NotImplementedError``.
+            streams: `GeoDataFrame` of LineString geometries.
+            method: `"fill_burn"` (default); `"agree"` and
+                `"topological_breach"` raise `NotImplementedError`.
             sharp / smooth / buffer_cells: AGREE parameters (unused for
                 fill_burn).
             constant_drop: Elevation drop applied to every stream cell
@@ -452,7 +452,7 @@ class DEM(Dataset):
 
         Returns:
             DEM | None: New DEM with the conditioned surface, or None when
-            ``inplace=True``.
+            `inplace=True`.
 
         Examples:
             - Fill-burn lowers the stream-row of a flat DEM:
@@ -616,8 +616,8 @@ class DEM(Dataset):
         return DEM(plain_ds.raster)
 
     def _rasterise_line(self, geom, mask, gt):
-        """Rasterise a single LineString into ``mask`` using the supplied
-        geotransform. Helper for ``burn_streams`` MultiLineString handling.
+        """Rasterise a single LineString into `mask` using the supplied
+        geotransform. Helper for `burn_streams` MultiLineString handling.
         """
         x0, dx, _, y0, _, dy = gt
         rows, cols = mask.shape
@@ -645,19 +645,19 @@ class DEM(Dataset):
         inplace: bool = False,
     ) -> DEM | None:
         """Lower DEM cells at every stream-road intersection by
-        ``culvert_drop`` so subsequent flow routing crosses roads instead of
+        `culvert_drop` so subsequent flow routing crosses roads instead of
         dead-ending against them. Simplified version of WhiteboxTools'
-        ``BurnStreamsAtRoads``.
+        `BurnStreamsAtRoads`.
 
         Args:
-            roads: ``GeoDataFrame`` of LineString road geometries.
-            streams: ``GeoDataFrame`` of LineString stream geometries.
+            roads: `GeoDataFrame` of LineString road geometries.
+            streams: `GeoDataFrame` of LineString stream geometries.
             culvert_drop: Elevation drop applied to each intersection cell.
             inplace: If True, update the instance; else return a new DEM.
 
         Returns:
             DEM | None: New DEM with culverts enforced, or None when
-            ``inplace=True``.
+            `inplace=True`.
         """
         elev = self.values
         rows, cols = elev.shape
@@ -687,11 +687,11 @@ class DEM(Dataset):
         return DEM(plain_ds.raster)
 
     def _polygon_cell_indices(self, geom, gt, rows, cols):
-        """Return ``(rows_idx, cols_idx)`` of cells whose centre is inside ``geom``.
+        """Return `(rows_idx, cols_idx)` of cells whose centre is inside `geom`.
 
-        Uses ``shapely.contains_xy`` for one batched point-in-polygon test
+        Uses `shapely.contains_xy` for one batched point-in-polygon test
         per polygon — orders of magnitude faster than the per-cell
-        ``geom.intersects(Point)`` loop that this helper replaces.
+        `geom.intersects(Point)` loop that this helper replaces.
 
         Args:
             geom: Shapely Polygon / MultiPolygon. The bounding box is used to
@@ -702,8 +702,8 @@ class DEM(Dataset):
             cols: Number of columns in the raster.
 
         Returns:
-            Tuple ``(rs, cs)`` of int ndarrays giving the row / column
-            indices of every cell whose centre lies inside ``geom``. Empty
+            Tuple `(rs, cs)` of int ndarrays giving the row / column
+            indices of every cell whose centre lies inside `geom`. Empty
             arrays when the polygon's bounding box does not overlap the
             raster envelope.
 
@@ -795,13 +795,13 @@ class DEM(Dataset):
 
         For each input polygon, sample the DEM cells the polygon covers
         and assign every cell in the polygon the per-polygon statistic
-        (``"min"`` by default — the most defensive choice for hydrology;
-        ``"mean"`` and ``"median"`` are also supported).
+        (`"min"` by default — the most defensive choice for hydrology;
+        `"mean"` and `"median"` are also supported).
 
         Args:
-            water_polygons: ``GeoDataFrame`` of Polygon / MultiPolygon
+            water_polygons: `GeoDataFrame` of Polygon / MultiPolygon
                 geometries.
-            method: ``"min"`` (default), ``"mean"``, or ``"median"``.
+            method: `"min"` (default), `"mean"`, or `"median"`.
             inplace: If True, update the instance; else return a new DEM.
 
         Returns:
@@ -852,11 +852,11 @@ class DEM(Dataset):
         lift: float = 50.0,
         inplace: bool = False,
     ) -> DEM | None:
-        """Lift building footprints above the DEM by ``lift`` map units so
+        """Lift building footprints above the DEM by `lift` map units so
         2D flood routing flows around them.
 
         Args:
-            building_polygons: ``GeoDataFrame`` of Polygon geometries.
+            building_polygons: `GeoDataFrame` of Polygon geometries.
             lift: Elevation added to every cell whose centre falls inside a
                 polygon.
             inplace: If True, update the instance; else return a new DEM.
@@ -896,7 +896,7 @@ class DEM(Dataset):
         """Raise linear barriers (levees, walls, kerbs) above the surrounding DEM.
 
         Args:
-            breaklines: ``GeoDataFrame`` of LineString geometries.
+            breaklines: `GeoDataFrame` of LineString geometries.
             lift: Elevation added at each rasterised cell along the lines.
             inplace: If True, update the instance; else return a new DEM.
 
@@ -936,7 +936,7 @@ class DEM(Dataset):
     ) -> "pd.DataFrame":
         """Build per-coarse-cell bathymetry tables (SFINCS-style).
 
-        For each coarse cell (``scale_factor × scale_factor`` block of fine
+        For each coarse cell (`scale_factor × scale_factor` block of fine
         cells), compute a histogram-like table mapping a coarsened water-
         depth level to the wetted area within the block. This is the
         sub-grid representation SFINCS and similar reduced-order 2D models
@@ -948,18 +948,18 @@ class DEM(Dataset):
             n_bins: Number of depth bins per coarse cell.
 
         Returns:
-            ``pandas.DataFrame`` indexed by coarse-cell ``(row, col)`` with
-            ``n_bins + 2`` columns: ``z_min``, ``z_max``, plus
-            ``frac_below_<k>`` for ``k`` in ``[1, n_bins]`` giving the
-            fraction of fine cells at or below the ``k``-th depth bin.
-            For flat blocks (``z_max == z_min``) every ``frac_below_<k>``
-            is ``1.0``.
+            `pandas.DataFrame` indexed by coarse-cell `(row, col)` with
+            `n_bins + 2` columns: `z_min`, `z_max`, plus
+            `frac_below_<k>` for `k` in `[1, n_bins]` giving the
+            fraction of fine cells at or below the `k`-th depth bin.
+            For flat blocks (`z_max == z_min`) every `frac_below_<k>`
+            is `1.0`.
 
         Raises:
-            ValueError: For ``scale_factor < 2`` or ``n_bins < 1``.
+            ValueError: For `scale_factor < 2` or `n_bins < 1`.
 
         Examples:
-            - A flat block produces ``frac_below_<k> == 1.0`` for every bin
+            - A flat block produces `frac_below_<k> == 1.0` for every bin
               (B1 regression — the columns are always present):
 
                 >>> import numpy as np
@@ -1038,33 +1038,33 @@ class DEM(Dataset):
         """Export the DEM to a hydrodynamic-model format.
 
         Every target listed below ships with a working writer. Most were
-        backfilled after the initial Phase-3 cut; ``lisflood_fp`` is the
+        backfilled after the initial Phase-3 cut; `lisflood_fp` is the
         canonical Arc-ASCII writer and remains the only target that
         actually requires a sinks-free input.
 
         Args:
             path: Output file path.
-            target: One of ``"hec_ras"``, ``"tuflow"``, ``"sfincs"``,
-                ``"lisflood_fp"``, ``"iber"``, ``"gmsh"``.
+            target: One of `"hec_ras"`, `"tuflow"`, `"sfincs"`,
+                `"lisflood_fp"`, `"iber"`, `"gmsh"`.
             breaklines / walls / buildings / manning_n / boundary_conditions:
                 Reserved for target-specific bundles. Currently ignored by
                 the LISFLOOD-FP writer.
-            validate: When ``True`` (default), refuse to export a DEM with
-                internal sinks. **Only applied for** ``target="lisflood_fp"``
+            validate: When `True` (default), refuse to export a DEM with
+                internal sinks. **Only applied for** `target="lisflood_fp"`
                 — the Arc-ASCII writer is the only target where downstream
                 tooling actually requires sinks-free input. Other writers
-                skip the sink scan even when ``validate=True`` so the
-                ``local_minima_8`` pass does not run unnecessarily (I4
-                fixup). Pass ``validate=False`` to also disable the
+                skip the sink scan even when `validate=True` so the
+                `local_minima_8` pass does not run unnecessarily (I4
+                fixup). Pass `validate=False` to also disable the
                 lisflood_fp guard.
             **kwargs: Target-specific options.
 
         Returns:
-            ``dict`` mapping artefact label → file path written.
+            `dict` mapping artefact label → file path written.
 
         Raises:
-            ValueError: For unknown ``target``.
-            RuntimeError: When ``target == "lisflood_fp"``, ``validate=True``,
+            ValueError: For unknown `target`.
+            RuntimeError: When `target == "lisflood_fp"`, `validate=True`,
                 and the DEM has internal sinks.
         """
         valid_targets = {
@@ -1206,16 +1206,16 @@ class DEM(Dataset):
         Laplacian relaxation, holding the known cells fixed. Each
         iteration replaces every unknown cell with the mean of its four
         4-connected neighbours; iteration stops when the maximum change
-        in a sweep drops below ``tol`` or after ``max_iter`` sweeps.
+        in a sweep drops below `tol` or after `max_iter` sweeps.
 
         Two solver methods are available:
 
-        - ``"laplacian"`` (default): solves Δz = 0 via the 4-neighbour
+        - `"laplacian"` (default): solves Δz = 0 via the 4-neighbour
           mean iteration. Fast, smooth interior, but only C⁰ continuity
           at the anchor cells — the surface has visible "kinks" at
           known points.
-        - ``"biharmonic"``: solves Δ²z = 0 by alternating two Laplacian
-          sweeps (relax ``u = Δz``, then relax ``z`` so ``Δz = u``).
+        - `"biharmonic"`: solves Δ²z = 0 by alternating two Laplacian
+          sweeps (relax `u = Δz`, then relax `z` so `Δz = u`).
           C¹ continuity at anchors; closer to Hutchinson 1989 ANUDEM's
           tension-spline objective but still without multigrid
           acceleration or drainage enforcement.
@@ -1229,21 +1229,21 @@ class DEM(Dataset):
           is a fixed-λ approximation.
 
         Args:
-            mask: Optional bool array same shape as the DEM. ``True``
+            mask: Optional bool array same shape as the DEM. `True`
                 marks cells whose values must be preserved (in addition
-                to the existing finite cells). ``None`` keeps every
+                to the existing finite cells). `None` keeps every
                 finite cell fixed.
             max_iter: Maximum relaxation sweeps.
-            tol: Convergence tolerance — stop when ``max |Δz| < tol``.
-            method: ``"laplacian"`` (default) or ``"biharmonic"``.
+            tol: Convergence tolerance — stop when `max |Δz| < tol`.
+            method: `"laplacian"` (default) or `"biharmonic"`.
             inplace: If True, update the instance; else return a new DEM.
 
         Returns:
-            DEM | None: Filled DEM, or None when ``inplace=True``.
+            DEM | None: Filled DEM, or None when `inplace=True`.
 
         Raises:
-            ValueError: If the input DEM has no finite cells or ``method``
-                is not ``"laplacian"`` / ``"biharmonic"``.
+            ValueError: If the input DEM has no finite cells or `method`
+                is not `"laplacian"` / `"biharmonic"`.
 
         Examples:
             - Fill a single-cell NaN hole with the default Laplacian solver;
@@ -1350,12 +1350,12 @@ class DEM(Dataset):
         z = np.where(fixed, z, z[fixed].mean())
 
         def _edge_shifts(arr):
-            """Return (north, south, east, west) views of ``arr`` with
+            """Return (north, south, east, west) views of `arr` with
             edge-replication boundary handling (no periodic wrap).
 
-            Using ``np.pad(..., mode="edge")`` matches a Neumann (zero
+            Using `np.pad(..., mode="edge")` matches a Neumann (zero
             normal-derivative) boundary, which is the natural choice for
-            an interpolation kernel — the original ``np.roll`` formed a
+            an interpolation kernel — the original `np.roll` formed a
             torus and injected far-edge values into near-edge cells,
             corrupting anchors near the DEM boundary.
             """
@@ -1405,7 +1405,7 @@ class DEM(Dataset):
         return DEM(plain_ds.raster)
 
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
-        """Deprecated alias for ``fill_depressions(method="priority_flood", epsilon=0.1)``.
+        """Deprecated alias for `fill_depressions(method="priority_flood", epsilon=0.1)`.
 
         The original implementation was a single-pass, single-cell sink fill that did
         not cascade through nested pits. Calls now route through the Priority-Flood +
@@ -1415,15 +1415,15 @@ class DEM(Dataset):
         1. Cascading pits are fully resolved (each pit fills to the rim of its enclosing
            pit, not just to its immediate-neighbour minimum).
         2. Drainage paths within filled depressions inherit a 0.1-unit gradient — so
-           D8 routing on the result avoids ``NO_FLOW`` cells inside the fill.
+           D8 routing on the result avoids `NO_FLOW` cells inside the fill.
 
         Args:
-            inplace: If ``True`` the instance is updated in place; otherwise a new
-                ``DEM`` is returned.
+            inplace: If `True` the instance is updated in place; otherwise a new
+                `DEM` is returned.
 
         Returns:
-            DEM | None: New ``DEM`` with the sink-free elevation, or ``None`` when
-            ``inplace`` is ``True``.
+            DEM | None: New `DEM` with the sink-free elevation, or `None` when
+            `inplace` is `True`.
         """
         warnings.warn(
             "DEM.fill_sinks is deprecated; use DEM.fill_depressions(method='priority_flood', "
@@ -1442,9 +1442,9 @@ class DEM(Dataset):
         in each of the eight D8 directions.
 
         Returns:
-            np.ndarray: 3-D ``float32`` array of shape
-                ``(rows, columns, 8)`` where the third axis corresponds
-                to the direction indices defined in ``DIR_OFFSETS``.
+            np.ndarray: 3-D `float32` array of shape
+                `(rows, columns, 8)` where the third axis corresponds
+                to the direction indices defined in `DIR_OFFSETS`.
         """
         elev = self.values
         cell_size = self.cell_size
@@ -1494,7 +1494,7 @@ class DEM(Dataset):
         """Compute the maximum downhill slope at every cell.
 
         Calculates slopes in all eight D8 directions via
-        ``_get_8_direction_slopes`` and returns a raster whose cell
+        `_get_8_direction_slopes` and returns a raster whose cell
         values are the maximum slope across the eight neighbours.
 
         Returns:
@@ -1520,12 +1520,12 @@ class DEM(Dataset):
             outflow: GeoDataFrame with point geometry marking the
                 outfall location.
             direction: D8 direction code (0–7) to force at the outfall.
-            inplace: If ``True`` modify the current instance in place;
-                otherwise return a new ``Dataset``.
+            inplace: If `True` modify the current instance in place;
+                otherwise return a new `Dataset`.
 
         Returns:
-            Dataset with the outfall direction applied, or ``None`` when
-            *inplace* is ``True``.
+            Dataset with the outfall direction applied, or `None` when
+            *inplace* is `True`.
 
         Raises:
             NotImplementedError: This method is not yet implemented.
@@ -1544,40 +1544,40 @@ class DEM(Dataset):
 
         Schemes:
 
-        * ``"d8"`` (default) — O'Callaghan & Mark (1984). Single-direction steepest
-          descent. Output: 1-band ``int32`` raster of direction codes 0–7 following
-          ``DIR_OFFSETS``.
-        * ``"dinf"`` — Tarboton (1997). Output: 2-band ``float32`` raster. Band 0 is
-          the aspect angle in radians CCW from east in ``[0, 2π)``; band 1 is the
-          slope magnitude along the chosen facet. ``-1.0`` in band 0 marks sinks /
+        * `"d8"` (default) — O'Callaghan & Mark (1984). Single-direction steepest
+          descent. Output: 1-band `int32` raster of direction codes 0–7 following
+          `DIR_OFFSETS`.
+        * `"dinf"` — Tarboton (1997). Output: 2-band `float32` raster. Band 0 is
+          the aspect angle in radians CCW from east in `[0, 2π)`; band 1 is the
+          slope magnitude along the chosen facet. `-1.0` in band 0 marks sinks /
           no-data.
-        * ``"mfd_quinn"`` — Quinn et al. (1991). Multi-direction with contour-length
-          weighting. Output: 8-band ``float32`` raster of partition fractions,
-          ordered by ``DIR_OFFSETS``. Per-cell fractions sum to 1.0 (or all zero
+        * `"mfd_quinn"` — Quinn et al. (1991). Multi-direction with contour-length
+          weighting. Output: 8-band `float32` raster of partition fractions,
+          ordered by `DIR_OFFSETS`. Per-cell fractions sum to 1.0 (or all zero
           for sinks).
-        * ``"mfd_holmgren"`` — Holmgren (1994). Same family as Quinn but tunable
-          ``exponent`` (default 1.0 mimics Quinn; 4–6 mimics D8). 8-band output.
-        * ``"rho8"`` — Fairfield & Leymarie (1991). Stochastic single-direction;
+        * `"mfd_holmgren"` — Holmgren (1994). Same family as Quinn but tunable
+          `exponent` (default 1.0 mimics Quinn; 4–6 mimics D8). 8-band output.
+        * `"rho8"` — Fairfield & Leymarie (1991). Stochastic single-direction;
           cardinal slopes are perturbed before the steepest-neighbour pick. Pass
-          ``seed`` for reproducibility. 1-band ``int32`` output like D8.
+          `seed` for reproducibility. 1-band `int32` output like D8.
 
         Args:
-            method: Routing scheme — one of ``"d8"``, ``"dinf"``, ``"mfd_quinn"``,
-                ``"mfd_holmgren"``, ``"rho8"``.
-            exponent: ``p`` for ``mfd_holmgren`` and ``mfd_quinn``. Ignored otherwise.
-            forced: Optional GeoDataFrame with columns ``geometry`` (point) and
-                ``direction`` (int 0–7) — cells at the given locations are forced
+            method: Routing scheme — one of `"d8"`, `"dinf"`, `"mfd_quinn"`,
+                `"mfd_holmgren"`, `"rho8"`.
+            exponent: `p` for `mfd_holmgren` and `mfd_quinn`. Ignored otherwise.
+            forced: Optional GeoDataFrame with columns `geometry` (point) and
+                `direction` (int 0–7) — cells at the given locations are forced
                 to that D8 direction code regardless of the computed slope. Only
-                meaningful for ``"d8"`` and ``"rho8"``.
-            seed: Random seed for ``"rho8"`` reproducibility.
-            forced_direction: Deprecated alias for ``forced``. If both are given,
-                ``forced`` wins.
+                meaningful for `"d8"` and `"rho8"`.
+            seed: Random seed for `"rho8"` reproducibility.
+            forced_direction: Deprecated alias for `forced`. If both are given,
+                `forced` wins.
 
         Returns:
             FlowDirection: typed wrapper carrying the routing scheme and encoding.
 
         Raises:
-            ValueError: If ``method`` is unknown.
+            ValueError: If `method` is unknown.
         """
         if forced is None and forced_direction is not None:
             forced = forced_direction
@@ -1656,7 +1656,7 @@ class DEM(Dataset):
         return FlowDirection.from_dataset(plain_ds, routing=method)
 
     def accumulate_flow(self, r, c, flow_dir, acc, dir_offsets) -> int:
-        """Count upstream cells that drain into ``(r, c)`` (iterative).
+        """Count upstream cells that drain into `(r, c)` (iterative).
 
         Uses an explicit stack to perform a depth-first traversal of the
         flow-direction grid backwards.  For every neighbour whose flow
@@ -1667,14 +1667,14 @@ class DEM(Dataset):
         Args:
             r: Row index of the target cell.
             c: Column index of the target cell.
-            flow_dir: 2-D ``int`` array of D8 direction codes (0–7).
-            acc: 2-D ``int32`` accumulation array.  Cells initialised to
-                ``-1`` are unprocessed; non-negative values are cached
+            flow_dir: 2-D `int` array of D8 direction codes (0–7).
+            acc: 2-D `int32` accumulation array.  Cells initialised to
+                `-1` are unprocessed; non-negative values are cached
                 results.
-            dir_offsets: Direction-offset mapping (see ``DIR_OFFSETS``).
+            dir_offsets: Direction-offset mapping (see `DIR_OFFSETS`).
 
         Returns:
-            Number of upstream cells that drain into ``(r, c)``
+            Number of upstream cells that drain into `(r, c)`
             (excluding the cell itself).
         """
         rows, cols = flow_dir.shape
@@ -1740,11 +1740,11 @@ class DEM(Dataset):
         Args:
             dr: Row offset component.
             dc: Column offset component.
-            dir_offsets: Direction-offset mapping (see ``DIR_OFFSETS``).
+            dir_offsets: Direction-offset mapping (see `DIR_OFFSETS`).
 
         Returns:
-            int or None: Direction code whose offset is ``(-dr, -dc)``,
-            or ``None`` if no match is found.
+            int or None: Direction code whose offset is `(-dr, -dc)`,
+            or `None` if no match is found.
         """
         for d, (d_col, d_row) in dir_offsets.items():
             if d_row == -dr and d_col == -dc:
@@ -1759,31 +1759,31 @@ class DEM(Dataset):
     ) -> Dataset:
         """Compute flow accumulation under the given routing scheme.
 
-        Generalised dispatcher that delegates to ``FlowDirection.accumulate(...)``
-        and returns an ``int32`` cast for backwards compatibility with the
+        Generalised dispatcher that delegates to `FlowDirection.accumulate(...)`
+        and returns an `int32` cast for backwards compatibility with the
         previous D8-only output. For weighted or fractional accumulation, call
-        ``flow_direction.accumulate(weights)`` directly to get the underlying
-        ``Accumulation`` (float32) instead.
+        `flow_direction.accumulate(weights)` directly to get the underlying
+        `Accumulation` (float32) instead.
 
         Args:
-            flow_direction: A ``FlowDirection`` (preferred — its routing tag
-                dispatches the algorithm) or a bare ``Dataset`` (assumed to be
+            flow_direction: A `FlowDirection` (preferred — its routing tag
+                dispatches the algorithm) or a bare `Dataset` (assumed to be
                 a D8 direction-code raster for back-compat).
             weights: Optional per-cell weight raster aligned to the DEM.
             dir_offsets: Deprecated/ignored. Kept for signature compatibility.
 
         Returns:
-            Dataset: ``int32`` accumulation raster. No-data cells retain
-            ``Dataset.default_no_data_value``. Cell values are the count of
+            Dataset: `int32` accumulation raster. No-data cells retain
+            `Dataset.default_no_data_value`. Cell values are the count of
             (or weighted sum over) strictly-upstream cells — the cell's own
             weight does not contribute to its own value.
 
         Warns:
-            UserWarning: When ``flow_direction.routing`` produces fractional
-                accumulations (``"dinf"``, ``"mfd_quinn"``, ``"mfd_holmgren"``).
-                The legacy ``int32`` cast truncates these toward zero, which is
-                almost always wrong; call ``flow_direction.accumulate(...)``
-                directly to get the fractional ``Accumulation`` raster.
+            UserWarning: When `flow_direction.routing` produces fractional
+                accumulations (`"dinf"`, `"mfd_quinn"`, `"mfd_holmgren"`).
+                The legacy `int32` cast truncates these toward zero, which is
+                almost always wrong; call `flow_direction.accumulate(...)`
+                directly to get the fractional `Accumulation` raster.
 
         Examples:
             - Compute D8 cell-count accumulation on a small east-flowing DEM
@@ -1806,7 +1806,7 @@ class DEM(Dataset):
                 >>> int(acc.read_array().max()) > 0
                 True
 
-            - A D∞ ``FlowDirection`` triggers the truncation warning:
+            - A D∞ `FlowDirection` triggers the truncation warning:
 
                 >>> import warnings
                 >>> import numpy as np
@@ -1866,10 +1866,10 @@ class DEM(Dataset):
         downstream neighbour.
 
         Returns:
-            np.ndarray: 3-D ``float64`` array of shape
-                ``(rows, columns, 2)``.  Layer 0 holds the downstream
+            np.ndarray: 3-D `float64` array of shape
+                `(rows, columns, 2)`.  Layer 0 holds the downstream
                 row index; layer 1 holds the downstream column index.
-                Cells with no valid direction contain ``np.nan``.
+                Cells with no valid direction contain `np.nan`.
         """
         flow_direction = self.flow_direction()
         flow_dir = flow_direction.read_array(band=0).astype(np.float32)
@@ -1907,7 +1907,7 @@ class DEM(Dataset):
             basins: Dataset whose cell values are basin IDs (integers).
                 The lowest unique basin ID (excluding no-data) is
                 retained.
-            path: Output GeoTIFF file path (must end with ``".tif"``).
+            path: Output GeoTIFF file path (must end with `".tif"`).
 
         Raises:
             TypeError: If *path* is not a string.

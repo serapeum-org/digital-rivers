@@ -1,4 +1,4 @@
-"""Tests for ``digitalrivers.fusion.topobathy_fusion``."""
+"""Tests for `digitalrivers.fusion.topobathy_fusion`."""
 from __future__ import annotations
 
 import numpy as np
@@ -16,7 +16,7 @@ def _make_ds(arr: np.ndarray) -> Dataset:
 
 
 def test_max_blend_picks_higher_per_cell():
-    """The ``"max"`` mode returns ``np.fmax(topo, bathy)`` cell-by-cell."""
+    """The `"max"` mode returns `np.fmax(topo, bathy)` cell-by-cell."""
     topo = _make_ds(np.array([[5.0, -1.0], [3.0, -2.0]]))
     bathy = _make_ds(np.array([[-3.0, -5.0], [-4.0, -6.0]]))
     fused = topobathy_fusion(topo, bathy, blend="max")
@@ -25,7 +25,7 @@ def test_max_blend_picks_higher_per_cell():
 
 
 def test_min_blend_picks_lower_per_cell():
-    """The ``"min"`` mode returns ``np.fmin(topo, bathy)`` cell-by-cell."""
+    """The `"min"` mode returns `np.fmin(topo, bathy)` cell-by-cell."""
     topo = _make_ds(np.array([[5.0, -1.0], [3.0, -2.0]]))
     bathy = _make_ds(np.array([[-3.0, -5.0], [-4.0, -6.0]]))
     fused = topobathy_fusion(topo, bathy, blend="min")
@@ -34,7 +34,7 @@ def test_min_blend_picks_lower_per_cell():
 
 
 def test_topo_above_branch():
-    """``topo_above`` pulls topo above the shoreline, bathy below."""
+    """`topo_above` pulls topo above the shoreline, bathy below."""
     topo = _make_ds(np.array([[5.0, -1.0]]))
     bathy = _make_ds(np.array([[-3.0, -5.0]]))
     fused = topobathy_fusion(
@@ -51,7 +51,7 @@ def test_invalid_blend_rejected():
 
 
 def test_min_blend_nan_picks_other_operand():
-    """When one operand is NaN, ``np.fmin`` returns the non-NaN value."""
+    """When one operand is NaN, `np.fmin` returns the non-NaN value."""
     topo = _make_ds(np.array([[np.nan, 5.0]]))
     bathy = _make_ds(np.array([[-3.0, np.nan]]))
     fused = topobathy_fusion(topo, bathy, blend="min")

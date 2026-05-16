@@ -1,18 +1,18 @@
 """Generalised flow-accumulation algorithm for DEM hydro pre-processing (P6).
 
 Single Kahn-style topological-sort sweep handles all five routing schemes. The
-per-routing differences live in how a ``FlowDirection`` is decoded into a uniform
-``(receivers, proportions)`` representation:
+per-routing differences live in how a `FlowDirection` is decoded into a uniform
+`(receivers, proportions)` representation:
 
-* **D8 / Rho8** — one receiver per cell, proportion ``1.0``.
+* **D8 / Rho8** — one receiver per cell, proportion `1.0`.
 * **D∞** — two receivers per cell, proportions derived from the within-sector angle
   fraction. Cells outside the 45° sectors collapse to a single receiver.
 * **MFD-Quinn / MFD-Holmgren** — up to eight receivers per cell, proportions from
   the 8-band fraction stack on disk.
 
-Output semantics: ``out[cell] = sum of weights[upstream_cells]`` — i.e. the cell's
+Output semantics: `out[cell] = sum of weights[upstream_cells]` — i.e. the cell's
 own weight does **not** contribute to its own accumulation. This matches the legacy
-``DEM.flow_accumulation`` behaviour (count of upstream cells when ``weights=1``).
+`DEM.flow_accumulation` behaviour (count of upstream cells when `weights=1`).
 """
 from __future__ import annotations
 
@@ -27,13 +27,13 @@ def _receivers_d8(
     fd_array: np.ndarray, valid_mask: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
     """Convert a D8/Rho8 single-band direction-code raster into the canonical
-    ``(receivers, proportions)`` form.
+    `(receivers, proportions)` form.
 
     Returns:
-        receivers: ``(rows, cols, 1)`` int8 of direction codes (0–7) or ``-1`` for
+        receivers: `(rows, cols, 1)` int8 of direction codes (0–7) or `-1` for
             sinks / no-data.
-        proportions: ``(rows, cols, 1)`` float32 of ``1.0`` for valid receivers,
-            else ``0.0``.
+        proportions: `(rows, cols, 1)` float32 of `1.0` for valid receivers,
+            else `0.0`.
     """
     rows, cols = fd_array.shape
     receivers = np.full((rows, cols, 1), -1, dtype=np.int8)
@@ -47,13 +47,13 @@ def _receivers_d8(
 def _receivers_dinf(
     angle: np.ndarray, valid_mask: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Convert a D∞ angle raster into ``(receivers, proportions)`` with two receivers
-    per cell. Angle convention: radians CCW from east in ``[0, 2π)``; ``-1`` marks
+    """Convert a D∞ angle raster into `(receivers, proportions)` with two receivers
+    per cell. Angle convention: radians CCW from east in `[0, 2π)`; `-1` marks
     sinks / no-data.
 
     Returns:
-        receivers: ``(rows, cols, 2)`` int8.
-        proportions: ``(rows, cols, 2)`` float32; rows sum to 1 for valid cells.
+        receivers: `(rows, cols, 2)` int8.
+        proportions: `(rows, cols, 2)` float32; rows sum to 1 for valid cells.
     """
     rows, cols = angle.shape
     receivers = np.full((rows, cols, 2), -1, dtype=np.int8)
@@ -79,17 +79,17 @@ def _receivers_dinf(
 def _receivers_mfd(
     fractions: np.ndarray, valid_mask: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Convert an MFD 8-band fraction stack into ``(receivers, proportions)`` with
+    """Convert an MFD 8-band fraction stack into `(receivers, proportions)` with
     up to eight receivers per cell.
 
     Args:
-        fractions: ``(rows, cols, 8)`` float — fraction sent to each DIR_OFFSETS
+        fractions: `(rows, cols, 8)` float — fraction sent to each DIR_OFFSETS
             direction. Rows sum to 1.0 for non-sink cells, 0.0 for sinks.
 
     Returns:
-        receivers: ``(rows, cols, 8)`` int8; ``-1`` for cells that should not
+        receivers: `(rows, cols, 8)` int8; `-1` for cells that should not
             propagate at all.
-        proportions: ``(rows, cols, 8)`` float32 — direct copy of input.
+        proportions: `(rows, cols, 8)` float32 — direct copy of input.
     """
     rows, cols, _ = fractions.shape
     receivers = np.tile(np.arange(8, dtype=np.int8), (rows, cols, 1))
@@ -107,19 +107,19 @@ def kahn_accumulate(
     """Kahn-style topological-sort flow accumulation.
 
     Args:
-        receivers: ``(rows, cols, K)`` int8 of DIR_OFFSETS direction codes 0–7 (or
-            ``-1`` for "no receiver in this slot"). ``K=1`` for D8/Rho8,
-            ``K=2`` for D∞, ``K=8`` for MFD.
-        proportions: ``(rows, cols, K)`` float32 of partition fractions matching
-            ``receivers``. Rows summing to 1.0 (or 0.0 for sinks).
-        weights: ``(rows, cols)`` float of per-cell input weights (e.g. rainfall,
+        receivers: `(rows, cols, K)` int8 of DIR_OFFSETS direction codes 0–7 (or
+            `-1` for "no receiver in this slot"). `K=1` for D8/Rho8,
+            `K=2` for D∞, `K=8` for MFD.
+        proportions: `(rows, cols, K)` float32 of partition fractions matching
+            `receivers`. Rows summing to 1.0 (or 0.0 for sinks).
+        weights: `(rows, cols)` float of per-cell input weights (e.g. rainfall,
             runoff coefficient × area, uniform 1.0 for cell counts).
-        valid_mask: ``(rows, cols)`` bool — True for valid-data cells. Invalid
+        valid_mask: `(rows, cols)` bool — True for valid-data cells. Invalid
             cells are excluded from both the in-degree count and the propagation.
 
     Returns:
-        ``(rows, cols)`` float64 accumulation grid. ``out[cell]`` is the sum of
-        ``weights`` over all strictly-upstream cells (not including ``cell``
+        `(rows, cols)` float64 accumulation grid. `out[cell]` is the sum of
+        `weights` over all strictly-upstream cells (not including `cell`
         itself), weighted by propagation fractions along each path.
 
     Examples:
@@ -197,20 +197,20 @@ def accumulate(
     valid_mask: np.ndarray,
     weights: np.ndarray | None = None,
 ) -> np.ndarray:
-    """High-level dispatcher: decode ``flow_direction_array`` per ``routing``, then
+    """High-level dispatcher: decode `flow_direction_array` per `routing`, then
     run :func:`kahn_accumulate`.
 
     Args:
-        flow_direction_array: For ``d8``/``rho8``, a 2-D int direction-code raster.
-            For ``dinf``, a 2-band float32 array shape ``(2, rows, cols)`` with
-            angle on band 0. For MFD, an 8-band float32 array shape ``(8, rows, cols)``.
-        routing: ``"d8" | "rho8" | "dinf" | "mfd_quinn" | "mfd_holmgren"``.
-        valid_mask: ``(rows, cols)`` bool of valid-data cells.
-        weights: ``(rows, cols)`` float of per-cell weights, or ``None`` for unit
+        flow_direction_array: For `d8`/`rho8`, a 2-D int direction-code raster.
+            For `dinf`, a 2-band float32 array shape `(2, rows, cols)` with
+            angle on band 0. For MFD, an 8-band float32 array shape `(8, rows, cols)`.
+        routing: `"d8" | "rho8" | "dinf" | "mfd_quinn" | "mfd_holmgren"`.
+        valid_mask: `(rows, cols)` bool of valid-data cells.
+        weights: `(rows, cols)` float of per-cell weights, or `None` for unit
             weights (cell-count accumulation).
 
     Returns:
-        ``(rows, cols)`` float64 accumulation.
+        `(rows, cols)` float64 accumulation.
     """
     if routing in ("d8", "rho8"):
         if flow_direction_array.ndim != 2:

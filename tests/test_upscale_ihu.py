@@ -1,4 +1,4 @@
-"""Tests for ``FlowDirection.upscale_ihu`` (P19)."""
+"""Tests for `FlowDirection.upscale_ihu` (P19)."""
 from __future__ import annotations
 
 import numpy as np

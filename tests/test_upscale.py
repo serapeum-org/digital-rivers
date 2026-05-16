@@ -1,4 +1,4 @@
-"""Tests for ``FlowDirection.upscale`` (P18 — COTAT only)."""
+"""Tests for `FlowDirection.upscale` (P18 — COTAT only)."""
 from __future__ import annotations
 
 import numpy as np
@@ -147,7 +147,7 @@ def test_scale_factor_zero_raises():
 
 def test_cotat_6x6_round_trip_sf2_no_runtime_error():
     """I5 regression: COTAT on a 6x6 east-flowing DEM with sf=2 must
-    complete without the defensive ``RuntimeError`` ever firing."""
+    complete without the defensive `RuntimeError` ever firing."""
     z = np.array(
         [[float(c) for c in range(6, 0, -1)] for _ in range(6)],
         dtype=np.float32,

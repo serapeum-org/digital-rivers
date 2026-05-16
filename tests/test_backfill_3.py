@@ -46,7 +46,7 @@ def test_anudem_fills_nan_holes():
 
 
 def test_anudem_with_explicit_mask_pins_extra_cells():
-    """Cells flagged in ``mask=`` stay at their input value."""
+    """Cells flagged in `mask=` stay at their input value."""
     z = np.full((5, 5), np.nan, dtype=np.float32)
     z[0, 0] = 0.0
     z[4, 4] = 100.0

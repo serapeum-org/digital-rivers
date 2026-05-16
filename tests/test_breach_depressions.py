@@ -1,9 +1,9 @@
-"""Tests for ``DEM.breach_depressions`` and the underlying ``_breach`` module (P3).
+"""Tests for `DEM.breach_depressions` and the underlying `_breach` module (P3).
 
-Covers the three modes (``single_cell``, ``least_cost``, ``hybrid``) across the
+Covers the three modes (`single_cell`, `least_cost`, `hybrid`) across the
 acceptance-criteria fixtures from the P3 spec: walled pit (single-cell-thick wall),
 thick-wall blocking breach (hybrid fall-back to fill), single-cell pit preprocessing,
-``max_length`` constraint, and a behavioural sinks-free check on the Coello basin.
+`max_length` constraint, and a behavioural sinks-free check on the Coello basin.
 """
 from __future__ import annotations
 

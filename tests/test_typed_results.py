@@ -1,6 +1,6 @@
 """Tests for the typed result classes introduced by P1.
 
-Covers ``FlowDirection``, ``Accumulation``, and ``StreamRaster``: strict
+Covers `FlowDirection`, `Accumulation`, and `StreamRaster`: strict
 type discipline, required-routing safety property, no-silent-fallback on
 open, explicit-routing override, cross-type rejection at construction
 (the ismulti guard), and metadata round-trip.
@@ -225,8 +225,8 @@ class TestAccumulationProvenance:
             assert acc.routing == r
 
 
-# ``FlowDirection.accumulate`` was implemented in P6 (Kahn topological-sort dispatcher)
-# and ``Accumulation.streams`` was implemented in P8 (threshold-based extraction). Both
+# `FlowDirection.accumulate` was implemented in P6 (Kahn topological-sort dispatcher)
+# and `Accumulation.streams` was implemented in P8 (threshold-based extraction). Both
 # stubs are gone; their parity / correctness tests live in test_accumulation_routing.py
 # and test_stream_extraction.py respectively.
 

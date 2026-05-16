@@ -1,4 +1,4 @@
-"""Tests for ``StreamRaster.order`` — Strahler / Shreve / Horton (P10)."""
+"""Tests for `StreamRaster.order` — Strahler / Shreve / Horton (P10)."""
 from __future__ import annotations
 
 import numpy as np

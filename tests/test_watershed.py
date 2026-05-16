@@ -1,4 +1,4 @@
-"""Tests for ``FlowDirection.watershed`` and ``WatershedRaster`` (P13)."""
+"""Tests for `FlowDirection.watershed` and `WatershedRaster` (P13)."""
 from __future__ import annotations
 
 import geopandas as gpd
@@ -184,7 +184,7 @@ def test_outside_envelope_point_skipped():
 
 
 class TestWatershedD8ReversedOrder:
-    """N7 regression: ``watershed_d8`` non-unique mode (reversed BFS)
+    """N7 regression: `watershed_d8` non-unique mode (reversed BFS)
     preserves the "later-seed-wins" contract AND keeps the run linear
     on overlapping fan-ins."""
 

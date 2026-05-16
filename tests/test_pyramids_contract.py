@@ -1,26 +1,26 @@
 """Pyramids inheritance-contract smoke test.
 
-The typed result classes in P1 (``FlowDirection`` / ``Accumulation`` /
-``StreamRaster``) rely on three specific properties of the installed
-``pyramids.dataset.Dataset``:
+The typed result classes in P1 (`FlowDirection` / `Accumulation` /
+`StreamRaster`) rely on three specific properties of the installed
+`pyramids.dataset.Dataset`:
 
-1. The three classmethods ``read_file`` / ``create_from_array`` /
-   ``dataset_like`` exist and end with ``cls(...)`` (so subclass identity
+1. The three classmethods `read_file` / `create_from_array` /
+   `dataset_like` exist and end with `cls(...)` (so subclass identity
    is preserved when called on a typed subclass).
-2. The ``meta_data`` property has a setter and writes per-key via
-   ``SetMetadataItem`` (the channel for ``DR_ROUTING`` etc.).
+2. The `meta_data` property has a setter and writes per-key via
+   `SetMetadataItem` (the channel for `DR_ROUTING` etc.).
 3. The same classmethods, when called from a subclass with a single-arg
-   ``__init__`` (like ``DEM``), return an instance of the subclass — not a
-   plain ``Dataset``. This is the regression guard for the
-   ``Dataset(...)``-returning paths at pyramids ``dataset.py`` lines 1152 /
-   1539 / 2076 / 3472; if any release routes ``dataset_like`` through one of
+   `__init__` (like `DEM`), return an instance of the subclass — not a
+   plain `Dataset`. This is the regression guard for the
+   `Dataset(...)`-returning paths at pyramids `dataset.py` lines 1152 /
+   1539 / 2076 / 3472; if any release routes `dataset_like` through one of
    those paths, this test fails first.
 
-``DEM`` is used rather than ``FlowDirection`` in test (3) because the typed
-subclasses require a ``routing`` kwarg that pyramids' inner
-``cls(dst, access="write")`` cannot supply — they would raise ``TypeError``
-before we could inspect the returned type. ``DEM`` keeps a single-arg
-``__init__``, so it isolates the regression we actually want to detect.
+`DEM` is used rather than `FlowDirection` in test (3) because the typed
+subclasses require a `routing` kwarg that pyramids' inner
+`cls(dst, access="write")` cannot supply — they would raise `TypeError`
+before we could inspect the returned type. `DEM` keeps a single-arg
+`__init__`, so it isolates the regression we actually want to detect.
 """
 from __future__ import annotations
 
@@ -61,11 +61,11 @@ def test_dataset_has_meta_data_setter():
 
 
 def test_dem_dataset_like_preserves_subclass():
-    """Regression guard for the pyramids ``Dataset(...)``-returning paths.
+    """Regression guard for the pyramids `Dataset(...)`-returning paths.
 
-    If a future pyramids release routes ``dataset_like`` through one of the
-    four ``return Dataset(...)`` call sites instead of ``cls(...)``, the
-    returned object will be a plain ``Dataset`` rather than a ``DEM`` and
+    If a future pyramids release routes `dataset_like` through one of the
+    four `return Dataset(...)` call sites instead of `cls(...)`, the
+    returned object will be a plain `Dataset` rather than a `DEM` and
     this test fires before any of the typed-result tests do.
     """
     arr = np.array([[100.0, 200.0], [150.0, 250.0]], dtype=np.float32)
@@ -84,7 +84,7 @@ def test_dem_dataset_like_preserves_subclass():
 
 
 def test_dem_create_from_array_preserves_subclass():
-    """Same regression guard, for ``create_from_array`` (pyramids line 2280)."""
+    """Same regression guard, for `create_from_array` (pyramids line 2280)."""
     arr = np.array([[1.0, 2.0]], dtype=np.float32)
     out = DEM.create_from_array(
         arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326, no_data_value=-9999

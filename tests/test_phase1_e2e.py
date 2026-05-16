@@ -3,8 +3,8 @@
 Covers the full hydro pre-processor pipeline on the Coello fixture (P1–P11
 chained), plus the gaps the per-task tests leave behind:
 
-* the Numba-disabled fallback path (``DIGITALRIVERS_DISABLE_NUMBA=1`` re-import);
-* ``Accumulation``/``StreamRaster`` GeoTIFF metadata round-trips via ``open``;
+* the Numba-disabled fallback path (`DIGITALRIVERS_DISABLE_NUMBA=1` re-import);
+* `Accumulation`/`StreamRaster` GeoTIFF metadata round-trips via `open`;
 * a few unresolved-Dijkstra / max-length-only branches in the breach module.
 
 The pipeline asserts the basin-level invariants that bind P1–P11 together:
@@ -196,7 +196,7 @@ class TestCoelloEndToEndPipeline:
 
 
 class TestNumbaFallbackExercised:
-    """Re-imports ``_numba`` with the env var set so the no-op decorators run,
+    """Re-imports `_numba` with the env var set so the no-op decorators run,
     then re-imports the consumer modules to bind their kernel references to the
     pure-Python branch."""
 
@@ -270,7 +270,7 @@ class TestNumbaFallbackExercised:
 
 
 class TestAccumulationOpenRoundTrip:
-    """``Accumulation.open()`` round-trips routing through DR_ROUTING metadata
+    """`Accumulation.open()` round-trips routing through DR_ROUTING metadata
     tags. Mirror of FlowDirection.open() coverage in test_typed_results.py."""
 
     def test_open_round_trips_routing(self, tmp_path) -> None:
@@ -321,7 +321,7 @@ class TestAccumulationOpenRoundTrip:
 
 
 class TestStreamRasterOpenRoundTrip:
-    """``StreamRaster.open()`` round-trips routing and threshold."""
+    """`StreamRaster.open()` round-trips routing and threshold."""
 
     def test_open_round_trips_threshold_and_routing(self, tmp_path) -> None:
         """persist_metadata + open recovers both threshold and routing.
@@ -421,7 +421,7 @@ class TestBreachAdditionalBranches:
 
 
 def test_package_reexports_phase1_typed_classes() -> None:
-    """``import digitalrivers`` exposes the four typed classes from P1/P8.
+    """`import digitalrivers` exposes the four typed classes from P1/P8.
 
     Test scenario:
         Import the package and confirm DEM, Terrain, FlowDirection,

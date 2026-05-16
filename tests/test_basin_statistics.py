@@ -1,4 +1,4 @@
-"""Tests for ``WatershedRaster.statistics`` (P17)."""
+"""Tests for `WatershedRaster.statistics` (P17)."""
 from __future__ import annotations
 
 import geopandas as gpd

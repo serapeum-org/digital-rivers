@@ -127,7 +127,7 @@ class TestPhase2PipelineInvariants:
                 assert 1 <= code <= 99
 
     def test_statistics_has_expected_column_set(self, pipeline):
-        """``statistics(dem=..., streams=..., flow_direction=...)`` must
+        """`statistics(dem=..., streams=..., flow_direction=...)` must
         return area, elevation, slope (only when slope is provided →
         skip), drainage density, and centroid columns."""
         df = pipeline["stats"]
@@ -145,7 +145,7 @@ class TestPhase2PipelineInvariants:
 
         We test only the upper-bound (it's a conservation check, not a
         reconstruction): partial-cell fragments and basins below the
-        merge threshold ensure ``sum <= total``.
+        merge threshold ensure `sum <= total`.
         """
         df = pipeline["stats"]
         sr_arr = pipeline["sr"].read_array().astype(bool)

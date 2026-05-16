@@ -3,10 +3,10 @@
 Working half ships today; the full PDAL pipeline (LAS / LAZ read +
 ground classification + filtering + DEM conditioning) remains deferred.
 
-* :func:`grid_lidar_points` — bucket raw ``(x, y, z)`` arrays into a
+* :func:`grid_lidar_points` — bucket raw `(x, y, z)` arrays into a
   gridded DEM with min / max / mean / median aggregation.
 * :func:`pdal_lidar_pipeline` — umbrella for the full PDAL pipeline;
-  raises ``NotImplementedError`` and points at the gridding helper.
+  raises `NotImplementedError` and points at the gridding helper.
 """
 from __future__ import annotations
 
@@ -22,31 +22,31 @@ def grid_lidar_points(
 ):
     """Grid a LiDAR point cloud to a DEM.
 
-    Pragmatic LiDAR-to-DEM step that operates on raw ``(x, y, z)`` arrays
-    — useful when the caller has read LAS / LAZ externally (via ``laspy``,
-    ``pylas``, or PDAL) and wants a gridded surface. The full PDAL pipeline
+    Pragmatic LiDAR-to-DEM step that operates on raw `(x, y, z)` arrays
+    — useful when the caller has read LAS / LAZ externally (via `laspy`,
+    `pylas`, or PDAL) and wants a gridded surface. The full PDAL pipeline
     (read + classify + ground-filter + grid + condition) remains deferred.
 
     For each cell, aggregates the z values of every point that lands in
-    it. ``aggregate`` controls the aggregation: ``"min"`` (default — the
-    canonical bare-earth choice for first-return LiDAR), ``"max"``,
-    ``"mean"``, or ``"median"``. Cells with no points receive the dataset
+    it. `aggregate` controls the aggregation: `"min"` (default — the
+    canonical bare-earth choice for first-return LiDAR), `"max"`,
+    `"mean"`, or `"median"`. Cells with no points receive the dataset
     no-data sentinel.
 
     Args:
         xs / ys / zs: 1-D arrays of point coordinates.
         cell_size: output cell side length in map units (must match the
             CRS).
-        bounds: ``(x_min, y_min, x_max, y_max)`` to clip the grid to. If
-            ``None``, the input points' bounding box is used.
-        aggregate: ``"min"`` (default), ``"max"``, ``"mean"``, ``"median"``.
+        bounds: `(x_min, y_min, x_max, y_max)` to clip the grid to. If
+            `None`, the input points' bounding box is used.
+        aggregate: `"min"` (default), `"max"`, `"mean"`, `"median"`.
         epsg: EPSG code of the input coordinates.
 
     Returns:
-        A pyramids ``Dataset`` of the gridded surface.
+        A pyramids `Dataset` of the gridded surface.
 
     Raises:
-        ValueError: For mismatched input lengths or unknown ``aggregate``.
+        ValueError: For mismatched input lengths or unknown `aggregate`.
 
     Examples:
         - Bucket four points into a 2x1 grid with min aggregation:
@@ -121,9 +121,9 @@ def grid_lidar_points(
     )
 
     nodata = -9999.0
-    # ``min`` / ``max`` use ``np.minimum.at`` / ``np.maximum.at``;
-    # ``mean`` uses ``np.add.at`` for an O(N_points) reduction;
-    # ``median`` still requires per-cell bucketing because there is no
+    # `min` / `max` use `np.minimum.at` / `np.maximum.at`;
+    # `mean` uses `np.add.at` for an O(N_points) reduction;
+    # `median` still requires per-cell bucketing because there is no
     # closed-form running median in NumPy.
     if aggregate == "min":
         out = np.full((rows, cols), np.inf, dtype=np.float64)
@@ -159,7 +159,7 @@ def pdal_lidar_pipeline(*args, **kwargs):
     """Full PDAL pipeline — umbrella stub.
 
     The point-cloud-to-DEM gridding half ships as :func:`grid_lidar_points`
-    and works on raw ``(x, y, z)`` arrays. The full PDAL pipeline (LAS /
+    and works on raw `(x, y, z)` arrays. The full PDAL pipeline (LAS /
     LAZ read + ground classification + filtering + grid + Phase 1-3
     conditioning chain) remains deferred pending the PDAL conda-forge
     dependency.

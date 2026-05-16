@@ -8,16 +8,16 @@ cutting the artefact away rather than inflating the surrounding terrain.
 
 Three methods are exposed via :func:`breach_depressions`:
 
-* ``"single_cell"`` — cheap O(n) pre-pass that resolves isolated 1-cell pits by lowering an
+* `"single_cell"` — cheap O(n) pre-pass that resolves isolated 1-cell pits by lowering an
   intermediate first-order neighbour to the midpoint of the pit and a lower second-order
   cell. Does nothing if no such configuration exists. Run before any heavier method to
   dispose of speckle-noise pits without inflating the DEM.
-* ``"least_cost"`` — Lindsay 2016 Dijkstra-from-each-pit over an elevation-cost surface.
+* `"least_cost"` — Lindsay 2016 Dijkstra-from-each-pit over an elevation-cost surface.
   Carves a strictly monotonic channel from the pit to the nearest outlet (a data cell at
-  or below the pit elevation, or a no-data cell). Optional ``max_depth`` and ``max_length``
+  or below the pit elevation, or a no-data cell). Optional `max_depth` and `max_length`
   constraints abort the breach if the channel would be too deep or too long; aborted pits
   are left unresolved.
-* ``"hybrid"`` — try ``least_cost`` first; pits that fail their constraint fall back to the
+* `"hybrid"` — try `least_cost` first; pits that fail their constraint fall back to the
   Priority-Flood depression fill from P2. The breach phase has already lowered parts of the
   DEM where partial breaching occurred, so the fill operates on a modified surface and
   produces less overall lift than fill-only.
@@ -65,10 +65,10 @@ def _backtrace(
     backlink: np.ndarray,
     small_num: float,
 ) -> None:
-    """Walk from ``(end_r, end_c)`` back to the pit, lowering path cells to a downhill chain.
+    """Walk from `(end_r, end_c)` back to the pit, lowering path cells to a downhill chain.
 
-    Each cell at distance ``k`` from the pit is lowered to ``pit_z - k * small_num`` if its
-    current elevation is higher. The pit itself is left alone (its ``backlink`` is -1, which
+    Each cell at distance `k` from the pit is lowered to `pit_z - k * small_num` if its
+    current elevation is higher. The pit itself is left alone (its `backlink` is -1, which
     terminates the walk).
     """
     cur_r, cur_c = end_r, end_c
@@ -83,7 +83,7 @@ def _backtrace(
 
 
 def _candidate_intermediates(dr2: int, dc2: int) -> list[tuple[int, int]]:
-    """First-order offsets ``(dr1, dc1)`` such that ``(dr1, dc1) -> (dr2, dc2)`` is a single
+    """First-order offsets `(dr1, dc1)` such that `(dr1, dc1) -> (dr2, dc2)` is a single
     8-connected step. Used by the single-cell pit pre-pass to identify which neighbour of
     the pit can be lowered as a channel to a lower second-order cell.
     """
@@ -103,13 +103,13 @@ def _breach_single_cell_pits(
 
     For each pit, scan the 16 second-order cells (Chebyshev distance 2). The first
     second-order cell strictly lower than the pit is selected; an intermediate first-order
-    cell that connects the pit to that second-order cell is lowered to ``(z_pit + z_low) /
-    2``, breaching the pit without modifying any other cell.
+    cell that connects the pit to that second-order cell is lowered to `(z_pit + z_low) /
+    2`, breaching the pit without modifying any other cell.
 
     Args:
         z: 2-D float64 elevation array. Mutated in place.
         nodata_mask: 2-D bool array, True at no-data cells.
-        pits: ``(n, 2)`` array of pit ``(row, col)`` coordinates.
+        pits: `(n, 2)` array of pit `(row, col)` coordinates.
 
     Returns:
         List of pits that could not be resolved by this pass (no lower second-order cell
@@ -180,13 +180,13 @@ def _breach_least_cost_one_pit(
     pathlen: np.ndarray,
     visited: np.ndarray,
 ) -> bool:
-    """Run Dijkstra from a single pit; on outlet, back-trace and mutate ``z`` to install the
-    channel. The four state arrays (``cost``, ``backlink``, ``pathlen``, ``visited``) are
+    """Run Dijkstra from a single pit; on outlet, back-trace and mutate `z` to install the
+    channel. The four state arrays (`cost`, `backlink`, `pathlen`, `visited`) are
     pre-allocated by the caller and reset for touched cells after this returns.
 
     Returns:
         True if an outlet was reached within the constraints; False if aborted by
-        ``max_depth`` / ``max_length`` or if the reachable region exhausted without finding
+        `max_depth` / `max_length` or if the reachable region exhausted without finding
         one.
     """
     rows, cols = z.shape
@@ -279,24 +279,24 @@ def breach_depressions(
 
     Args:
         z: 2-D elevation array (any float dtype; promoted to float64 internally).
-        nodata_mask: 2-D bool mask, True at no-data cells. NaN cells in ``z`` are added
-            automatically. If ``None``, only the array boundary acts as an outlet.
-        method: ``"single_cell"``, ``"least_cost"`` (default), or ``"hybrid"``.
-        max_depth: Maximum cumulative ``|Δz|`` for a single breach path. Pits whose nearest
-            outlet exceeds this are unresolved (and filled if ``method="hybrid"`` and
-            ``fill_remaining=True``). ``None`` disables the constraint.
-        max_length: Maximum path length in cells. ``None`` disables.
-        fill_remaining: Only meaningful when ``method="hybrid"``. If True, unresolved pits
-            are passed to Priority-Flood with ``epsilon=0``. If False, they are left as
+        nodata_mask: 2-D bool mask, True at no-data cells. NaN cells in `z` are added
+            automatically. If `None`, only the array boundary acts as an outlet.
+        method: `"single_cell"`, `"least_cost"` (default), or `"hybrid"`.
+        max_depth: Maximum cumulative `|Δz|` for a single breach path. Pits whose nearest
+            outlet exceeds this are unresolved (and filled if `method="hybrid"` and
+            `fill_remaining=True`). `None` disables the constraint.
+        max_length: Maximum path length in cells. `None` disables.
+        fill_remaining: Only meaningful when `method="hybrid"`. If True, unresolved pits
+            are passed to Priority-Flood with `epsilon=0`. If False, they are left as
             pits in the output.
 
     Returns:
         2-D float64 array with breach channels installed. No-data positions hold NaN; all
-        other cells satisfy ``z_out <= z_in`` on the breach path and ``z_out == z_in``
+        other cells satisfy `z_out <= z_in` on the breach path and `z_out == z_in`
         elsewhere.
 
     Raises:
-        ValueError: If ``method`` is unknown.
+        ValueError: If `method` is unknown.
     """
     if method not in VALID_BREACH_METHODS:
         raise ValueError(

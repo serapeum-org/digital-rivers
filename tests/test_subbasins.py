@@ -1,4 +1,4 @@
-"""Tests for ``StreamRaster.subbasins`` (P15)."""
+"""Tests for `StreamRaster.subbasins` (P15)."""
 from __future__ import annotations
 
 import numpy as np

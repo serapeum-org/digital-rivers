@@ -1,4 +1,4 @@
-"""Tests for ``DEM.fill_depressions`` and the underlying ``_pitremoval`` module (P2).
+"""Tests for `DEM.fill_depressions` and the underlying `_pitremoval` module (P2).
 
 Covers the three algorithms (Priority-Flood + ε, Wang & Liu, Planchon-Darboux) across the
 acceptance-criteria fixtures from the P2 spec: single pit, cascading pit, no-data as drain,
@@ -66,10 +66,10 @@ _internal_sinks_mask = local_minima_8
 
 
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
-    """Build a DEM wrapping a float32 GeoTIFF-shaped Dataset over ``arr``.
+    """Build a DEM wrapping a float32 GeoTIFF-shaped Dataset over `arr`.
 
-    ``NaN`` in ``arr`` is materialised as ``no_data_value`` on disk so the DEM's
-    ``no_data_value`` round-trips correctly.
+    `NaN` in `arr` is materialised as `no_data_value` on disk so the DEM's
+    `no_data_value` round-trips correctly.
     """
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
@@ -257,7 +257,7 @@ class TestDEMFillDepressions:
 
 @pytest.mark.slow
 class TestCoelloBasinSinksFree:
-    """End-to-end: ``priority_flood`` on the Coello DEM yields zero internal sinks."""
+    """End-to-end: `priority_flood` on the Coello DEM yields zero internal sinks."""
 
     def test_no_internal_sinks_after_priority_flood(
         self, coello_dem_4000: gdal.Dataset

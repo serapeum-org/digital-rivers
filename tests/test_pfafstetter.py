@@ -1,4 +1,4 @@
-"""Tests for ``FlowDirection.subbasins_pfafstetter`` (P16)."""
+"""Tests for `FlowDirection.subbasins_pfafstetter` (P16)."""
 from __future__ import annotations
 
 import numpy as np
@@ -224,7 +224,7 @@ def test_no_stream_basin_returns_single_code_one():
 
 def test_kernel_unique_codes_loop_visits_every_subbasin():
     """Multi-level decomposition must produce at least one sub-basin per
-    distinct level-1 code (i.e., the kernel's ``for c in sub_codes`` loop
+    distinct level-1 code (i.e., the kernel's `for c in sub_codes` loop
     iterates more than once for a multi-tributary DEM)."""
     dem, fd, acc, sr = _build(_branching_dem(), threshold=1)
     ws_lvl1 = fd.subbasins_pfafstetter(acc, sr, level=1)

@@ -2,7 +2,7 @@
 
 * :func:`topobathy_fusion` — per-cell fuse of a topographic and a
   bathymetric DEM into a single surface. Four blend modes:
-  ``"max"``, ``"min"``, ``"topo_above"``, ``"bathy_below"``.
+  `"max"`, `"min"`, `"topo_above"`, `"bathy_below"`.
 """
 from __future__ import annotations
 
@@ -16,40 +16,40 @@ def topobathy_fusion(
     """Fuse a topographic DEM and a bathymetric DEM into a single hydrographic surface.
 
     Both inputs must be aligned (same shape, geotransform, CRS). The
-    shoreline is the contour at ``shoreline_elev`` (default 0 — mean sea
+    shoreline is the contour at `shoreline_elev` (default 0 — mean sea
     level).
 
     Blend modes:
 
-    * ``"max"`` (default): per-cell maximum of the two DEMs. Topo wins
+    * `"max"` (default): per-cell maximum of the two DEMs. Topo wins
       above the shoreline, bathy below — the canonical conservative
       choice when the two DEMs disagree across the shoreline (NOAA
       ETOPO uses this).
-    * ``"min"``: per-cell minimum — the pessimistic-bathymetry choice
+    * `"min"`: per-cell minimum — the pessimistic-bathymetry choice
       for flood inundation studies where you want to assume the deeper
       of two conflicting surveys.
-    * ``"topo_above"``: pick topo where ``topo >= shoreline_elev``,
+    * `"topo_above"`: pick topo where `topo >= shoreline_elev`,
       bathy elsewhere. Sharp transition at the shoreline; preferred when
       the topo DEM is known accurate at the coastline.
-    * ``"bathy_below"``: pick bathy where ``bathy <= shoreline_elev``,
+    * `"bathy_below"`: pick bathy where `bathy <= shoreline_elev`,
       topo elsewhere. Mirror of the above.
 
     Args:
-        topo: Topographic ``Dataset`` (DEM subclass acceptable).
-        bathy: Bathymetric ``Dataset`` aligned to ``topo``.
+        topo: Topographic `Dataset` (DEM subclass acceptable).
+        bathy: Bathymetric `Dataset` aligned to `topo`.
         shoreline_elev: Elevation defining the shoreline contour.
             Default 0.0 (MSL).
-        blend: ``"max"`` (default), ``"min"``, ``"topo_above"``, or
-            ``"bathy_below"``.
+        blend: `"max"` (default), `"min"`, `"topo_above"`, or
+            `"bathy_below"`.
 
     Returns:
-        ``Dataset`` of the fused surface.
+        `Dataset` of the fused surface.
 
     Raises:
-        ValueError: If shapes mismatch or ``blend`` is unknown.
+        ValueError: If shapes mismatch or `blend` is unknown.
 
     Examples:
-        - The ``"min"`` blend picks the cell-by-cell minimum — useful as a
+        - The `"min"` blend picks the cell-by-cell minimum — useful as a
           pessimistic-bathymetry baseline:
 
             >>> import numpy as np

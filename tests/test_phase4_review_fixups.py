@@ -1,14 +1,14 @@
 """Coverage-gap tests called out in the Phase 4 review (C1-C4).
 
 * C1: ANUDEM with anchors adjacent to the DEM boundary — no periodic-wrap
-       contamination after the I2 fix replaced ``np.roll`` with edge
+       contamination after the I2 fix replaced `np.roll` with edge
        padding.
-* C2: ``grid_lidar_points`` mean / median bucket dispatch correctly
+* C2: `grid_lidar_points` mean / median bucket dispatch correctly
        isolates cells (one cell's mean is not affected by another cell's
        contents).
-* C3: ``write_cog`` produces an output whose GDAL metadata reports the
+* C3: `write_cog` produces an output whose GDAL metadata reports the
        internal-tiling layout characteristic of a COG.
-* C4: ``ihu_upscale`` on a degenerate input (every coarse block has
+* C4: `ihu_upscale` on a degenerate input (every coarse block has
        only one outlet candidate) exercises the no-improvement branch
        and converges in zero swaps.
 """
@@ -38,7 +38,7 @@ def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0):
 
 def test_anudem_laplacian_no_periodic_wrap_at_top_row():
     """A NaN cell on row 0 must NOT receive contributions from the
-    bottom row (the I2 ``np.roll`` bug — edge-padded slicing fixes it)."""
+    bottom row (the I2 `np.roll` bug — edge-padded slicing fixes it)."""
     # Construct a DEM with strong top/bottom contrast and a NaN at (0, 1).
     z = np.array(
         [
@@ -181,7 +181,7 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
 
 
 def test_topobathy_fusion_min_blend_picks_lower():
-    """The new ``"min"`` blend mode (I3 fix) returns ``np.fmin(topo, bathy)``."""
+    """The new `"min"` blend mode (I3 fix) returns `np.fmin(topo, bathy)`."""
     from digitalrivers.fusion import topobathy_fusion
 
     topo = Dataset.create_from_array(
@@ -204,7 +204,7 @@ def test_topobathy_fusion_min_blend_picks_lower():
 
 
 def test_mesh_is_re_exported_at_package_root():
-    """``from digitalrivers import Mesh`` works after the I5 fix."""
+    """`from digitalrivers import Mesh` works after the I5 fix."""
     import digitalrivers
 
     assert "Mesh" in digitalrivers.__all__
@@ -267,7 +267,7 @@ class TestIhuReturnAndMetrics:
 def test_anudem_corner_nan_pulls_toward_local_neighbours():
     """A NaN at (0, 0) — the top-left corner — must end up close to its
     finite neighbours at (0, 1) and (1, 0), not pulled toward the
-    bottom-right corner (which is what the periodic ``np.roll`` wrap
+    bottom-right corner (which is what the periodic `np.roll` wrap
     would have done)."""
     z = np.full((5, 5), 10.0, dtype=np.float32)
     z[-1, -1] = -100.0  # very different anchor at opposite corner
@@ -330,7 +330,7 @@ def test_grid_lidar_mean_5000_points_matches_naive():
 
 
 def test_topobathy_min_blend_nan_picks_other_operand():
-    """When one operand is NaN, ``np.fmin`` returns the non-NaN value."""
+    """When one operand is NaN, `np.fmin` returns the non-NaN value."""
     from digitalrivers.fusion import topobathy_fusion
 
     topo = Dataset.create_from_array(
@@ -349,7 +349,7 @@ def test_topobathy_min_blend_nan_picks_other_operand():
 
 
 def test_topobathy_invalid_blend_now_mentions_min():
-    """The new error message lists ``'min'`` in the allow-list."""
+    """The new error message lists `'min'` in the allow-list."""
     from digitalrivers.fusion import topobathy_fusion
 
     arr = np.zeros((2, 2), dtype=np.float32)
@@ -365,7 +365,7 @@ def test_topobathy_invalid_blend_now_mentions_min():
 
 
 def test_package_all_carries_mesh_in_sorted_order():
-    """``Mesh`` is sorted alphabetically alongside the other exports."""
+    """`Mesh` is sorted alphabetically alongside the other exports."""
     import digitalrivers
 
     expected = [
@@ -376,11 +376,11 @@ def test_package_all_carries_mesh_in_sorted_order():
 
 
 def test_mesh_importable_from_package_root_without_submodule_path():
-    """The short import works (no ``digitalrivers.mesh`` required)."""
+    """The short import works (no `digitalrivers.mesh` required)."""
     import digitalrivers
 
     assert hasattr(digitalrivers, "Mesh")
-    # Pre-Phase-4 backfill, this was only reachable via ``digitalrivers.mesh``.
+    # Pre-Phase-4 backfill, this was only reachable via `digitalrivers.mesh`.
     from digitalrivers import Mesh as MeshA
     from digitalrivers.mesh import Mesh as MeshB
 

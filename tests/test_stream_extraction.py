@@ -1,4 +1,4 @@
-"""Tests for ``Accumulation.streams`` threshold-based stream extraction (P8)."""
+"""Tests for `Accumulation.streams` threshold-based stream extraction (P8)."""
 from __future__ import annotations
 
 import numpy as np
@@ -199,7 +199,7 @@ def _simple_acc() -> Accumulation:
 
 
 class TestStreamsEnvelopeKwarg:
-    """Coverage for ``Accumulation.streams(envelope=...)`` (I1 fix)."""
+    """Coverage for `Accumulation.streams(envelope=...)` (I1 fix)."""
 
     def test_envelope_dataset_no_data_excludes_cells(self):
         """Passing a Dataset whose no_data_value masks some cells excludes
@@ -235,7 +235,7 @@ class TestStreamsEnvelopeKwarg:
         assert int(sr.read_array()[1, 0]) == 0
 
     def test_envelope_dataset_without_nodata_uses_finite_mask(self):
-        """A Dataset without a no_data_value falls back to ``isfinite``."""
+        """A Dataset without a no_data_value falls back to `isfinite`."""
         acc = _simple_acc()
         rows, cols = acc.read_array().shape
         env_arr = np.ones((rows, cols), dtype=np.float32)
@@ -262,7 +262,7 @@ class TestStreamsEnvelopeKwarg:
 
 
 class TestResolveEnvelopeDirect:
-    """Direct coverage of the ``_resolve_envelope`` helper."""
+    """Direct coverage of the `_resolve_envelope` helper."""
 
     def test_dataset_no_data_excludes_sentinel_cells(self):
         from digitalrivers.accumulation import _resolve_envelope

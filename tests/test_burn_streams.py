@@ -1,4 +1,4 @@
-"""Tests for ``DEM.burn_streams`` (P20)."""
+"""Tests for `DEM.burn_streams` (P20)."""
 from __future__ import annotations
 
 import geopandas as gpd

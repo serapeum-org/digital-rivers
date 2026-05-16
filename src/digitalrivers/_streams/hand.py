@@ -6,13 +6,13 @@ flow path to the nearest stream cell:
 
     HAND[cell] = elev[cell] - elev[drain_cell]
 
-where ``drain_cell`` is the first stream cell encountered when following the
-flow direction from ``cell``. Stream cells themselves have HAND = 0; cells
+where `drain_cell` is the first stream cell encountered when following the
+flow direction from `cell`. Stream cells themselves have HAND = 0; cells
 whose flow path does not reach a stream (sinks, orphans) get NaN.
 
 The implementation uses the pyflwdir telescoping-sum trick: rather than
-remembering the target drain cell, accumulate ``dz`` along the flow path. By
-the fundamental theorem of summation, ``Σ dz = elev[cell] - elev[drain]``.
+remembering the target drain cell, accumulate `dz` along the flow path. By
+the fundamental theorem of summation, `Σ dz = elev[cell] - elev[drain]`.
 Memoised iteratively so each cell is visited at most twice.
 """
 from __future__ import annotations
@@ -31,20 +31,20 @@ def hand_d8(
     """Compute HAND under D8 / Rho8 routing.
 
     Args:
-        elev: ``(rows, cols)`` float DEM. NaN cells are treated as no-data.
-        fdir: ``(rows, cols)`` int D8 direction-code raster. Codes outside
-            ``[0, 7]`` are treated as sinks.
-        stream_mask: ``(rows, cols)`` bool — True at stream cells (HAND = 0).
+        elev: `(rows, cols)` float DEM. NaN cells are treated as no-data.
+        fdir: `(rows, cols)` int D8 direction-code raster. Codes outside
+            `[0, 7]` are treated as sinks.
+        stream_mask: `(rows, cols)` bool — True at stream cells (HAND = 0).
 
     Returns:
-        ``(rows, cols)`` float64 HAND raster. Stream cells = 0; cells with no
+        `(rows, cols)` float64 HAND raster. Stream cells = 0; cells with no
         flow path to a stream (orphans, sinks, no-data) = NaN.
 
     Examples:
-        - Two top-row cells drain south (direction code ``0``) into the
+        - Two top-row cells drain south (direction code `0`) into the
           bottom row, which is the stream. HAND at each top-row cell is the
           drop from that cell to the stream cell directly below it
-          (``10 - 2 = 8`` and ``8 - 1 = 7``); stream cells themselves are 0:
+          (`10 - 2 = 8` and `8 - 1 = 7`); stream cells themselves are 0:
 
             >>> import numpy as np
             >>> elev = np.array([

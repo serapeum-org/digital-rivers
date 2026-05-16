@@ -64,7 +64,7 @@ class TestPhase2EndToEndPipeline:
     def test_snapped_point_lies_in_data_envelope(self, pipeline):
         """The snapped pour point is inside the raster.
 
-        ``snap_distance_m`` is NaN if the snap target was the input cell
+        `snap_distance_m` is NaN if the snap target was the input cell
         (unmoved) — that still counts as inside the envelope. We just need
         snapped_x / snapped_y to be finite.
         """

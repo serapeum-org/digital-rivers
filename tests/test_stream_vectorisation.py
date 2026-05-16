@@ -1,4 +1,4 @@
-"""Tests for ``StreamRaster.to_vector`` (P9)."""
+"""Tests for `StreamRaster.to_vector` (P9)."""
 from __future__ import annotations
 
 import geopandas as gpd

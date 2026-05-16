@@ -2,14 +2,14 @@
 
 A minimal triangle-mesh container plus quality-improvement operations:
 
-* :class:`Mesh` — vertex array ``(N, 2)`` or ``(N, 3)`` plus triangle
-  index array ``(M, 3)``. Read-only after construction (smoothing
+* :class:`Mesh` — vertex array `(N, 2)` or `(N, 3)` plus triangle
+  index array `(M, 3)`. Read-only after construction (smoothing
   returns a new instance).
 * :meth:`Mesh.laplacian_smooth` — iterative Laplacian smoothing
   (Persson & Strang 2004). Each interior vertex moves toward the
   centroid of its 1-ring neighbours. Boundary vertices are held fixed.
 * :meth:`Mesh.aspect_ratios` — per-triangle quality metric
-  ``circumradius / (2 * inradius)``. Equilateral triangles score 1.0;
+  `circumradius / (2 * inradius)`. Equilateral triangles score 1.0;
   degenerate triangles score arbitrarily large.
 
 Use cases: post-process meshes from Phase 3 P26 exporters before
@@ -25,20 +25,20 @@ import numpy as np
 class Mesh:
     """A triangle mesh with vertex and triangle index arrays.
 
-    Performance note. ``boundary_vertex_mask``, ``neighbour_lists`` and
-    ``aspect_ratios`` iterate triangles in pure Python — fine for
+    Performance note. `boundary_vertex_mask`, `neighbour_lists` and
+    `aspect_ratios` iterate triangles in pure Python — fine for
     small / medium meshes (<~50k triangles). Above that, prefer a vendor
-    library (``meshio`` / ``pymesh``) or vectorise the kernels.
+    library (`meshio` / `pymesh`) or vectorise the kernels.
 
     Args:
-        vertices: ``(N, 2)`` or ``(N, 3)`` float64 array of vertex
+        vertices: `(N, 2)` or `(N, 3)` float64 array of vertex
             coordinates. 3-D inputs are kept as 3-D; smoothing operates
             on the XY plane and leaves Z unchanged.
-        triangles: ``(M, 3)`` int array of vertex indices, CCW order.
+        triangles: `(M, 3)` int array of vertex indices, CCW order.
 
     Attributes:
-        vertices: ``(N, 2 or 3)`` float64.
-        triangles: ``(M, 3)`` int64.
+        vertices: `(N, 2 or 3)` float64.
+        triangles: `(M, 3)` int64.
         n_vertices, n_triangles: counts.
 
     Examples:
@@ -89,7 +89,7 @@ class Mesh:
         self.n_triangles = int(self.triangles.shape[0])
 
     def boundary_vertex_mask(self) -> np.ndarray:
-        """Boolean ``(n_vertices,)`` mask of boundary vertices.
+        """Boolean `(n_vertices,)` mask of boundary vertices.
 
         A vertex is on the boundary iff at least one of its incident
         edges belongs to only one triangle (the canonical mesh-boundary
@@ -178,14 +178,14 @@ class Mesh:
         """Iterative Laplacian smoothing.
 
         Each iteration moves every non-boundary vertex toward the
-        centroid of its 1-ring neighbours by ``relaxation`` of the
+        centroid of its 1-ring neighbours by `relaxation` of the
         full step:
 
             v_new = v + relaxation * (centroid(neighbours) - v)
 
         Args:
             n_iterations: Number of smoothing passes.
-            relaxation: Step size in ``[0, 1]``. ``1.0`` snaps every
+            relaxation: Step size in `[0, 1]`. `1.0` snaps every
                 vertex onto its neighbour centroid each iteration;
                 smaller values relax more gradually and avoid
                 oscillation.
@@ -194,11 +194,11 @@ class Mesh:
                 boundary).
 
         Returns:
-            A new ``Mesh`` with smoothed vertex positions. Triangle
+            A new `Mesh` with smoothed vertex positions. Triangle
             connectivity is unchanged.
 
         Raises:
-            ValueError: If ``relaxation`` is not in ``[0, 1]``.
+            ValueError: If `relaxation` is not in `[0, 1]`.
 
         Examples:
             - Smooth an off-centre interior vertex toward the centroid of
@@ -249,14 +249,14 @@ class Mesh:
         return Mesh(v, self.triangles)
 
     def aspect_ratios(self) -> np.ndarray:
-        """Per-triangle aspect ratio ``circumradius / (2 * inradius)``.
+        """Per-triangle aspect ratio `circumradius / (2 * inradius)`.
 
         Equilateral triangles score 1.0 (the optimum). Higher values
         indicate worse quality. Degenerate triangles (zero area) score
-        ``+inf``.
+        `+inf`.
 
         Returns:
-            ``(n_triangles,)`` float64 array.
+            `(n_triangles,)` float64 array.
 
         Examples:
             - An equilateral triangle scores exactly 1.0:
