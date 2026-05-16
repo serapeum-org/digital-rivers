@@ -377,20 +377,24 @@ def breach_depressions(
 def _is_local_minimum(
     z: np.ndarray, r: int, c: int, nodata_mask: np.ndarray
 ) -> bool:
-    """Cheap point-wise local-minimum check used by the per-pit re-validation loop."""
+    """Cheap point-wise local-minimum check used by the per-pit re-validation loop.
+
+    Vectorised via a 3×3 window slice + masked comparison: pulls the 3-row × 3-col
+    neighbourhood (clipped at array edges), masks the centre and any no-data cells
+    out, then asks whether every remaining neighbour is strictly higher than the
+    centre.
+    """
     rows, cols = z.shape
     if nodata_mask[r, c]:
         return False
-    z_centre = z[r, c]
-    has_valid_neighbour = False
-    for dr, dc in _NEIGHBOURS_8:
-        nr = r + dr
-        nc = c + dc
-        if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
-            continue
-        if nodata_mask[nr, nc]:
-            continue
-        has_valid_neighbour = True
-        if z[nr, nc] <= z_centre:
-            return False
-    return has_valid_neighbour
+    r0, r1 = max(0, r - 1), min(rows, r + 2)
+    c0, c1 = max(0, c - 1), min(cols, c + 2)
+    window = z[r0:r1, c0:c1]
+    nd_window = nodata_mask[r0:r1, c0:c1]
+    centre_local = (r - r0, c - c0)
+    valid_neighbour = ~nd_window
+    # Exclude the centre itself from the neighbour mask.
+    valid_neighbour[centre_local] = False
+    if not valid_neighbour.any():
+        return False
+    return bool(np.all(window[valid_neighbour] > z[r, c]))

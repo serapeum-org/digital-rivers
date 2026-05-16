@@ -41,7 +41,10 @@ def hand_d8(
         flow path to a stream (orphans, sinks, no-data) = NaN.
 
     Examples:
-        - Two top-row cells drain south into a stream-row at the bottom:
+        - Two top-row cells drain south (direction code ``0``) into the
+          bottom row, which is the stream. HAND at each top-row cell is the
+          drop from that cell to the stream cell directly below it
+          (``10 - 2 = 8`` and ``8 - 1 = 7``); stream cells themselves are 0:
 
             >>> import numpy as np
             >>> elev = np.array([

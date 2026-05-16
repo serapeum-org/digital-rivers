@@ -38,7 +38,11 @@ from digitalrivers.terrain import Terrain
 from digitalrivers.watershed_raster import WatershedRaster
 
 __all__ = [
-    "DEM", "Terrain", "FlowDirection", "Accumulation", "StreamRaster",
+    "Accumulation",
+    "DEM",
+    "FlowDirection",
+    "StreamRaster",
+    "Terrain",
     "WatershedRaster",
 ]
 
