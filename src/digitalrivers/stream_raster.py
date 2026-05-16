@@ -263,12 +263,36 @@ class StreamRaster(Dataset):
 
         import geopandas as gpd
         unique_ids = sorted({int(v) for v in np.unique(out) if v != 0})
+        # For each link, the outlet is the cell whose D8 successor either
+        # belongs to a different basin or falls off the grid — i.e., the
+        # most-downstream cell of the link. Pick the first such cell we
+        # find; ties don't matter because all such cells map to the same
+        # outlet point cluster on a well-formed flow graph.
+        x0, dx, _, y0, _, dy = self.geotransform
+        outlet_xs: list[float] = []
+        outlet_ys: list[float] = []
+        for bid in unique_ids:
+            rs, cs = np.where(out == bid)
+            chosen_r, chosen_c = int(rs[0]), int(cs[0])
+            for r, c in zip(rs.tolist(), cs.tolist()):
+                d = int(fdir[r, c])
+                if d < 0 or d > 7:
+                    chosen_r, chosen_c = r, c
+                    break
+                nr = r + int(d_row[d])
+                nc = c + int(d_col[d])
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    chosen_r, chosen_c = r, c
+                    break
+                if int(out[nr, nc]) != bid:
+                    chosen_r, chosen_c = r, c
+                    break
+            outlet_xs.append(float(x0 + (chosen_c + 0.5) * dx))
+            outlet_ys.append(float(y0 + (chosen_r + 0.5) * dy))
         outlets_gdf = gpd.GeoDataFrame(
             {"basin_id": unique_ids,
              "cell_count": [int((out == bid).sum()) for bid in unique_ids]},
-            geometry=gpd.points_from_xy(
-                [0.0] * len(unique_ids), [0.0] * len(unique_ids),
-            ),
+            geometry=gpd.points_from_xy(outlet_xs, outlet_ys),
             crs=self.epsg,
         )
         return WatershedRaster.from_dataset(

@@ -517,14 +517,30 @@ class FlowDirection(Dataset):
                     coarse_dr = (nr // scale_factor) - br
                     coarse_dc = (nc // scale_factor) - bc
                     if coarse_dr != 0 or coarse_dc != 0:
-                        # Find direction code matching (coarse_dr, coarse_dc).
+                        # Single fine D8 step crosses at most one coarse cell
+                        # boundary, so coarse_dr and coarse_dc are each in
+                        # {-1, 0, 1} and the lookup is guaranteed to hit. The
+                        # guard below catches any future regression that
+                        # widens fine-grid steps (e.g. a non-D8 routing) and
+                        # would otherwise silently leave the coarse cell at
+                        # no-data.
+                        matched = False
                         for k in range(8):
                             if (
                                 int(d_row[k]) == coarse_dr
                                 and int(d_col[k]) == coarse_dc
                             ):
                                 coarse_fdir[br, bc] = k
+                                matched = True
                                 break
+                        if not matched:
+                            raise RuntimeError(
+                                f"COTAT offset lookup failed at coarse cell "
+                                f"({br}, {bc}) for fine step "
+                                f"({coarse_dr}, {coarse_dc}); the routing "
+                                f"produced a multi-coarse-cell step which "
+                                f"COTAT cannot encode."
+                            )
                         break
                     r, c = nr, nc
 
@@ -847,12 +863,22 @@ class FlowDirection(Dataset):
         )
         import geopandas as gpd
         ids = sorted({int(v) for v in np.unique(out) if v != 0})
+        # Per-basin outlet = the cell with the highest accumulation in that
+        # basin. Locate it via masked-argmax so the resulting GeoDataFrame
+        # carries real coordinates rather than placeholders.
+        x0, dx, _, y0, _, dy = self.geotransform
+        xs: list[float] = []
+        ys: list[float] = []
+        for basin_id in ids:
+            basin_acc = np.where(out == basin_id, acc, -np.inf)
+            idx = np.unravel_index(int(np.argmax(basin_acc)), basin_acc.shape)
+            xs.append(float(x0 + (int(idx[1]) + 0.5) * dx))
+            ys.append(float(y0 + (int(idx[0]) + 0.5) * dy))
         outlets_gdf = gpd.GeoDataFrame(
             {"basin_id": ids},
-            geometry=gpd.points_from_xy([0.0] * len(ids), [0.0] * len(ids)),
+            geometry=gpd.points_from_xy(xs, ys),
             crs=self.epsg,
         )
-        from digitalrivers.watershed_raster import WatershedRaster
         return WatershedRaster.from_dataset(
             plain, routing=self.routing, outlets=outlets_gdf,
         )
@@ -1026,9 +1052,12 @@ class FlowDirection(Dataset):
             min_area_km2: Same threshold expressed in map km². Mutually
                 exclusive with ``min_area_cells``.
             merge_small: ``"drop"`` (default) sets undersized basins to 0;
-                ``"merge_to_neighbour"`` relabels them with the ID of the
-                largest 8-neighbour basin (or 0 if no neighbour basin
-                exists).
+                ``"merge_to_neighbour"`` dilates the small basin's mask by
+                one cell, collects the labels of every basin it touches,
+                and relabels the small basin with the largest of those
+                8-neighbour labels. Returns ``0`` for basins whose entire
+                8-neighbourhood is either background or other small
+                basins (no qualifying survivor).
 
         Returns:
             :class:`WatershedRaster` tagged with this FlowDirection's
@@ -1103,18 +1132,39 @@ class FlowDirection(Dataset):
                 for b in small_ids:
                     basins[basins == b] = 0
             else:  # merge_to_neighbour
+                # 8-connected adjacency: shift the small-basin mask in each of
+                # the 8 directions and collect any non-self, non-small basin
+                # labels that touch its boundary. Pick the largest of those.
+                rows, cols = basins.shape
                 for b in small_ids:
                     mask = basins == b
                     if not mask.any():
                         continue
-                    neighbour_id = 0
-                    neighbour_best = -1
-                    for nb_id, nb_size in sizes.items():
-                        if nb_id in small_ids or nb_id == 0 or nb_id == b:
-                            continue
-                        if nb_size > neighbour_best:
-                            neighbour_best = nb_size
-                            neighbour_id = nb_id
+                    # Build the 1-cell-dilated border of the small basin.
+                    border_labels: set[int] = set()
+                    for dr in (-1, 0, 1):
+                        for dc in (-1, 0, 1):
+                            if dr == 0 and dc == 0:
+                                continue
+                            r0, r1 = max(0, dr), rows + min(0, dr)
+                            c0, c1 = max(0, dc), cols + min(0, dc)
+                            src_r0, src_r1 = max(0, -dr), rows + min(0, -dr)
+                            src_c0, src_c1 = max(0, -dc), cols + min(0, -dc)
+                            mask_dst = mask[r0:r1, c0:c1]
+                            labels_src = basins[src_r0:src_r1, src_c0:src_c1]
+                            touched = labels_src[mask_dst]
+                            border_labels.update(
+                                int(v) for v in np.unique(touched)
+                            )
+                    # Drop self, background, and other small basins.
+                    candidates = [
+                        lbl for lbl in border_labels
+                        if lbl != 0 and lbl != b and lbl not in small_ids
+                    ]
+                    if not candidates:
+                        neighbour_id = 0
+                    else:
+                        neighbour_id = max(candidates, key=lambda lbl: sizes[lbl])
                     basins[mask] = neighbour_id
             # Trim outlet records.
             outlet_records = [

@@ -358,14 +358,71 @@ class Accumulation(Dataset):
         Returns:
             ``GeoDataFrame`` with the input columns plus ``pre_snap_geometry``
             (the original geometry), ``snapped_x``, ``snapped_y``,
-            ``snap_distance_m`` (Euclidean distance moved, NaN if unmoved),
-            and ``snap_acc`` (the accumulation at the snapped cell). The
-            ``geometry`` column is updated to the snapped points.
+            ``snap_distance_m`` (Euclidean distance moved in the dataset's
+            map-unit system — metres in projected CRSs, degrees in
+            geographic CRSs — NaN if unmoved), and ``snap_acc`` (the
+            accumulation at the snapped cell). The ``geometry`` column is
+            updated to the snapped points.
 
         Raises:
             ValueError: If neither or both of ``radius_cells`` / ``radius_m``
                 are supplied, or if ``method="jenson"`` and ``streams`` is
                 ``None``, or if ``method`` is unknown.
+
+        Examples:
+            - Snapping a point that already sits on the maximum-accumulation
+              cell leaves the location unchanged and reports
+              ``snap_distance_m == NaN``:
+
+                >>> import numpy as np
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import Point
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> acc = dem.flow_direction(method="d8").accumulate()
+                >>> # Outlet cell (1, 3) — already the local max accumulation.
+                >>> pts = gpd.GeoDataFrame(
+                ...     {"id": [1]}, geometry=[Point(3.5, -1.5)], crs=4326,
+                ... )
+                >>> snapped = acc.snap_pour_points(pts, radius_cells=1)
+                >>> bool(np.isnan(snapped.iloc[0]["snap_distance_m"]))
+                True
+
+            - Snapping a point off the high-accumulation cell moves it,
+              and the distance is finite and strictly positive:
+
+                >>> import numpy as np
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import Point
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> acc = dem.flow_direction(method="d8").accumulate()
+                >>> # Off-target point at (col=1) — should snap toward (col=3).
+                >>> pts = gpd.GeoDataFrame(
+                ...     {"id": [1]}, geometry=[Point(1.5, -1.5)], crs=4326,
+                ... )
+                >>> snapped = acc.snap_pour_points(pts, radius_cells=3)
+                >>> d = snapped.iloc[0]["snap_distance_m"]
+                >>> bool(np.isfinite(d) and d > 0)
+                True
         """
         import geopandas as gpd
         import numpy as np
@@ -472,10 +529,17 @@ class Accumulation(Dataset):
 
             snapped_x = x0 + (best_c + 0.5) * dx
             snapped_y = y0 + (best_r + 0.5) * dy
-            distance = float(np.hypot(snapped_x - px, snapped_y - py))
+            # "Unmoved" = the snap target's cell centre equals the pre-snap
+            # location (within a hair). Report NaN to match the documented
+            # contract — callers use NaN to detect "snap had no effect".
+            moved = (best_r != row0) or (best_c != col0)
+            distance = (
+                float(np.hypot(snapped_x - px, snapped_y - py))
+                if moved else float("nan")
+            )
             snapped_xs.append(snapped_x)
             snapped_ys.append(snapped_y)
-            snap_distances.append(distance if distance > 0 else 0.0)
+            snap_distances.append(distance)
             snap_accs.append(float(acc_arr[best_r, best_c]))
 
         out = points.copy()

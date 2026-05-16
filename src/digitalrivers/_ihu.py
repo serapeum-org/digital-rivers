@@ -137,7 +137,27 @@ def _global_error(
     outlets: dict, fine_acc: np.ndarray, out_rows: int, out_cols: int,
     scale_factor: int,
 ) -> float:
-    """Sum over coarse cells of |fine_outlet_acc - coarse_acc * sf^2|."""
+    """Sum over coarse cells of ``|fine_outlet_acc - coarse_acc * sf^2|``.
+
+    This is the simplified axis-aligned form of the Eilander 2021 IHU
+    drainage-area-error metric. The paper compares each coarse outlet's
+    fine-grid upstream area against the cell's *true* upstream-subgrid
+    count from the coarse topology; we approximate that with
+    ``(coarse_acc + 1) * sf^2``, which assumes every upstream coarse cell
+    contributes exactly ``sf^2`` fine cells.
+
+    The approximation is exact for interior cells whose entire ``sf x sf``
+    block sits inside the basin. It over-penalises cells near basin
+    boundaries (where some of the ``sf x sf`` block falls outside the
+    basin) — those cells' "true" subgrid contribution is less than
+    ``sf^2``. Practical impact is small for ``sf <= 10`` on basins that
+    are mostly interior; the convergence direction is preserved because
+    the over-penalty is monotonic in coarse_acc.
+
+    A faithful per-coarse-cell upstream-subgrid count would re-run the
+    fine-grid BFS from every outlet on each swap trial — that is the
+    follow-up referenced by the docstring note in :func:`ihu_upscale`.
+    """
     coarse = _coarse_accumulation_from_outlets(outlets, out_rows, out_cols)
     sf2 = float(scale_factor ** 2)
     total = 0.0
