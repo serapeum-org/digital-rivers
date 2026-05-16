@@ -71,18 +71,76 @@ def dask_backend(*args, **kwargs):
     )
 
 
+def write_cog(dataset, path: str, compress: str = "deflate") -> str:
+    """Cloud-Optimised GeoTIFF writer (P31 partial).
+
+    Writes a pyramids ``Dataset`` to a COG file using GDAL's built-in COG
+    driver. COG is the standard cloud-native format for raster data:
+    internally tiled, internally overviewed, and indexable by HTTP range
+    requests — the foundation of every modern STAC-based pipeline.
+
+    The full P31 scope also includes Zarr writers and S3 / GCS read
+    factories; those remain deferred.
+
+    Args:
+        dataset: Any ``pyramids.Dataset`` (or subclass — DEM,
+            FlowDirection, Accumulation, etc.).
+        path: Output ``.tif`` path.
+        compress: GDAL compression option (``"deflate"`` default,
+            ``"lzw"``, ``"zstd"``, ``"none"``).
+
+    Returns:
+        The output path on success.
+
+    Raises:
+        RuntimeError: If GDAL's COG driver fails (older GDAL builds may
+            need ``"GTIFF"`` with manual COG options instead).
+
+    Examples:
+        - Write a 5x5 DEM as a COG:
+
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers._phase4_stubs import write_cog
+            >>> import tempfile, os
+            >>> arr = np.arange(25, dtype=np.float32).reshape(5, 5)
+            >>> ds = Dataset.create_from_array(
+            ...     arr, top_left_corner=(0, 0), cell_size=1.0,
+            ...     epsg=4326,
+            ... )
+            >>> tmp = tempfile.NamedTemporaryFile(suffix='.tif', delete=False)
+            >>> _ = tmp.close()
+            >>> out_path = write_cog(ds, tmp.name)
+            >>> os.path.exists(out_path)
+            True
+            >>> os.unlink(out_path)
+    """
+    from osgeo import gdal
+
+    src = dataset.raster
+    driver = gdal.GetDriverByName("COG")
+    if driver is None:
+        raise RuntimeError(
+            "GDAL COG driver not available; upgrade GDAL >= 3.1 or write "
+            "via GTIFF with TILED=YES + COPY_SRC_OVERVIEWS=YES manually."
+        )
+    options = [f"COMPRESS={compress.upper()}"]
+    out = driver.CreateCopy(path, src, 0, options)
+    if out is None:
+        raise RuntimeError(f"GDAL COG driver failed to write {path}")
+    out = None  # flush / close
+    return path
+
+
 def cloud_io(*args, **kwargs):
-    """Cloud-optimised raster I/O (P31): COG / Zarr / S3 / GCS.
+    """Cloud-optimised raster I/O (P31): COG / Zarr / S3 / GCS — deferred.
 
-    Add Dataset.from_cog / Dataset.from_zarr factories plus boto3 / gcsfs
-    integration for direct cloud read/write. Effort: M-L.
-
-    References:
-        Cloud-Optimized GeoTIFF spec: https://www.cogeo.org/
-        Zarr: https://zarr.readthedocs.io/
+    The COG write half is shipped under :func:`write_cog`. Zarr writers
+    and S3 / GCS read factories remain deferred pending a follow-up PR.
     """
     raise NotImplementedError(
-        "Cloud I/O (P31) deferred. Use rioxarray.open_rasterio for now."
+        "cloud_io umbrella API (P31) deferred. The COG write half is "
+        "available via digitalrivers._phase4_stubs.write_cog."
     )
 
 
