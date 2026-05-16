@@ -181,3 +181,46 @@ def test_outside_envelope_point_skipped():
     # Only one basin was created (the outside-envelope point was skipped).
     arr = ws.read_array()
     assert set(np.unique(arr)) - {0} == {1}
+
+
+class TestWatershedD8ReversedOrder:
+    """N7 regression: ``watershed_d8`` non-unique mode (reversed BFS)
+    preserves the "later-seed-wins" contract AND keeps the run linear
+    on overlapping fan-ins."""
+
+    def test_three_overlapping_seeds_last_seed_wins(self):
+        from digitalrivers._watershed import watershed_d8
+
+        fdir = np.array([[6, 6, 6, 6, 6, -1]], dtype=np.int32)
+        out = watershed_d8(fdir, [(0, 1), (0, 3), (0, 5)], [1, 2, 3])
+        # Forward "last-wins" → seed 3 covers the chain.
+        assert int(out[0, 0]) == 3
+        assert int(out[0, 5]) == 3
+
+    def test_unique_mode_first_claim_wins(self):
+        from digitalrivers._watershed import watershed_d8
+
+        fdir = np.array([[6, 6, 6, 6, 6, -1]], dtype=np.int32)
+        out = watershed_d8(
+            fdir, [(0, 1), (0, 3), (0, 5)], [1, 2, 3],
+            require_unique_basins=True,
+        )
+        assert int(out[0, 0]) == 1
+        assert int(out[0, 1]) == 1
+
+    def test_large_overlapping_run_completes_quickly(self):
+        """200-cell chain × 5 overlapping seeds finishes well under 1s."""
+        import time
+
+        from digitalrivers._watershed import watershed_d8
+
+        n = 200
+        fdir = np.full((1, n), 6, dtype=np.int32)
+        fdir[0, -1] = -1
+        seeds = [(0, k) for k in (10, 50, 100, 150, n - 1)]
+        ids = [1, 2, 3, 4, 5]
+        t0 = time.perf_counter()
+        out = watershed_d8(fdir, seeds, ids)
+        elapsed = time.perf_counter() - t0
+        assert int(out[0, 0]) == 5
+        assert elapsed < 1.0

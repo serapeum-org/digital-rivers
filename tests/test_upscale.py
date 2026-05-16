@@ -143,3 +143,21 @@ def test_scale_factor_zero_raises():
     fd = dem.flow_direction(method="d8")
     with pytest.raises(ValueError, match="scale_factor"):
         fd.upscale(scale_factor=0)
+
+
+def test_cotat_6x6_round_trip_sf2_no_runtime_error():
+    """I5 regression: COTAT on a 6x6 east-flowing DEM with sf=2 must
+    complete without the defensive ``RuntimeError`` ever firing."""
+    z = np.array(
+        [[float(c) for c in range(6, 0, -1)] for _ in range(6)],
+        dtype=np.float32,
+    )
+    dem = _make_dem(z)
+    fd = dem.flow_direction(method="d8")
+    acc = fd.accumulate()
+    result = fd.upscale(scale_factor=2, accumulation=acc, dem=dem)
+    coarse_fd = result[1]
+    arr = coarse_fd.read_array()
+    # Coarse output is 3x3 (6/2).
+    assert arr.shape[-2:] == (3, 3)
+    assert coarse_fd.routing == "d8"

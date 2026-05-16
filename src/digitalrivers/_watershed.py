@@ -67,10 +67,21 @@ def watershed_d8(
     rows, cols = fdir.shape
     out = np.zeros((rows, cols), dtype=np.int32)
 
-    for (sr, sc), bid in zip(seeds, basin_ids):
+    # In ``require_unique_basins=False`` mode the contract is "later seeds
+    # overwrite earlier seeds along shared upstream paths" — which is
+    # equivalent to "process seeds in reverse order, first-claim wins".
+    # The reversed form costs O(N) total because each cell is visited at
+    # most once across all BFS sweeps, whereas the naive forward form is
+    # O(B*N) when basins overlap heavily.
+    if require_unique_basins:
+        ordered = list(zip(seeds, basin_ids))
+    else:
+        ordered = list(zip(reversed(seeds), reversed(basin_ids)))
+
+    for (sr, sc), bid in ordered:
         if not (0 <= sr < rows and 0 <= sc < cols):
             continue
-        if require_unique_basins and out[sr, sc] != 0:
+        if out[sr, sc] != 0:
             continue
         queue: deque[tuple[int, int]] = deque([(sr, sc)])
         out[sr, sc] = bid
@@ -83,9 +94,7 @@ def watershed_d8(
                     continue
                 if int(fdir[ur, uc]) != int(_INV_DIR[k]):
                     continue
-                if require_unique_basins and out[ur, uc] != 0:
-                    continue
-                if out[ur, uc] == bid:
+                if out[ur, uc] != 0:
                     continue
                 out[ur, uc] = bid
                 queue.append((ur, uc))

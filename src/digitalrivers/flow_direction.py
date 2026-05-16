@@ -956,8 +956,14 @@ class FlowDirection(Dataset):
         outlet_r, outlet_c = int(outlet_idx[0]), int(outlet_idx[1])
 
         main_stem: set[tuple[int, int]] = {(outlet_r, outlet_c)}
-        tributary_heads: list[tuple[float, int, int]] = []
+        # Each tributary head carries ``(stem_position, accumulation, r, c)``
+        # where ``stem_position`` is the step index along the main stem at
+        # which the tributary joins (0 = outlet, increases upstream).
+        # Canonical Pfafstetter ordering numbers tributaries downstream-
+        # first (lowest stem_position → code 2, next → 4, ...).
+        tributary_heads: list[tuple[int, float, int, int]] = []
         r, c = outlet_r, outlet_c
+        stem_position = 0
         while True:
             best_in_acc = -np.inf
             best_in: tuple[int, int] | None = None
@@ -981,11 +987,15 @@ class FlowDirection(Dataset):
             main_stem.add(best_in)
             for v, ur, uc in inflows:
                 if (ur, uc) != best_in:
-                    tributary_heads.append((v, ur, uc))
+                    tributary_heads.append((stem_position, v, ur, uc))
             r, c = best_in
+            stem_position += 1
 
-        tributary_heads.sort(reverse=True)
-        top4 = tributary_heads[:4]
+        # Pick the four highest-accumulation tributaries (volume rank), then
+        # order *those four* by stem position so the downstream-most one
+        # gets code 2, the next upstream code 4, etc.
+        tributary_heads.sort(key=lambda t: t[1], reverse=True)
+        top4 = sorted(tributary_heads[:4], key=lambda t: t[0])
 
         out = np.zeros((rows, cols), dtype=np.int32)
         for r0, c0 in main_stem:
@@ -994,7 +1004,7 @@ class FlowDirection(Dataset):
         from digitalrivers._watershed import watershed_d8
 
         codes = [2, 4, 6, 8]
-        seeds = [(int(uh[1]), int(uh[2])) for uh in top4]
+        seeds = [(int(uh[2]), int(uh[3])) for uh in top4]
         ids = codes[: len(seeds)]
         if seeds:
             sub = watershed_d8(fdir, seeds, ids, require_unique_basins=True)

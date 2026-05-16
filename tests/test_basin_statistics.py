@@ -125,3 +125,33 @@ def test_no_basins_returns_empty():
     # Flat surface has no defined direction → all cells are outlets;
     # the dataframe length matches the basin count.
     assert len(df) == ws.basin_count
+
+
+class TestBasinCountCachingAndCentroid:
+    """Lazy-property and centroid-always coverage (N5, I4)."""
+
+    def _build_ws(self):
+        z = np.array(
+            [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
+        )
+        dem, fd = _build(z)
+        return fd.basins()
+
+    def test_basin_count_cached_on_second_access(self):
+        ws = self._build_ws()
+        first = ws.basin_count
+        second = ws.basin_count
+        assert first == second
+        assert ws._basin_count == first
+
+    def test_basin_count_internal_cache_starts_none(self):
+        ws = self._build_ws()
+        assert ws._basin_count is None
+        _ = ws.basin_count
+        assert ws._basin_count is not None
+
+    def test_centroid_returned_with_no_inputs_at_all(self):
+        ws = self._build_ws()
+        df = ws.statistics()
+        assert "centroid_x" in df.columns
+        assert "centroid_y" in df.columns

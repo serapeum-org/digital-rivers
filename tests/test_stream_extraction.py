@@ -259,3 +259,56 @@ class TestStreamsEnvelopeKwarg:
         bad = np.zeros((5, 5), dtype=bool)
         with pytest.raises(ValueError, match="envelope shape"):
             acc.streams(threshold=1, envelope=bad)
+
+
+class TestResolveEnvelopeDirect:
+    """Direct coverage of the ``_resolve_envelope`` helper."""
+
+    def test_dataset_no_data_excludes_sentinel_cells(self):
+        from digitalrivers.accumulation import _resolve_envelope
+
+        arr = np.array(
+            [[1.0, -9999.0], [2.0, 3.0]], dtype=np.float32
+        )
+        ds = Dataset.create_from_array(
+            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            no_data_value=-9999.0,
+        )
+        mask = _resolve_envelope(ds, (2, 2))
+        assert mask.dtype == np.bool_
+        assert mask.tolist() == [[True, False], [True, True]]
+
+    def test_dataset_without_no_data_uses_finite_filter(self):
+        from digitalrivers.accumulation import _resolve_envelope
+
+        arr = np.array(
+            [[1.0, np.nan], [2.0, 3.0]], dtype=np.float32
+        )
+        ds = Dataset.create_from_array(
+            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        )
+        mask = _resolve_envelope(ds, (2, 2))
+        # NaN at (0, 1) is excluded by isfinite.
+        assert not bool(mask[0, 1])
+        assert bool(mask[0, 0])
+
+    def test_already_bool_ndarray_passthrough(self):
+        from digitalrivers.accumulation import _resolve_envelope
+
+        env = np.array([[True, False], [False, True]])
+        mask = _resolve_envelope(env, (2, 2))
+        assert mask.tolist() == [[True, False], [False, True]]
+
+    def test_non_bool_ndarray_cast_to_bool(self):
+        from digitalrivers.accumulation import _resolve_envelope
+
+        env = np.array([[1, 0], [2, 0]], dtype=np.int32)
+        mask = _resolve_envelope(env, (2, 2))
+        # int → bool: non-zero is True.
+        assert mask.tolist() == [[True, False], [True, False]]
+
+    def test_shape_mismatch_rejected(self):
+        from digitalrivers.accumulation import _resolve_envelope
+
+        with pytest.raises(ValueError, match="envelope shape"):
+            _resolve_envelope(np.zeros((2, 3), dtype=bool), (4, 4))

@@ -13,7 +13,6 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
-from shapely.geometry import Point as _make_point  # noqa: N812
 from digitalrivers._breach import breach_depressions as _breach_depressions_array
 from digitalrivers._flats import resolve_flats as _resolve_flats_array
 from digitalrivers._flow_routing import (
@@ -40,6 +39,82 @@ DIR_OFFSETS = {
     6: (1, 0),  # right
     7: (1, 1),  # bottom right
 }
+
+
+def _reproject_if_needed(layer, target_epsg: int | None):
+    """Return ``layer`` reprojected to ``target_epsg`` when its CRS differs.
+
+    Uses CRS object equality rather than ``to_epsg()`` integer comparison so
+    custom projections (where ``to_epsg()`` returns ``None``) are not falsely
+    flagged as mismatched — see the Phase-3 N7 review note.
+
+    Args:
+        layer: ``GeoDataFrame`` (or any object with a ``crs`` attribute and a
+            ``to_crs(epsg)`` method). When the attribute is missing or its
+            value is ``None`` the layer is returned unchanged.
+        target_epsg: EPSG code of the destination CRS, or ``None`` to skip
+            reprojection entirely.
+
+    Returns:
+        Either the original ``layer`` (when CRSes already match, or when
+        ``target_epsg`` is ``None``, or when ``layer`` carries no CRS) or a
+        new ``GeoDataFrame`` reprojected to ``target_epsg``.
+
+    Examples:
+        - Same CRS short-circuit returns the original layer unchanged:
+
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers.dem import _reproject_if_needed
+            >>> layer = gpd.GeoDataFrame(geometry=[Point(0, 0)], crs=4326)
+            >>> _reproject_if_needed(layer, 4326) is layer
+            True
+
+        - Different CRS triggers an actual reprojection:
+
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers.dem import _reproject_if_needed
+            >>> layer = gpd.GeoDataFrame(geometry=[Point(0, 0)], crs=4326)
+            >>> reprojected = _reproject_if_needed(layer, 3857)
+            >>> int(reprojected.crs.to_epsg())
+            3857
+
+        - ``target_epsg=None`` skips reprojection entirely:
+
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers.dem import _reproject_if_needed
+            >>> layer = gpd.GeoDataFrame(geometry=[Point(0, 0)], crs=4326)
+            >>> _reproject_if_needed(layer, None) is layer
+            True
+
+        - A layer with no ``crs`` attribute is returned untouched:
+
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers.dem import _reproject_if_needed
+            >>> layer = gpd.GeoDataFrame(geometry=[Point(0, 0)])
+            >>> _reproject_if_needed(layer, 4326) is layer
+            True
+    """
+    if target_epsg is None:
+        return layer
+    layer_crs = getattr(layer, "crs", None)
+    if layer_crs is None:
+        return layer
+    try:
+        from pyproj import CRS
+
+        target_crs = CRS.from_epsg(target_epsg)
+        if layer_crs.equals(target_crs):
+            return layer
+    except Exception:
+        # Fall back to the integer compare if pyproj/CRS isn't cooperating;
+        # we'd rather do a no-op to_crs round-trip than crash.
+        if layer_crs.to_epsg() == target_epsg:
+            return layer
+    return layer.to_crs(target_epsg)
 
 
 class DEM(Dataset):
@@ -352,7 +427,7 @@ class DEM(Dataset):
         """Condition the DEM by burning a vector stream network into it.
 
         Three methods are specified by P20; this implementation ships
-        ``"fill_burn"`` (Saunders 1999 — used by WhiteboxTools' FillBurn) as
+        ``"fill_burn"`` (Lindsay 2018 — used by WhiteboxTools' FillBurn) as
         the default. ``"agree"`` (Hellweger 1997) and
         ``"topological_breach"`` (Lindsay 2016) raise ``NotImplementedError``.
 
@@ -378,9 +453,28 @@ class DEM(Dataset):
         Returns:
             DEM | None: New DEM with the conditioned surface, or None when
             ``inplace=True``.
-        """
-        import numpy as np
 
+        Examples:
+            - Fill-burn lowers the stream-row of a flat DEM:
+
+                >>> import numpy as np
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import LineString
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> # Horizontal stream down row 2 (y = -2.5).
+                >>> line = LineString([(0.5, -2.5), (4.5, -2.5)])
+                >>> layer = gpd.GeoDataFrame(geometry=[line], crs=4326)
+                >>> burnt = dem.burn_streams(layer, constant_drop=2.0)
+                >>> bool(float(burnt.values[2, 2]) < float(burnt.values[0, 0]))
+                True
+        """
         if method == "agree":
             # Rasterise the stream lines, then apply a gradient buffer:
             # stream cells drop by `sharp`, buffer cells drop linearly from
@@ -391,22 +485,15 @@ class DEM(Dataset):
             rows, cols = elev.shape
             gt = self.geotransform
             stream_mask = np.zeros((rows, cols), dtype=bool)
-            target_epsg = self.epsg
-            if (
-                getattr(streams, "crs", None) is not None
-                and target_epsg is not None
-                and streams.crs.to_epsg() != target_epsg
-            ):
-                streams = streams.to_crs(target_epsg)
+            streams = _reproject_if_needed(streams, self.epsg)
             for geom in streams.geometry:
                 if geom is None or geom.is_empty:
                     continue
-                try:
-                    _ = list(geom.coords)
-                    self._rasterise_line(geom, stream_mask, gt)
-                except NotImplementedError:
+                if geom.geom_type == "MultiLineString":
                     for sub in geom.geoms:
                         self._rasterise_line(sub, stream_mask, gt)
+                else:
+                    self._rasterise_line(geom, stream_mask, gt)
             # Distance-from-stream within the buffer (cell-step BFS).
             dist = np.full((rows, cols), np.inf, dtype=np.float64)
             dist[stream_mask] = 0.0
@@ -460,22 +547,15 @@ class DEM(Dataset):
             rows, cols = elev.shape
             gt = self.geotransform
             stream_mask = np.zeros((rows, cols), dtype=bool)
-            target_epsg = self.epsg
-            if (
-                getattr(streams, "crs", None) is not None
-                and target_epsg is not None
-                and streams.crs.to_epsg() != target_epsg
-            ):
-                streams = streams.to_crs(target_epsg)
+            streams = _reproject_if_needed(streams, self.epsg)
             for geom in streams.geometry:
                 if geom is None or geom.is_empty:
                     continue
-                try:
-                    _ = list(geom.coords)
-                    self._rasterise_line(geom, stream_mask, gt)
-                except NotImplementedError:
+                if geom.geom_type == "MultiLineString":
                     for sub in geom.geoms:
                         self._rasterise_line(sub, stream_mask, gt)
+                else:
+                    self._rasterise_line(geom, stream_mask, gt)
             z = elev.astype(np.float64, copy=True)
             z[stream_mask] = z[stream_mask] - constant_drop
             nodata_mask = np.isnan(z)
@@ -507,36 +587,19 @@ class DEM(Dataset):
         x0, dx, _, y0, _, dy = gt
         stream_mask = np.zeros((rows, cols), dtype=bool)
 
-        target_epsg = self.epsg
-        if (
-            getattr(streams, "crs", None) is not None
-            and target_epsg is not None
-            and streams.crs.to_epsg() != target_epsg
-        ):
-            streams = streams.to_crs(target_epsg)
+        streams = _reproject_if_needed(streams, self.epsg)
 
         for geom in streams.geometry:
             if geom is None or geom.is_empty:
                 continue
-            try:
-                coords = list(geom.coords)
-            except NotImplementedError:
-                # MultiLineString — iterate each segment.
+            if geom.geom_type == "MultiLineString":
                 for sub in geom.geoms:
                     self._rasterise_line(sub, stream_mask, gt)
-                continue
-            for (x1, y1), (x2, y2) in zip(coords[:-1], coords[1:]):
-                c1 = (x1 - x0) / dx
-                r1 = (y1 - y0) / dy
-                c2 = (x2 - x0) / dx
-                r2 = (y2 - y0) / dy
-                steps = max(int(abs(r2 - r1)), int(abs(c2 - c1)), 1)
-                for i in range(steps + 1):
-                    t = i / steps
-                    r = int(round(r1 + t * (r2 - r1)))
-                    c = int(round(c1 + t * (c2 - c1)))
-                    if 0 <= r < rows and 0 <= c < cols:
-                        stream_mask[r, c] = True
+            else:
+                # Delegate to the shared 2× oversampled floor-rasteriser so
+                # burn_streams, enforce_breaklines, and enforce_culverts all
+                # snap line samples to cells identically (I1 fix).
+                self._rasterise_line(geom, stream_mask, gt)
 
         z = elev.astype(np.float64, copy=True)
         z[stream_mask] = z[stream_mask] - constant_drop
@@ -596,31 +659,21 @@ class DEM(Dataset):
             DEM | None: New DEM with culverts enforced, or None when
             ``inplace=True``.
         """
-        import numpy as np
-
         elev = self.values
         rows, cols = elev.shape
         gt = self.geotransform
         road_mask = np.zeros((rows, cols), dtype=bool)
         stream_mask = np.zeros((rows, cols), dtype=bool)
         for layer, mask in ((roads, road_mask), (streams, stream_mask)):
-            target_epsg = self.epsg
-            if (
-                getattr(layer, "crs", None) is not None
-                and target_epsg is not None
-                and layer.crs.to_epsg() != target_epsg
-            ):
-                layer = layer.to_crs(target_epsg)
+            layer = _reproject_if_needed(layer, self.epsg)
             for geom in layer.geometry:
                 if geom is None or geom.is_empty:
                     continue
-                try:
-                    coords = list(geom.coords)
-                except NotImplementedError:
+                if geom.geom_type == "MultiLineString":
                     for sub in geom.geoms:
                         self._rasterise_line(sub, mask, gt)
-                    continue
-                self._rasterise_line(geom, mask, gt)
+                else:
+                    self._rasterise_line(geom, mask, gt)
 
         crossings = road_mask & stream_mask
         z = elev.astype(np.float64, copy=True)
@@ -632,6 +685,105 @@ class DEM(Dataset):
             self._update_inplace(plain_ds.raster)
             return None
         return DEM(plain_ds.raster)
+
+    def _polygon_cell_indices(self, geom, gt, rows, cols):
+        """Return ``(rows_idx, cols_idx)`` of cells whose centre is inside ``geom``.
+
+        Uses ``shapely.contains_xy`` for one batched point-in-polygon test
+        per polygon — orders of magnitude faster than the per-cell
+        ``geom.intersects(Point)`` loop that this helper replaces.
+
+        Args:
+            geom: Shapely Polygon / MultiPolygon. The bounding box is used to
+                clip the candidate cell range; the polygon itself decides
+                which of those candidates are kept.
+            gt: Six-element GDAL geotransform of this raster.
+            rows: Number of rows in the raster.
+            cols: Number of columns in the raster.
+
+        Returns:
+            Tuple ``(rs, cs)`` of int ndarrays giving the row / column
+            indices of every cell whose centre lies inside ``geom``. Empty
+            arrays when the polygon's bounding box does not overlap the
+            raster envelope.
+
+        Examples:
+            - A polygon entirely inside a single cell returns one index:
+
+                >>> import numpy as np
+                >>> from shapely.geometry import Polygon
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> ds = Dataset.create_from_array(
+                ...     np.zeros((5, 5), dtype=np.float32),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> # Tight polygon around cell-centre (col=2, row=2) at (2.5, -2.5).
+                >>> poly = Polygon(
+                ...     [(2.4, -2.6), (2.6, -2.6), (2.6, -2.4), (2.4, -2.4)]
+                ... )
+                >>> rs, cs = dem._polygon_cell_indices(poly, dem.geotransform, 5, 5)
+                >>> rs.tolist(), cs.tolist()
+                ([2], [2])
+
+            - A polygon entirely outside the raster envelope returns empty
+              arrays:
+
+                >>> import numpy as np
+                >>> from shapely.geometry import Polygon
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> ds = Dataset.create_from_array(
+                ...     np.zeros((5, 5), dtype=np.float32),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> far = Polygon(
+                ...     [(100, 100), (101, 100), (101, 101), (100, 101)]
+                ... )
+                >>> rs, cs = dem._polygon_cell_indices(far, dem.geotransform, 5, 5)
+                >>> rs.size, cs.size
+                (0, 0)
+
+            - Returned indices are integer ndarrays suitable for fancy
+              indexing into the raster:
+
+                >>> import numpy as np
+                >>> from shapely.geometry import Polygon
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> ds = Dataset.create_from_array(
+                ...     np.zeros((5, 5), dtype=np.float32),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> poly = Polygon([(0, 0), (3, 0), (3, -3), (0, -3)])
+                >>> rs, cs = dem._polygon_cell_indices(poly, dem.geotransform, 5, 5)
+                >>> np.issubdtype(rs.dtype, np.integer)
+                True
+        """
+        import numpy as np
+        import shapely
+
+        x0, dx, _, y0, _, dy = gt
+        minx, miny, maxx, maxy = geom.bounds
+        c_lo = max(0, int((minx - x0) / dx))
+        c_hi = min(cols, int((maxx - x0) / dx) + 1)
+        r_lo = max(0, int((maxy - y0) / dy))
+        r_hi = min(rows, int((miny - y0) / dy) + 1)
+        if c_lo >= c_hi or r_lo >= r_hi:
+            return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
+        rs_idx, cs_idx = np.meshgrid(
+            np.arange(r_lo, r_hi), np.arange(c_lo, c_hi), indexing="ij",
+        )
+        xs = x0 + (cs_idx + 0.5) * dx
+        ys = y0 + (rs_idx + 0.5) * dy
+        inside = shapely.contains_xy(geom, xs, ys)
+        return rs_idx[inside], cs_idx[inside]
 
     def hydroflatten(
         self,
@@ -655,8 +807,6 @@ class DEM(Dataset):
         Returns:
             DEM | None: Hydroflattened DEM.
         """
-        import numpy as np
-
         if method not in ("min", "mean", "median"):
             raise ValueError(
                 f"method must be 'min', 'mean', or 'median'; got {method!r}"
@@ -667,33 +817,16 @@ class DEM(Dataset):
         x0, dx, _, y0, _, dy = gt
         rows, cols = elev.shape
 
-        target_epsg = self.epsg
-        if (
-            getattr(water_polygons, "crs", None) is not None
-            and target_epsg is not None
-            and water_polygons.crs.to_epsg() != target_epsg
-        ):
-            water_polygons = water_polygons.to_crs(target_epsg)
+        water_polygons = _reproject_if_needed(water_polygons, self.epsg)
 
         z = elev.astype(np.float64, copy=True)
         for geom in water_polygons.geometry:
             if geom is None or geom.is_empty:
                 continue
-            minx, miny, maxx, maxy = geom.bounds
-            c_lo = max(0, int((minx - x0) / dx))
-            c_hi = min(cols, int((maxx - x0) / dx) + 1)
-            r_lo = max(0, int((maxy - y0) / dy))
-            r_hi = min(rows, int((miny - y0) / dy) + 1)
-            in_poly: list[tuple[int, int]] = []
-            for r in range(r_lo, r_hi):
-                for c in range(c_lo, c_hi):
-                    cx = x0 + (c + 0.5) * dx
-                    cy = y0 + (r + 0.5) * dy
-                    if geom.intersects(_make_point(cx, cy)):
-                        in_poly.append((r, c))
-            if not in_poly:
+            rs, cs = self._polygon_cell_indices(geom, gt, rows, cols)
+            if rs.size == 0:
                 continue
-            vals = np.array([z[r, c] for r, c in in_poly], dtype=np.float64)
+            vals = z[rs, cs]
             vals = vals[np.isfinite(vals)]
             if vals.size == 0:
                 continue
@@ -703,8 +836,7 @@ class DEM(Dataset):
                 target = float(vals.mean())
             else:
                 target = float(np.median(vals))
-            for r, c in in_poly:
-                z[r, c] = target
+            z[rs, cs] = target
 
         no_val = self.no_data_value[0]
         z[np.isnan(z)] = no_val
@@ -732,36 +864,20 @@ class DEM(Dataset):
         Returns:
             DEM | None: DEM with buildings raised.
         """
-        import numpy as np
-
         elev = self.values
         gt = self.geotransform
         x0, dx, _, y0, _, dy = gt
         rows, cols = elev.shape
 
-        target_epsg = self.epsg
-        if (
-            getattr(building_polygons, "crs", None) is not None
-            and target_epsg is not None
-            and building_polygons.crs.to_epsg() != target_epsg
-        ):
-            building_polygons = building_polygons.to_crs(target_epsg)
+        building_polygons = _reproject_if_needed(building_polygons, self.epsg)
 
         z = elev.astype(np.float64, copy=True)
         for geom in building_polygons.geometry:
             if geom is None or geom.is_empty:
                 continue
-            minx, miny, maxx, maxy = geom.bounds
-            c_lo = max(0, int((minx - x0) / dx))
-            c_hi = min(cols, int((maxx - x0) / dx) + 1)
-            r_lo = max(0, int((maxy - y0) / dy))
-            r_hi = min(rows, int((miny - y0) / dy) + 1)
-            for r in range(r_lo, r_hi):
-                for c in range(c_lo, c_hi):
-                    cx = x0 + (c + 0.5) * dx
-                    cy = y0 + (r + 0.5) * dy
-                    if geom.intersects(_make_point(cx, cy)):
-                        z[r, c] = z[r, c] + lift
+            rs, cs = self._polygon_cell_indices(geom, gt, rows, cols)
+            if rs.size:
+                z[rs, cs] = z[rs, cs] + lift
 
         no_val = self.no_data_value[0]
         z[np.isnan(z)] = no_val
@@ -787,30 +903,21 @@ class DEM(Dataset):
         Returns:
             DEM | None: DEM with breaklines enforced.
         """
-        import numpy as np
-
         elev = self.values
         gt = self.geotransform
         rows, cols = elev.shape
         mask = np.zeros((rows, cols), dtype=bool)
 
-        target_epsg = self.epsg
-        if (
-            getattr(breaklines, "crs", None) is not None
-            and target_epsg is not None
-            and breaklines.crs.to_epsg() != target_epsg
-        ):
-            breaklines = breaklines.to_crs(target_epsg)
+        breaklines = _reproject_if_needed(breaklines, self.epsg)
 
         for geom in breaklines.geometry:
             if geom is None or geom.is_empty:
                 continue
-            try:
-                _ = list(geom.coords)
-                self._rasterise_line(geom, mask, gt)
-            except NotImplementedError:
+            if geom.geom_type == "MultiLineString":
                 for sub in geom.geoms:
                     self._rasterise_line(sub, mask, gt)
+            else:
+                self._rasterise_line(geom, mask, gt)
 
         z = elev.astype(np.float64, copy=True)
         z[mask] = z[mask] + lift
@@ -826,7 +933,7 @@ class DEM(Dataset):
         self,
         scale_factor: int,
         n_bins: int = 10,
-    ):
+    ) -> "pd.DataFrame":
         """Build per-coarse-cell bathymetry tables (SFINCS-style).
 
         For each coarse cell (``scale_factor × scale_factor`` block of fine
@@ -841,13 +948,33 @@ class DEM(Dataset):
             n_bins: Number of depth bins per coarse cell.
 
         Returns:
-            ``pandas.DataFrame`` indexed by coarse-cell (row, col) with
-            ``n_bins + 1`` columns: ``z_min``, ``z_max``, plus
+            ``pandas.DataFrame`` indexed by coarse-cell ``(row, col)`` with
+            ``n_bins + 2`` columns: ``z_min``, ``z_max``, plus
             ``frac_below_<k>`` for ``k`` in ``[1, n_bins]`` giving the
-            fraction of fine cells at or below the k-th depth bin.
+            fraction of fine cells at or below the ``k``-th depth bin.
+            For flat blocks (``z_max == z_min``) every ``frac_below_<k>``
+            is ``1.0``.
 
         Raises:
             ValueError: For ``scale_factor < 2`` or ``n_bins < 1``.
+
+        Examples:
+            - A flat block produces ``frac_below_<k> == 1.0`` for every bin
+              (B1 regression — the columns are always present):
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> ds = Dataset.create_from_array(
+                ...     np.full((4, 4), 5.0, dtype=np.float32),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> df = DEM(ds.raster).subgrid_bathymetry(scale_factor=2, n_bins=3)
+                >>> sorted(df.columns.tolist())
+                ['frac_below_1', 'frac_below_2', 'frac_below_3', 'z_max', 'z_min']
+                >>> float(df["frac_below_1"].iloc[0])
+                1.0
         """
         import numpy as np
         import pandas as pd
@@ -878,7 +1005,13 @@ class DEM(Dataset):
                 z_max = float(valid.max())
                 rec = {"row": br, "col": bc, "z_min": z_min, "z_max": z_max}
                 if z_max == z_min:
-                    fracs = [1.0] * n_bins
+                    # Flat block: every bin is "below" the single value, so
+                    # frac_below_k == 1.0 for every k. (The B1 review found
+                    # that the original code computed this list but never
+                    # wrote it into the record, dropping the frac columns
+                    # entirely when every block was flat.)
+                    for k in range(1, n_bins + 1):
+                        rec[f"frac_below_{k}"] = 1.0
                 else:
                     bin_edges = np.linspace(z_min, z_max, n_bins + 1)
                     for k, edge in enumerate(bin_edges[1:], start=1):
@@ -904,11 +1037,10 @@ class DEM(Dataset):
     ) -> dict:
         """Export the DEM to a hydrodynamic-model format.
 
-        v1 status: only ``target="lisflood_fp"`` is fully implemented (writes
-        an Arc-ASCII ``.dem.asc``). The other targets (``hec_ras``,
-        ``tuflow``, ``sfincs``, ``iber``, ``gmsh``) ship as
-        ``NotImplementedError`` pointing at the spec; native writers will
-        land in follow-up commits.
+        Every target listed below ships with a working writer. Most were
+        backfilled after the initial Phase-3 cut; ``lisflood_fp`` is the
+        canonical Arc-ASCII writer and remains the only target that
+        actually requires a sinks-free input.
 
         Args:
             path: Output file path.
@@ -917,8 +1049,14 @@ class DEM(Dataset):
             breaklines / walls / buildings / manning_n / boundary_conditions:
                 Reserved for target-specific bundles. Currently ignored by
                 the LISFLOOD-FP writer.
-            validate: When True (default), refuse to export a DEM with
-                internal sinks to targets that require sinks-free input.
+            validate: When ``True`` (default), refuse to export a DEM with
+                internal sinks. **Only applied for** ``target="lisflood_fp"``
+                — the Arc-ASCII writer is the only target where downstream
+                tooling actually requires sinks-free input. Other writers
+                skip the sink scan even when ``validate=True`` so the
+                ``local_minima_8`` pass does not run unnecessarily (I4
+                fixup). Pass ``validate=False`` to also disable the
+                lisflood_fp guard.
             **kwargs: Target-specific options.
 
         Returns:
@@ -926,12 +1064,9 @@ class DEM(Dataset):
 
         Raises:
             ValueError: For unknown ``target``.
-            NotImplementedError: For targets other than ``lisflood_fp``.
-            RuntimeError: When ``validate=True`` and the DEM has internal
-                sinks.
+            RuntimeError: When ``target == "lisflood_fp"``, ``validate=True``,
+                and the DEM has internal sinks.
         """
-        import numpy as np
-
         valid_targets = {
             "hec_ras", "tuflow", "sfincs", "lisflood_fp", "iber", "gmsh",
         }
@@ -940,7 +1075,11 @@ class DEM(Dataset):
                 f"target must be one of {sorted(valid_targets)}; got {target!r}"
             )
 
-        if validate:
+        # Only run the (expensive) sink scan when we'll actually export to
+        # an implemented target. The unimplemented targets raise
+        # NotImplementedError further down and would otherwise pay the full
+        # validation cost for nothing.
+        if validate and target == "lisflood_fp":
             from digitalrivers._pitremoval import local_minima_8
             sinks = local_minima_8(self.values)
             if int(sinks.sum()) > 0:
@@ -959,7 +1098,7 @@ class DEM(Dataset):
         yllcorner = y0 + rows * dy
 
         if target == "lisflood_fp":
-            with open(path, "w") as fh:
+            with open(path, "w", encoding="ascii", newline="\n") as fh:
                 fh.write(f"ncols {cols}\n")
                 fh.write(f"nrows {rows}\n")
                 fh.write(f"xllcorner {x0}\n")
@@ -1169,8 +1308,6 @@ class DEM(Dataset):
             DEM.fill_depressions: hydrologic conditioning that removes sinks.
             DEM.burn_streams: stream-network drainage enforcement.
         """
-        import numpy as np
-
         if method not in ("laplacian", "biharmonic"):
             raise ValueError(
                 f"method must be 'laplacian' or 'biharmonic'; got {method!r}"

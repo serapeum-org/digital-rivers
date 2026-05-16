@@ -132,3 +132,23 @@ def test_point_outside_envelope_returns_nan():
     )
     out = acc.snap_pour_points(pts, radius_cells=1)
     assert np.isnan(out.iloc[0]["snap_distance_m"])
+
+
+def test_jenson_method_nan_when_snap_target_is_input_cell():
+    """I2 regression for the ``method='jenson'`` path: an unmoved snap
+    also reports ``snap_distance_m == NaN``."""
+    z = np.array(
+        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
+    )
+    dem, acc = _build_acc(z)
+    fd = dem.flow_direction(method="d8")
+    sr = acc.streams(threshold=1)
+    # Place the point on a stream cell already; jenson should not move it.
+    geo = acc.geotransform
+    x = geo[0] + (3 + 0.5) * geo[1]
+    y = geo[3] + (1 + 0.5) * geo[5]
+    pts = gpd.GeoDataFrame({"id": [1]}, geometry=[Point(x, y)], crs=4326)
+    out = acc.snap_pour_points(
+        pts, radius_cells=1, method="jenson", streams=sr,
+    )
+    assert np.isnan(out.iloc[0]["snap_distance_m"])

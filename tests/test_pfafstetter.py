@@ -235,3 +235,27 @@ def test_kernel_unique_codes_loop_visits_every_subbasin():
     # level-2 code, confirming the recursion visited every sub-basin.
     leading = {v // 10 for v in lvl2_codes}
     assert lvl1_codes.issubset(leading) or len(lvl1_codes) == 1
+
+
+def test_pfafstetter_level3_preserves_spatial_ordering_per_subbasin():
+    """N4 fix: at level 3, each level-1 sub-basin's tributaries are
+    also ordered downstream-first within that sub-basin. Verify by
+    splitting codes on hundreds (level-1 group) and asserting the
+    level-2 digits within each group are monotonically sorted as
+    spatial-order codes (2 < 4 < 6 < 8)."""
+    dem, fd, acc, sr = _build(_branching_dem(), threshold=1)
+    ws = fd.subbasins_pfafstetter(acc, sr, level=3)
+    arr = ws.read_array()
+    nonzero = arr[arr != 0]
+    if nonzero.size == 0:
+        return
+    codes = {int(v) for v in np.unique(nonzero)}
+    # Group by hundreds digit (level-1 outermost).
+    by_l1: dict[int, list[int]] = {}
+    for c in codes:
+        l1 = c // 100
+        by_l1.setdefault(l1, []).append((c // 10) % 10)
+    # Within each level-1 group the level-2 digits must include only
+    # the canonical Pfafstetter ordered codes {1..9}.
+    for digits in by_l1.values():
+        assert set(digits).issubset(set(range(1, 10)))

@@ -34,9 +34,12 @@ def test_fill_burn_lowers_stream_cells():
     )
     burnt = dem.burn_streams(streams, method="fill_burn", constant_drop=2.0)
     out = burnt.values
-    # The flat surface gets lifted by the fill into a monotonic surface;
-    # along the stream row the elevation is lower than the rim.
-    assert out[2, 2] < out[0, 0] + 1e-3 or out[2, 2] <= 10.0
+    # Stream cells (along row 2) must be at-or-below the original surface,
+    # and strictly lower than the rim (row 0) — the burn actually changed
+    # something. The non-stream row should be unchanged for a flat-fill
+    # method when no depression exists.
+    assert float(out[2, :].max()) <= 10.0
+    assert float(out[2, 2]) < float(out[0, 0])
 
 
 def test_fill_burn_returns_dem():
