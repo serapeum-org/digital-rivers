@@ -138,7 +138,7 @@ publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*"
 
 [tool.pixi.environments]
 default = { solve-group = "default" }
-dev = { features = ["dev"], solve-group = "default" }
+dev = { features = ["dev", "viz"], solve-group = "default" }
 docs = { features = ["docs"], solve-group = "default" }
 py311 = { features = ["py311", "dev"], solve-group = "py311" }
 py312 = { features = ["py312", "dev"], solve-group = "py312" }
