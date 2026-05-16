@@ -1095,7 +1095,71 @@ class DEM(Dataset):
             DEM | None: Filled DEM, or None when ``inplace=True``.
 
         Raises:
-            ValueError: If the input DEM has no finite cells.
+            ValueError: If the input DEM has no finite cells or ``method``
+                is not ``"laplacian"`` / ``"biharmonic"``.
+
+        Examples:
+            - Fill a single-cell NaN hole with the default Laplacian solver;
+              the filled value sits inside the bracketing range:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     np.where(np.isnan(z), -9999.0, z),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> filled = DEM(ds.raster).anudem_interpolate(
+                ...     method="laplacian", max_iter=200, tol=1e-6,
+                ... )
+                >>> out = filled.values
+                >>> bool(1.0 <= out[1, 1] <= 9.0)
+                True
+
+            - The biharmonic mode (P32 backfill) approximates Hutchinson
+              1989's Delta^2 z = 0 by alternating Laplacian sweeps:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     np.where(np.isnan(z), -9999.0, z),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> filled = DEM(ds.raster).anudem_interpolate(
+                ...     method="biharmonic", max_iter=200, tol=1e-5,
+                ... )
+                >>> bool(np.isfinite(filled.values).all())
+                True
+
+            - Unknown method raises ValueError:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> ds = Dataset.create_from_array(
+                ...     np.ones((2, 2), dtype=np.float32),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> DEM(ds.raster).anudem_interpolate(method="bogus")
+                Traceback (most recent call last):
+                    ...
+                ValueError: method must be 'laplacian' or 'biharmonic'; got 'bogus'
+
+        See Also:
+            DEM.fill_depressions: hydrologic conditioning that removes sinks.
+            DEM.burn_streams: stream-network drainage enforcement.
         """
         import numpy as np
 

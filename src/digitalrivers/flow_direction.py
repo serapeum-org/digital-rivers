@@ -706,12 +706,98 @@ class FlowDirection(Dataset):
                 values. ``"string"`` is not yet implemented.
 
         Returns:
-            :class:`WatershedRaster` with int32 Pfafstetter codes in
-            ``[1, 9]`` and 0 outside the basin envelope.
+            :class:`WatershedRaster` with int32 Pfafstetter codes. Level-1
+            codes are in ``[1, 9]``; level-N codes are N-digit concatenations
+            ``parent * 10 + child`` (e.g. level-2 ⇒ ``[11, 99]``, level-3 ⇒
+            ``[111, 999]``). Cells outside the basin envelope are 0.
 
         Raises:
-            NotImplementedError: For ``level > 1`` or
-                ``encoding != "packed_int"``.
+            ValueError: If ``level < 1`` or non-D8 routing is used or an
+                argument has the wrong type.
+            NotImplementedError: If ``encoding != "packed_int"``.
+
+        Examples:
+            - Level-1 coding on a small east-flowing DEM yields codes within
+              the canonical ``[1, 9]`` Pfafstetter range:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [
+                ...         [9, 9, 9, 9, 9, 9],
+                ...         [9, 5, 4, 3, 2, 1],
+                ...         [9, 9, 9, 9, 9, 9],
+                ...     ],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> fd = dem.flow_direction(method="d8")
+                >>> acc = fd.accumulate()
+                >>> sr = acc.streams(threshold=1)
+                >>> ws = fd.subbasins_pfafstetter(acc, sr, level=1)
+                >>> arr = ws.read_array()
+                >>> codes = sorted({int(v) for v in np.unique(arr) if v != 0})
+                >>> bool(set(codes).issubset(set(range(1, 10))))
+                True
+
+            - Level-2 coding produces two-digit ``parent*10 + child`` codes
+              (P16 multi-level backfill):
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [
+                ...         [9, 9, 9, 9, 9, 9],
+                ...         [9, 5, 4, 3, 2, 1],
+                ...         [9, 9, 9, 9, 9, 9],
+                ...     ],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> fd = dem.flow_direction(method="d8")
+                >>> acc = fd.accumulate()
+                >>> sr = acc.streams(threshold=1)
+                >>> ws = fd.subbasins_pfafstetter(acc, sr, level=2)
+                >>> arr = ws.read_array()
+                >>> codes = sorted({int(v) for v in np.unique(arr) if v != 0})
+                >>> bool(all(11 <= c <= 99 for c in codes))
+                True
+
+            - ``level < 1`` is rejected:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> fd = dem.flow_direction(method="d8")
+                >>> acc = fd.accumulate()
+                >>> sr = acc.streams(threshold=1)
+                >>> fd.subbasins_pfafstetter(acc, sr, level=0)
+                Traceback (most recent call last):
+                    ...
+                ValueError: level must be >= 1; got 0
+
+        See Also:
+            FlowDirection.basins: terminal-outlet partitioning of the DEM.
+            FlowDirection.accumulate: upstream-area accumulation needed for
+                tributary ranking.
         """
         import numpy as np
 

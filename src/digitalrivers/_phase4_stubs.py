@@ -308,6 +308,49 @@ def grid_lidar_points(
 
     Raises:
         ValueError: For mismatched input lengths or unknown ``aggregate``.
+
+    Examples:
+        - Bucket four points into a 2x1 grid with min aggregation:
+
+            >>> import numpy as np
+            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> xs = np.array([0.1, 0.2, 1.1])
+            >>> ys = np.array([0.1, 0.2, 0.1])
+            >>> zs = np.array([5.0, 2.0, 4.0])
+            >>> ds = grid_lidar_points(
+            ...     xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
+            ...     aggregate="min", epsg=3857,
+            ... )
+            >>> ds.read_array().tolist()
+            [[2.0, 4.0]]
+
+        - Mean aggregation averages every point that lands in a cell:
+
+            >>> import numpy as np
+            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> xs = np.array([0.1, 0.2])
+            >>> ys = np.array([0.1, 0.2])
+            >>> zs = np.array([4.0, 6.0])
+            >>> ds = grid_lidar_points(
+            ...     xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
+            ...     aggregate="mean", epsg=3857,
+            ... )
+            >>> float(ds.read_array()[0, 0])
+            5.0
+
+        - Empty cells receive the dataset's no-data sentinel (-9999.0):
+
+            >>> import numpy as np
+            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> ds = grid_lidar_points(
+            ...     np.array([0.5]), np.array([0.5]), np.array([3.0]),
+            ...     cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
+            ...     aggregate="min",
+            ... )
+            >>> float(ds.no_data_value[0])
+            -9999.0
+            >>> int((ds.read_array() == -9999.0).sum())
+            3
     """
     import numpy as np
     from pyramids.dataset import Dataset

@@ -35,6 +35,38 @@ class Mesh:
         vertices: ``(N, 2 or 3)`` float64.
         triangles: ``(M, 3)`` int64.
         n_vertices, n_triangles: counts.
+
+    Examples:
+        - Build a two-triangle quad and inspect its size:
+
+            >>> import numpy as np
+            >>> from digitalrivers.mesh import Mesh
+            >>> verts = np.array(
+            ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+            ...     dtype=np.float64,
+            ... )
+            >>> tris = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+            >>> mesh = Mesh(verts, tris)
+            >>> mesh.n_vertices
+            4
+            >>> mesh.n_triangles
+            2
+
+        - 3-D input keeps Z untouched:
+
+            >>> import numpy as np
+            >>> from digitalrivers.mesh import Mesh
+            >>> v = np.array(
+            ...     [[0.0, 0.0, 10.0], [1.0, 0.0, 11.0], [0.0, 1.0, 12.0]],
+            ...     dtype=np.float64,
+            ... )
+            >>> t = np.array([[0, 1, 2]], dtype=np.int64)
+            >>> Mesh(v, t).vertices.shape
+            (3, 3)
+
+    See Also:
+        Mesh.laplacian_smooth: iterative quality-improvement smoothing.
+        Mesh.aspect_ratios: per-triangle quality metric.
     """
 
     def __init__(self, vertices: np.ndarray, triangles: np.ndarray):
@@ -57,6 +89,40 @@ class Mesh:
         A vertex is on the boundary iff at least one of its incident
         edges belongs to only one triangle (the canonical mesh-boundary
         criterion).
+
+        Examples:
+            - Every vertex of a two-triangle quad sits on the boundary:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+                ...     dtype=np.float64,
+                ... )
+                >>> t = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+                >>> mask = Mesh(v, t).boundary_vertex_mask()
+                >>> bool(mask.all())
+                True
+
+            - Adding a centre vertex moves only the four corners to the
+              boundary:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [
+                ...         [0.0, 0.0], [2.0, 0.0], [2.0, 2.0],
+                ...         [0.0, 2.0], [1.0, 1.0],
+                ...     ],
+                ...     dtype=np.float64,
+                ... )
+                >>> t = np.array(
+                ...     [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]],
+                ...     dtype=np.int64,
+                ... )
+                >>> mask = Mesh(v, t).boundary_vertex_mask()
+                >>> mask.tolist()
+                [True, True, True, True, False]
         """
         edge_count: dict[tuple[int, int], int] = {}
         for tri in self.triangles:
@@ -72,7 +138,24 @@ class Mesh:
         return out
 
     def neighbour_lists(self) -> list[list[int]]:
-        """Per-vertex list of neighbour vertex indices (1-ring)."""
+        """Per-vertex list of neighbour vertex indices (1-ring).
+
+        Examples:
+            - Inspect the shared diagonal of a two-triangle quad:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
+                ...     dtype=np.float64,
+                ... )
+                >>> t = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+                >>> adj = Mesh(v, t).neighbour_lists()
+                >>> adj[0]
+                [1, 2, 3]
+                >>> adj[1]
+                [0, 2]
+        """
         adj: list[set[int]] = [set() for _ in range(self.n_vertices)]
         for tri in self.triangles:
             a, b, c = int(tri[0]), int(tri[1]), int(tri[2])
@@ -108,6 +191,34 @@ class Mesh:
         Returns:
             A new ``Mesh`` with smoothed vertex positions. Triangle
             connectivity is unchanged.
+
+        Raises:
+            ValueError: If ``relaxation`` is not in ``[0, 1]``.
+
+        Examples:
+            - Smooth an off-centre interior vertex toward the centroid of
+              its four corner neighbours; the corners stay pinned:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [
+                ...         [0.0, 0.0], [2.0, 0.0], [2.0, 2.0],
+                ...         [0.0, 2.0], [1.5, 1.5],
+                ...     ],
+                ...     dtype=np.float64,
+                ... )
+                >>> t = np.array(
+                ...     [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]],
+                ...     dtype=np.int64,
+                ... )
+                >>> smoothed = Mesh(v, t).laplacian_smooth(
+                ...     n_iterations=20, relaxation=1.0,
+                ... )
+                >>> [round(float(c), 6) for c in smoothed.vertices[4]]
+                [1.0, 1.0]
+                >>> smoothed.vertices[0].tolist()
+                [0.0, 0.0]
         """
         if not (0.0 <= relaxation <= 1.0):
             raise ValueError(
@@ -141,6 +252,39 @@ class Mesh:
 
         Returns:
             ``(n_triangles,)`` float64 array.
+
+        Examples:
+            - An equilateral triangle scores exactly 1.0:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> h = np.sqrt(3.0) / 2.0
+                >>> v = np.array([[0.0, 0.0], [1.0, 0.0], [0.5, h]], dtype=np.float64)
+                >>> t = np.array([[0, 1, 2]], dtype=np.int64)
+                >>> round(float(Mesh(v, t).aspect_ratios()[0]), 6)
+                1.0
+
+            - A 3-4-5 right triangle has aspect ratio 1.25:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [[0.0, 0.0], [3.0, 0.0], [0.0, 4.0]], dtype=np.float64,
+                ... )
+                >>> t = np.array([[0, 1, 2]], dtype=np.int64)
+                >>> round(float(Mesh(v, t).aspect_ratios()[0]), 6)
+                1.25
+
+            - Three collinear points give a degenerate (infinite) ratio:
+
+                >>> import numpy as np
+                >>> from digitalrivers.mesh import Mesh
+                >>> v = np.array(
+                ...     [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]], dtype=np.float64,
+                ... )
+                >>> t = np.array([[0, 1, 2]], dtype=np.int64)
+                >>> float(Mesh(v, t).aspect_ratios()[0])
+                inf
         """
         v = self.vertices[:, :2]
         out = np.empty(self.n_triangles, dtype=np.float64)
