@@ -1,3 +1,18 @@
+"""digital-rivers — GIS utility package for DEM processing,
+terrain analysis, and hydrologic modelling.
+
+Public surface exposed at the package root:
+
+* ``DEM`` — digital-elevation-model processor (filling, breaching, flow
+  direction, accumulation, slope, exporters, …).
+* ``Terrain`` — colour-relief raster generation.
+* ``FlowDirection`` / ``Accumulation`` / ``StreamRaster`` /
+  ``WatershedRaster`` — typed result classes with routing-scheme
+  provenance tagging.
+* ``Mesh`` — triangle-mesh container with Laplacian smoothing and
+  aspect-ratio quality metrics (Phase 4 P33).
+"""
+
 try:
     from importlib.metadata import PackageNotFoundError  # type: ignore
     from importlib.metadata import version
@@ -11,24 +26,6 @@ try:
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 
-# documentation format
-__author__ = "Mostafa Farrag"
-__email__ = "moah.farag@gmail.com"
-__docformat__ = "restructuredtext"
-
-# Let users know if they're missing any of our hard dependencies
-hard_dependencies = ()  # ("numpy", "pandas", "gdal")
-missing_dependencies = []
-
-for dependency in hard_dependencies:
-    try:
-        __import__(dependency)
-    except ImportError as e:
-        missing_dependencies.append(dependency)
-        print(e)
-
-if missing_dependencies:
-    raise ImportError("Missing required dependencies {0}".format(missing_dependencies))
 
 from digitalrivers.accumulation import Accumulation
 from digitalrivers.dem import DEM
@@ -47,18 +44,3 @@ __all__ = [
     "Terrain",
     "WatershedRaster",
 ]
-
-__doc__ = """digital-rivers — GIS utility package for DEM processing,
-terrain analysis, and hydrologic modelling.
-
-Public surface exposed at the package root:
-
-* ``DEM`` — digital-elevation-model processor (filling, breaching, flow
-  direction, accumulation, slope, exporters, …).
-* ``Terrain`` — colour-relief raster generation.
-* ``FlowDirection`` / ``Accumulation`` / ``StreamRaster`` /
-  ``WatershedRaster`` — typed result classes with routing-scheme
-  provenance tagging.
-* ``Mesh`` — triangle-mesh container with Laplacian smoothing and
-  aspect-ratio quality metrics (Phase 4 P33).
-"""
