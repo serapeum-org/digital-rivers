@@ -26,7 +26,9 @@ classifiers = [
 requires-python = ">= 3.11, <4"
 
 dependencies = [
+    "gdal >=3.10.0,<4",
     "geopandas >=1.0.0",
+    "numba",
     "numpy >=2.0.0",
     "pyramids-gis >=0.18.0",
 ]
