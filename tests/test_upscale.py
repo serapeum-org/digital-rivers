@@ -75,36 +75,51 @@ def test_cotat_returns_dem_when_input_dem_supplied():
     assert up_dem.shape == up_fd.shape
 
 
-def test_eam_not_implemented():
+def test_eam_now_implemented():
+    """EAM shipped in the backfill — verify the accumulation-weighted
+    voting kernel returns a coarse FlowDirection."""
     z = np.array(
         [
-            [9, 9, 9, 9],
-            [9, 5, 4, 1],
-            [9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
         ],
         dtype=np.float32,
     )
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    with pytest.raises(NotImplementedError, match="eam"):
-        fd.upscale(scale_factor=2, method="eam", accumulation=acc)
+    _, up = fd.upscale(scale_factor=2, method="eam", accumulation=acc)
+    assert isinstance(up, FlowDirection)
 
 
-def test_dmm_not_implemented():
+def test_dmm_now_implemented():
+    """DMM shipped in the backfill — verify uniform-weight voting works."""
     z = np.array(
         [
-            [9, 9, 9, 9],
-            [9, 5, 4, 1],
-            [9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
         ],
         dtype=np.float32,
     )
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
-    acc = fd.accumulate()
-    with pytest.raises(NotImplementedError, match="dmm"):
-        fd.upscale(scale_factor=2, method="dmm", accumulation=acc)
+    _, up = fd.upscale(scale_factor=2, method="dmm")
+    assert isinstance(up, FlowDirection)
+
+
+def test_eam_without_accumulation_raises():
+    z = np.array(
+        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9], [9, 9, 9, 9]],
+        dtype=np.float32,
+    )
+    dem = _make_dem(z)
+    fd = dem.flow_direction(method="d8")
+    with pytest.raises(ValueError, match="EAM"):
+        fd.upscale(scale_factor=2, method="eam")
 
 
 def test_missing_accumulation_for_cotat_raises():

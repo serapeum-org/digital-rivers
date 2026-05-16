@@ -339,9 +339,14 @@ class FlowDirection(Dataset):
             ))
         if method == "ihu":
             return self.upscale_ihu(scale_factor, accumulation, dem)[:2]
+        if method in ("eam", "dmm"):
+            return self._upscale_eam_or_dmm(
+                scale_factor, method=method, accumulation=accumulation, dem=dem,
+            )
         if method != "cotat":
             raise NotImplementedError(
-                f"method={method!r} not yet implemented (only 'cotat')"
+                f"method={method!r} not yet implemented "
+                "(only 'cotat', 'eam', 'dmm')"
             )
         if not isinstance(accumulation, Accumulation):
             raise ValueError("COTAT requires an Accumulation input")
@@ -483,6 +488,138 @@ class FlowDirection(Dataset):
             upscaled_dem = _DEM(plain_dem.raster)
         else:
             upscaled_dem = None
+        return upscaled_dem, upscaled_fdir
+
+    def _upscale_eam_or_dmm(
+        self,
+        scale_factor: int,
+        method: str,
+        accumulation=None,
+        dem=None,
+    ) -> tuple:
+        """EAM (Olivera 2002) / DMM upscalers — voting-based variants.
+
+        For each coarse cell, every fine cell inside the block traces
+        downstream until it exits the block; the exit direction (in coarse
+        coordinates) is the fine cell's vote. The winning direction:
+
+        - ``"dmm"``: most-voted direction. Each fine cell votes with
+          weight 1.
+        - ``"eam"``: most accumulation-weighted direction. Each fine cell
+          votes with weight = its accumulation (so high-accumulation cells
+          dominate the choice).
+
+        Args:
+            scale_factor: Integer coarsening factor.
+            method: ``"eam"`` or ``"dmm"``.
+            accumulation: Required for ``"eam"`` (provides per-cell vote
+                weight). Ignored for ``"dmm"``.
+            dem: Optional input DEM; when supplied, the coarse-grid DEM
+                reports the elevation of each coarse cell's COTAT-style
+                outlet (highest-accumulation fine cell in the block).
+
+        Returns:
+            Tuple ``(upscaled_dem, upscaled_fdir)``.
+        """
+        import numpy as np
+
+        from digitalrivers.accumulation import Accumulation
+
+        fdir = self.read_array().astype(np.int32, copy=False)
+        rows, cols = fdir.shape
+        gt = self.geotransform
+        out_rows = rows // scale_factor
+        out_cols = cols // scale_factor
+
+        if method == "eam":
+            if not isinstance(accumulation, Accumulation):
+                raise ValueError(
+                    "EAM upscaling requires an Accumulation input"
+                )
+            weights = accumulation.read_array().astype(np.float64, copy=False)
+        else:  # dmm
+            weights = None
+
+        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
+        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        coarse_fdir = np.full(
+            (out_rows, out_cols), Dataset.default_no_data_value, dtype=np.int32,
+        )
+
+        for br in range(out_rows):
+            for bc in range(out_cols):
+                r_lo = br * scale_factor
+                r_hi = r_lo + scale_factor
+                c_lo = bc * scale_factor
+                c_hi = c_lo + scale_factor
+                votes = np.zeros(8, dtype=np.float64)
+                for fr in range(r_lo, r_hi):
+                    for fc in range(c_lo, c_hi):
+                        r = fr
+                        c = fc
+                        w = 1.0 if weights is None else float(weights[fr, fc])
+                        while True:
+                            d = int(fdir[r, c])
+                            if d < 0 or d > 7:
+                                break
+                            nr = r + int(d_row[d])
+                            nc = c + int(d_col[d])
+                            if not (0 <= nr < rows and 0 <= nc < cols):
+                                break
+                            if not (r_lo <= nr < r_hi and c_lo <= nc < c_hi):
+                                coarse_dr = (nr // scale_factor) - br
+                                coarse_dc = (nc // scale_factor) - bc
+                                for k in range(8):
+                                    if (
+                                        int(d_row[k]) == coarse_dr
+                                        and int(d_col[k]) == coarse_dc
+                                    ):
+                                        votes[k] += w
+                                        break
+                                break
+                            r = nr
+                            c = nc
+                if votes.max() > 0:
+                    coarse_fdir[br, bc] = int(np.argmax(votes))
+
+        coarse_gt = (
+            gt[0], gt[1] * scale_factor, gt[2],
+            gt[3], gt[4], gt[5] * scale_factor,
+        )
+        plain_fdir = Dataset.create_from_array(
+            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            no_data_value=Dataset.default_no_data_value,
+        )
+        upscaled_fdir = FlowDirection.from_dataset(
+            plain_fdir, routing="d8", encoding=self.encoding,
+        )
+        upscaled_dem = None
+        if dem is not None and weights is not None:
+            from digitalrivers.dem import DEM as _DEM
+            coarse_z = np.full(
+                (out_rows, out_cols), Dataset.default_no_data_value,
+                dtype=np.float32,
+            )
+            z = dem.read_array().astype(np.float64, copy=False)
+            for br in range(out_rows):
+                for bc in range(out_cols):
+                    block_acc = weights[
+                        br * scale_factor : (br + 1) * scale_factor,
+                        bc * scale_factor : (bc + 1) * scale_factor,
+                    ]
+                    idx = int(np.argmax(block_acc))
+                    fr = br * scale_factor + idx // scale_factor
+                    fc = bc * scale_factor + idx % scale_factor
+                    zv = z[fr, fc]
+                    coarse_z[br, bc] = (
+                        float(zv) if np.isfinite(zv)
+                        else Dataset.default_no_data_value
+                    )
+            plain_dem = Dataset.create_from_array(
+                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                no_data_value=Dataset.default_no_data_value,
+            )
+            upscaled_dem = _DEM(plain_dem.raster)
         return upscaled_dem, upscaled_fdir
 
     def subbasins_pfafstetter(
