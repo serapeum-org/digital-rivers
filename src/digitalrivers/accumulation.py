@@ -8,6 +8,9 @@ sum per cell) does not depend on the routing scheme.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import numpy as np
 from osgeo import gdal
 from pyramids.dataset import Dataset
 
@@ -16,6 +19,83 @@ from digitalrivers._metadata import (
     META_ROUTING,
     VALID_ROUTING,
 )
+
+if TYPE_CHECKING:
+    from digitalrivers.stream_raster import StreamRaster
+
+
+def _resolve_envelope(
+    envelope: Dataset | np.ndarray, shape: tuple[int, int]
+) -> np.ndarray:
+    """Coerce an envelope spec into a bool mask aligned to ``shape``.
+
+    ``envelope`` may be a :class:`Dataset` (its no-data sentinel becomes the
+    outside-envelope marker), a bool ndarray, or any ndarray that gets cast
+    to bool. For Datasets that lack a ``no_data_value``, finite-vs-NaN is the
+    inclusion criterion.
+
+    Args:
+        envelope: Either a pyramids ``Dataset`` or a 2-D ndarray of the same
+            shape as the accumulation. Datasets are read; ndarrays are cast
+            to bool if not already.
+        shape: ``(rows, cols)`` the returned mask must match.
+
+    Returns:
+        ``(rows, cols)`` bool ndarray. True = cell is inside the data
+        envelope and may participate in stream extraction.
+
+    Raises:
+        ValueError: If the resolved mask shape does not match ``shape``.
+
+    Examples:
+        - Resolve a bool ndarray (passthrough with shape validation):
+
+            >>> import numpy as np
+            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> env = np.array([[True, False], [True, True]])
+            >>> mask = _resolve_envelope(env, (2, 2))
+            >>> mask.dtype
+            dtype('bool')
+            >>> int(mask.sum())
+            3
+
+        - Cast an int ndarray (0/1) to bool:
+
+            >>> import numpy as np
+            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> env = np.array([[1, 0], [1, 1]], dtype=np.uint8)
+            >>> mask = _resolve_envelope(env, (2, 2))
+            >>> mask.tolist()
+            [[True, False], [True, True]]
+
+        - Shape mismatch is rejected:
+
+            >>> import numpy as np
+            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> _resolve_envelope(np.zeros((3, 3), dtype=bool), (2, 2))
+            Traceback (most recent call last):
+                ...
+            ValueError: envelope shape (3, 3) does not match accumulation shape (2, 2)
+    """
+    if isinstance(envelope, Dataset):
+        arr = envelope.read_array()
+        no_val = (
+            envelope.no_data_value[0] if envelope.no_data_value else None
+        )
+        if no_val is not None:
+            mask = np.isfinite(arr) & (arr != no_val)
+        else:
+            mask = np.isfinite(arr)
+    else:
+        mask = np.asarray(envelope)
+        if mask.dtype != bool:
+            mask = mask.astype(bool, copy=False)
+    if mask.shape != shape:
+        raise ValueError(
+            f"envelope shape {mask.shape} does not match accumulation "
+            f"shape {shape}"
+        )
+    return mask
 
 
 class Accumulation(Dataset):
@@ -88,14 +168,24 @@ class Accumulation(Dataset):
         self,
         threshold: float | int,
         units: str = "cells",
-        slope_dem: "Dataset | None" = None,  # noqa: F821
+        slope_dem: Dataset | None = None,
         area_slope_exponent: float | None = None,
-    ) -> "StreamRaster":  # noqa: F821
+        envelope: Dataset | np.ndarray | None = None,
+    ) -> StreamRaster:
         """Extract a stream-network raster from this accumulation surface.
 
         A cell is a stream cell when its accumulation (or its slope-area
         support, if ``slope_dem`` and ``area_slope_exponent`` are supplied)
         meets or exceeds the threshold.
+
+        **No-data semantics.** The accumulation raster carries the dataset's
+        ``no_data_value`` sentinel, but kahn-sort accumulation produces
+        non-negative sums for every in-grid cell — the sentinel never appears
+        in valid output, so the built-in ``acc != no_val`` gate is a no-op for
+        accumulations produced by :meth:`FlowDirection.accumulate`. To
+        actually mask cells outside the source-DEM data envelope, pass the
+        envelope mask (or the source DEM) via the ``envelope`` kwarg. When
+        omitted, every in-grid cell is considered valid.
 
         Args:
             threshold: Minimum accumulation for stream classification. Units
@@ -109,6 +199,11 @@ class Accumulation(Dataset):
                 ``acc * slope ** area_slope_exponent`` instead of ``acc``.
             area_slope_exponent: Theta in the area-slope formula
                 ``A * S^theta >= k``. Typical value ≈ 2.
+            envelope: Optional source-DEM envelope. Either a ``Dataset`` whose
+                no-data sentinel marks outside-envelope cells, or a bool
+                ndarray same shape as this accumulation (True = inside the
+                envelope). When provided, cells outside the envelope cannot
+                become stream cells regardless of accumulation.
 
         Returns:
             StreamRaster carrying ``threshold`` (in cells) and this
@@ -117,8 +212,50 @@ class Accumulation(Dataset):
             input's no-data positions are propagated.
 
         Raises:
-            ValueError: If ``units`` is not recognised, or if only one of
-                ``slope_dem`` / ``area_slope_exponent`` is supplied.
+            ValueError: If ``units`` is not recognised, if only one of
+                ``slope_dem`` / ``area_slope_exponent`` is supplied, or if
+                ``envelope`` has a shape that does not match the accumulation
+                raster.
+
+        Examples:
+            - Extract a stream raster from a small east-flowing DEM with a
+              one-cell accumulation threshold:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> sr = dem.flow_direction(method="d8").accumulate().streams(threshold=1)
+                >>> int(sr.read_array().sum()) >= 1
+                True
+
+            - Apply an envelope mask to exclude the first row from the result:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> acc = DEM(ds.raster).flow_direction(method="d8").accumulate()
+                >>> env = np.ones(acc.read_array().shape, dtype=bool)
+                >>> env[0, :] = False
+                >>> sr = acc.streams(threshold=1, envelope=env)
+                >>> int(sr.read_array()[0, :].sum())
+                0
         """
         import numpy as np
 
@@ -155,6 +292,10 @@ class Accumulation(Dataset):
             valid = finite & (acc_arr != no_val)
         else:
             valid = finite
+
+        if envelope is not None:
+            env_mask = _resolve_envelope(envelope, acc_arr.shape)
+            valid = valid & env_mask
 
         if slope_dem is not None:
             slope_arr = slope_dem.read_array().astype(np.float64, copy=False)

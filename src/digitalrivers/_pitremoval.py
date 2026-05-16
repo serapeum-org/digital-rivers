@@ -77,6 +77,18 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
             >>> z = np.arange(16, dtype=float).reshape(4, 4)
             >>> local_minima_8(z).any()
             np.False_
+
+        - NaN cells are excluded from output and from neighbour minimum
+          comparisons:
+
+            >>> import numpy as np
+            >>> z = np.array([
+            ...     [5., 5., 5.],
+            ...     [5., np.nan, 5.],
+            ...     [5., 5., 5.],
+            ... ])
+            >>> bool(local_minima_8(z).any())
+            False
     """
     if z.ndim != 2:
         raise ValueError(f"local_minima_8 expects a 2-D array; got {z.ndim}-D")
@@ -84,21 +96,32 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
     if nodata_mask is not None:
         nan_mask = nan_mask | nodata_mask.astype(bool, copy=False)
     rows, cols = z.shape
-    out = np.zeros((rows, cols), dtype=bool)
-    for r in range(1, rows - 1):
-        for c in range(1, cols - 1):
-            if nan_mask[r, c]:
-                continue
-            window = z[r - 1 : r + 2, c - 1 : c + 2]
-            others = np.delete(window.ravel(), 4)
-            valid = ~np.isnan(others)
-            if nodata_mask is not None:
-                nm_window = nodata_mask[r - 1 : r + 2, c - 1 : c + 2]
-                valid = valid & ~np.delete(nm_window.ravel(), 4)
-            if not valid.any():
-                continue
-            if z[r, c] < others[valid].min():
-                out[r, c] = True
+
+    # Replace invalid cells with NaN so np.fmin ignores them in neighbour reductions.
+    z_clean = np.where(nan_mask, np.nan, z).astype(np.float64, copy=False)
+
+    # Pad with NaN so out-of-bounds neighbours don't contribute.
+    padded = np.pad(z_clean, 1, mode="constant", constant_values=np.nan)
+
+    # Reduce the 8 shifted neighbour planes via np.fmin (NaN-aware: prefers the
+    # finite operand). Result is per-cell minimum over valid neighbours, or +inf
+    # if every neighbour is NaN / no-data.
+    neighbour_min = np.full((rows, cols), np.inf, dtype=np.float64)
+    for dr, dc in _NEIGHBOURS_8:
+        shifted = padded[1 + dr : 1 + dr + rows, 1 + dc : 1 + dc + cols]
+        neighbour_min = np.fmin(neighbour_min, shifted)
+
+    out = (
+        (~nan_mask)
+        & np.isfinite(neighbour_min)
+        & (z_clean < neighbour_min)
+    )
+    # Boundary cells (first / last row and column) have fewer than 8 neighbours;
+    # match the original behaviour by excluding them.
+    out[0, :] = False
+    out[-1, :] = False
+    out[:, 0] = False
+    out[:, -1] = False
     return out
 
 

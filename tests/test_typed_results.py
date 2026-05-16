@@ -15,7 +15,6 @@ from osgeo import gdal
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, Accumulation, FlowDirection, StreamRaster
-from digitalrivers._metadata import META_ENCODING, META_ROUTING, META_THRESHOLD
 
 
 def _make_plain_dataset(arr: np.ndarray) -> Dataset:

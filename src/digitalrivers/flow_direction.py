@@ -10,6 +10,8 @@ consumer.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from osgeo import gdal
 from pyramids.dataset import Dataset
 
@@ -20,6 +22,12 @@ from digitalrivers._metadata import (
     VALID_ENCODING,
     VALID_ROUTING,
 )
+
+if TYPE_CHECKING:
+    import numpy as np
+
+    from digitalrivers.accumulation import Accumulation
+    from digitalrivers.watershed_raster import WatershedRaster
 
 
 class FlowDirection(Dataset):
@@ -146,7 +154,7 @@ class FlowDirection(Dataset):
             )
         return cls(ds.raster, routing=resolved_routing, encoding=resolved_encoding)
 
-    def accumulate(self, weights: Dataset | None = None) -> "Accumulation":  # noqa: F821
+    def accumulate(self, weights: Dataset | None = None) -> Accumulation:
         """Run flow accumulation over this raster's routing scheme.
 
         Implements a Kahn topological-sort sweep that handles all five routing
@@ -191,7 +199,7 @@ class FlowDirection(Dataset):
         )
         return Accumulation.from_dataset(plain, routing=self.routing)
 
-    def _valid_mask_from_array(self, arr) -> "np.ndarray":  # noqa: F821
+    def _valid_mask_from_array(self, arr) -> np.ndarray:
         """Compute the (rows, cols) bool mask of valid-data cells from the raster.
 
         For accumulation purposes ``valid`` means "this cell can hold and receive a
@@ -682,7 +690,7 @@ class FlowDirection(Dataset):
         streams,
         level: int = 1,
         encoding: str = "packed_int",
-    ) -> "WatershedRaster":  # noqa: F821
+    ) -> WatershedRaster:
         """Compute Pfafstetter (Verdin & Verdin 1999) hierarchical codes.
 
         Single-basin level-1 implementation: identifies the main stem (the
@@ -1003,7 +1011,7 @@ class FlowDirection(Dataset):
         min_area_cells: int | None = None,
         min_area_km2: float | None = None,
         merge_small: str = "drop",
-    ) -> "WatershedRaster":  # noqa: F821
+    ) -> WatershedRaster:
         """Partition the entire DEM into basins, one label per terminal outlet.
 
         Detects every cell whose flow direction is the no-data sentinel
@@ -1139,7 +1147,7 @@ class FlowDirection(Dataset):
         self,
         pour_points,
         require_unique_basins: bool = False,
-    ) -> "WatershedRaster":  # noqa: F821
+    ) -> WatershedRaster:
         """Delineate the upstream watershed of each pour point.
 
         Reverse-BFS from every pour-point cell, labelling every contributing

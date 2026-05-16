@@ -99,6 +99,14 @@ class DEM(Dataset):
         (they cannot be filled, and data cells adjacent to them are seeded as drainage
         sources alongside the true raster boundary).
 
+        **Precision note.** Priority-flood / planchon-darboux compute the cumulative lift
+        in float64 but the output is cast back to the input dtype. For ``float32`` DEMs
+        with ``epsilon`` in the ``0.1``-class on wide plateaus, the accumulated lift can
+        approach float32's relative precision near the spill elevation and very long
+        plateaus may underflow to identical filled values. Prefer ``float64`` inputs
+        when running with ``epsilon > 0`` and large depressions; ``wang_liu`` /
+        ``epsilon=0`` are immune.
+
         Args:
             method: One of ``"priority_flood"``, ``"wang_liu"``, ``"planchon_darboux"``.
             epsilon: Per-step elevation lift inside depressions. ``0.0`` (default for
@@ -1602,12 +1610,73 @@ class DEM(Dataset):
             ``Dataset.default_no_data_value``. Cell values are the count of
             (or weighted sum over) strictly-upstream cells — the cell's own
             weight does not contribute to its own value.
+
+        Warns:
+            UserWarning: When ``flow_direction.routing`` produces fractional
+                accumulations (``"dinf"``, ``"mfd_quinn"``, ``"mfd_holmgren"``).
+                The legacy ``int32`` cast truncates these toward zero, which is
+                almost always wrong; call ``flow_direction.accumulate(...)``
+                directly to get the fractional ``Accumulation`` raster.
+
+        Examples:
+            - Compute D8 cell-count accumulation on a small east-flowing DEM
+              and inspect the outlet value:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> fd = dem.flow_direction(method="d8")
+                >>> acc = dem.flow_accumulation(fd)
+                >>> int(acc.read_array().max()) > 0
+                True
+
+            - A D∞ ``FlowDirection`` triggers the truncation warning:
+
+                >>> import warnings
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.array(
+                ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> fd = dem.flow_direction(method="dinf")
+                >>> with warnings.catch_warnings(record=True) as caught:
+                ...     warnings.simplefilter("always")
+                ...     _ = dem.flow_accumulation(fd)
+                >>> any("int32" in str(w.message) for w in caught)
+                True
         """
         del dir_offsets  # legacy positional kwarg, no longer used
+        import warnings
 
         if not isinstance(flow_direction, FlowDirection):
             # Wrap a bare Dataset as D8 for back-compat callers.
             flow_direction = FlowDirection.from_dataset(flow_direction, routing="d8")
+
+        if flow_direction.routing not in ("d8", "rho8"):
+            warnings.warn(
+                f"DEM.flow_accumulation casts to int32 and truncates fractional "
+                f"accumulations for routing={flow_direction.routing!r}. Call "
+                f"flow_direction.accumulate(...) directly to get the float32 "
+                f"Accumulation raster.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         acc = flow_direction.accumulate(weights=weights)
         arr = acc.read_array().astype(np.int32, copy=False)

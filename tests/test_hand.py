@@ -172,3 +172,66 @@ class TestDEMHand:
         fd_small = small.flow_direction(method="d8")
         with pytest.raises(ValueError, match="Shape mismatch"):
             dem.hand(sr, fd_small)
+
+
+# --- Orphan-chain memoisation (I5 fix) -------------------------------------
+
+
+class TestHandOrphanMemoisation:
+    """``hand_d8`` must memoise unreachable cells so a long orphan chain
+    does not pessimise to O(N²) (I5 fix)."""
+
+    def test_orphan_chain_all_nan(self):
+        """A long downhill chain that never reaches a stream stays NaN."""
+        n = 50
+        elev = np.arange(n, dtype=np.float64).reshape(1, n)[::-1]
+        # Single-row chain pointing east (6) all the way; last cell is a sink.
+        fdir = np.full((1, n), 6, dtype=np.int32)
+        fdir[0, -1] = -1
+        # No stream cells at all → every cell is an orphan.
+        stream_mask = np.zeros((1, n), dtype=bool)
+        out = hand_d8(elev, fdir, stream_mask)
+        assert np.isnan(out).all()
+
+    def test_orphan_chain_completes_quickly(self):
+        """200-cell orphan chain finishes well under one second; the
+        memoisation prevents the O(L²) re-walk."""
+        import time
+
+        n = 200
+        elev = np.arange(n, dtype=np.float64).reshape(1, n)[::-1]
+        fdir = np.full((1, n), 6, dtype=np.int32)
+        fdir[0, -1] = -1
+        stream_mask = np.zeros((1, n), dtype=bool)
+        t0 = time.perf_counter()
+        out = hand_d8(elev, fdir, stream_mask)
+        elapsed = time.perf_counter() - t0
+        assert np.isnan(out).all()
+        assert elapsed < 1.0, (
+            f"hand_d8 on 200-cell orphan chain took {elapsed:.3f}s — "
+            f"unreachable-memoisation may be broken"
+        )
+
+    def test_mixed_reachable_and_orphan_paths(self):
+        """A two-row grid where one row reaches a stream and the other
+        doesn't: reachable cells get finite HAND, orphans stay NaN."""
+        elev = np.array(
+            [
+                [4.0, 3.0, 2.0, 1.0],  # reaches the stream at (0, 3)
+                [9.0, 8.0, 7.0, 6.0],  # orphan: walks east into a sink
+            ],
+            dtype=np.float64,
+        )
+        # Row 0 walks east (6) into the stream at col 3.
+        # Row 1 walks east (6) but the rightmost cell is a sink (-1).
+        fdir = np.array(
+            [[6, 6, 6, -1], [6, 6, 6, -1]], dtype=np.int32
+        )
+        stream_mask = np.zeros((2, 4), dtype=bool)
+        stream_mask[0, 3] = True
+        out = hand_d8(elev, fdir, stream_mask)
+        # Row 0: reaches the stream, every value finite.
+        assert np.isfinite(out[0]).all()
+        assert float(out[0, 0]) == pytest.approx(3.0)
+        # Row 1: orphan — all NaN.
+        assert np.isnan(out[1]).all()

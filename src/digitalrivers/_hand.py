@@ -55,10 +55,25 @@ def hand_d8(
             (8.0, 7.0)
             >>> float(hand[1, 0])
             0.0
+
+        - An east-flowing chain with no stream cells is an orphan; the entire
+          chain returns NaN (and the unreachable memo keeps the walk linear):
+
+            >>> import numpy as np
+            >>> elev = np.array([[4.0, 3.0, 2.0, 1.0]])
+            >>> fdir = np.array([[6, 6, 6, -1]], dtype=np.int32)
+            >>> stream_mask = np.zeros((1, 4), dtype=bool)
+            >>> out = hand_d8(elev, fdir, stream_mask)
+            >>> bool(np.isnan(out).all())
+            True
     """
     rows, cols = elev.shape
     hand = np.full((rows, cols), np.nan, dtype=np.float64)
     hand[stream_mask] = 0.0
+    # Second memo: cells whose downstream walk has been shown not to reach a
+    # stream. Without this, an orphan tree of length L makes the outer
+    # double-for re-walk every prefix, giving O(L^2) worst-case.
+    unreachable = np.zeros((rows, cols), dtype=bool)
 
     elev64 = elev.astype(np.float64, copy=False)
 
@@ -66,15 +81,20 @@ def hand_d8(
         for c0 in range(cols):
             if not np.isnan(hand[r0, c0]):
                 continue
+            if unreachable[r0, c0]:
+                continue
             if np.isnan(elev64[r0, c0]):
                 continue
-            # Walk downstream until we hit a stream cell or a cell with known HAND.
+            # Walk downstream until we hit a stream cell, a cell with known HAND,
+            # or a cell already classified unreachable.
             path: list[tuple[int, int]] = []
             r, c = r0, c0
             reached = False
             while True:
                 if not np.isnan(hand[r, c]):
                     reached = True
+                    break
+                if unreachable[r, c]:
                     break
                 if np.isnan(elev64[r, c]):
                     break
@@ -88,6 +108,9 @@ def hand_d8(
                     break
                 r, c = nr, nc
             if not reached:
+                # Memoise the entire failed path so we don't re-walk it.
+                for pr, pc in path:
+                    unreachable[pr, pc] = True
                 continue
             # (r, c) is the drain (or a downstream cell with known HAND).
             # drain_elev = elev[r, c] - hand[r, c] — telescoping back to the

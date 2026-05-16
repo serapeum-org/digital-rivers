@@ -59,8 +59,7 @@ def _dinf_facet_tables() -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
     cardinal_idx = np.array([6, 4, 4, 2, 2, 0, 0, 6], dtype=np.int8)
     diagonal_idx = np.array([5, 5, 3, 3, 1, 1, 7, 7], dtype=np.int8)
     ac = np.array([0, 1, 1, 2, 2, 3, 3, 4], dtype=np.int8)
-    af = np.array([1, -1, 1, -1, 1, -1, 1, 1, ], dtype=np.int8)  # last is af=-1 below
-    af[7] = -1
+    af = np.array([1, -1, 1, -1, 1, -1, 1, -1], dtype=np.int8)
     return cardinal_idx, diagonal_idx, ac, af
 
 

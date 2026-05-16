@@ -7,6 +7,8 @@ any ``routing`` outside the supported single-direction set up front.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from osgeo import gdal
 from pyramids.dataset import Dataset
 
@@ -16,6 +18,9 @@ from digitalrivers._metadata import (
     META_THRESHOLD,
     VALID_ROUTING,
 )
+
+if TYPE_CHECKING:
+    from digitalrivers.watershed_raster import WatershedRaster
 
 
 class StreamRaster(Dataset):
@@ -40,7 +45,7 @@ class StreamRaster(Dataset):
     threshold: float | int
     routing: str
 
-    _SUPPORTED_ROUTING: frozenset[str] = frozenset({"d8"})
+    _SUPPORTED_ROUTING: frozenset[str] = frozenset({"d8", "rho8"})
 
     def __init__(
         self,
@@ -127,7 +132,7 @@ class StreamRaster(Dataset):
         self,
         flow_direction,
         method: str = "link",
-    ) -> "WatershedRaster":  # noqa: F821
+    ) -> WatershedRaster:
         """Partition the basin into one sub-basin per stream link.
 
         Each cell is labelled with the ID of the first downstream stream

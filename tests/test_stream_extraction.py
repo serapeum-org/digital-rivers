@@ -186,3 +186,76 @@ def test_returns_typed_stream_raster():
     assert type(sr) is StreamRaster
     assert sr.threshold == pytest.approx(2.0)
     assert sr.routing == "d8"
+
+
+# --- envelope kwarg (I1 fix) -----------------------------------------------
+
+
+def _simple_acc() -> Accumulation:
+    z = np.array(
+        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
+    )
+    return _build_acc(_make_dem(z))
+
+
+class TestStreamsEnvelopeKwarg:
+    """Coverage for ``Accumulation.streams(envelope=...)`` (I1 fix)."""
+
+    def test_envelope_dataset_no_data_excludes_cells(self):
+        """Passing a Dataset whose no_data_value masks some cells excludes
+        them from the stream raster regardless of accumulation."""
+        acc = _simple_acc()
+        rows, cols = acc.read_array().shape
+        env_arr = np.ones((rows, cols), dtype=np.float32)
+        env_arr[0, :] = -9999.0  # entire row marked no-data
+        env_ds = Dataset.create_from_array(
+            env_arr, top_left_corner=(0.0, 0.0), cell_size=1.0,
+            epsg=4326, no_data_value=-9999.0,
+        )
+        sr = acc.streams(threshold=1, envelope=env_ds)
+        arr = sr.read_array()
+        assert int(arr[0, :].sum()) == 0, "Row 0 should be excluded by envelope"
+
+    def test_envelope_ndarray_bool_input(self):
+        """A bool ndarray envelope masks cells where False."""
+        acc = _simple_acc()
+        rows, cols = acc.read_array().shape
+        env = np.ones((rows, cols), dtype=bool)
+        env[:, 0] = False  # entire col 0 excluded
+        sr = acc.streams(threshold=1, envelope=env)
+        assert int(sr.read_array()[:, 0].sum()) == 0
+
+    def test_envelope_ndarray_non_bool_input_cast(self):
+        """A non-bool ndarray (e.g. uint8 0/1) is cast to bool."""
+        acc = _simple_acc()
+        rows, cols = acc.read_array().shape
+        env = np.ones((rows, cols), dtype=np.uint8)
+        env[1, 0] = 0
+        sr = acc.streams(threshold=1, envelope=env)
+        assert int(sr.read_array()[1, 0]) == 0
+
+    def test_envelope_dataset_without_nodata_uses_finite_mask(self):
+        """A Dataset without a no_data_value falls back to ``isfinite``."""
+        acc = _simple_acc()
+        rows, cols = acc.read_array().shape
+        env_arr = np.ones((rows, cols), dtype=np.float32)
+        env_arr[0, 0] = np.nan  # NaN should be excluded
+        env_ds = Dataset.create_from_array(
+            env_arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        )
+        sr = acc.streams(threshold=1, envelope=env_ds)
+        assert int(sr.read_array()[0, 0]) == 0
+
+    def test_envelope_all_false_yields_no_streams(self):
+        """An all-False envelope produces zero stream cells."""
+        acc = _simple_acc()
+        env = np.zeros_like(acc.read_array(), dtype=bool)
+        sr = acc.streams(threshold=1, envelope=env)
+        assert int(sr.read_array().sum()) == 0
+
+    def test_envelope_shape_mismatch_raises(self):
+        """A mismatched-shape envelope raises ValueError with shape info."""
+        acc = _simple_acc()
+        bad = np.zeros((5, 5), dtype=bool)
+        with pytest.raises(ValueError, match="envelope shape"):
+            acc.streams(threshold=1, envelope=bad)
