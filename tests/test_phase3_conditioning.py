@@ -112,10 +112,16 @@ def test_enforce_breaklines_raises_line_cells():
     assert (vals[2, :] >= 14.5).all()
 
 
-# ----- P25: ANUDEM not implemented ------------------------------------------
+# ----- P25: ANUDEM-lite is now implemented (Laplacian relaxation) -----------
 
-def test_anudem_not_implemented():
-    z = np.full((4, 4), 10.0, dtype=np.float32)
+def test_anudem_lite_now_implemented():
+    """P25 ANUDEM-lite was shipped in a backfill commit — verify it
+    returns a typed DEM with finite values."""
+    z = np.array(
+        [[10, np.nan, 5], [np.nan, np.nan, np.nan], [10, np.nan, 5]],
+        dtype=np.float32,
+    )
     dem = _make_dem(z)
-    with pytest.raises(NotImplementedError, match="ANUDEM"):
-        dem.anudem_interpolate()
+    out = dem.anudem_interpolate()
+    assert isinstance(out, DEM)
+    assert np.all(np.isfinite(out.values))
