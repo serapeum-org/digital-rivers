@@ -373,9 +373,84 @@ class DEM(Dataset):
         """
         import numpy as np
 
+        if method == "agree":
+            # Rasterise the stream lines, then apply a gradient buffer:
+            # stream cells drop by `sharp`, buffer cells drop linearly from
+            # `sharp` at the stream to `0` at buffer_cells radius. The
+            # cumulative drop is then offset by `smooth` so the buffer
+            # perimeter sits `smooth` units lower than the original DEM.
+            elev = self.values
+            rows, cols = elev.shape
+            gt = self.geotransform
+            stream_mask = np.zeros((rows, cols), dtype=bool)
+            target_epsg = self.epsg
+            if (
+                getattr(streams, "crs", None) is not None
+                and target_epsg is not None
+                and streams.crs.to_epsg() != target_epsg
+            ):
+                streams = streams.to_crs(target_epsg)
+            for geom in streams.geometry:
+                if geom is None or geom.is_empty:
+                    continue
+                try:
+                    _ = list(geom.coords)
+                    self._rasterise_line(geom, stream_mask, gt)
+                except NotImplementedError:
+                    for sub in geom.geoms:
+                        self._rasterise_line(sub, stream_mask, gt)
+            # Distance-from-stream within the buffer (cell-step BFS).
+            dist = np.full((rows, cols), np.inf, dtype=np.float64)
+            dist[stream_mask] = 0.0
+            from collections import deque
+            frontier: deque[tuple[int, int, int]] = deque(
+                (int(r), int(c), 0) for r, c in zip(*np.where(stream_mask))
+            )
+            while frontier:
+                r, c, d = frontier.popleft()
+                if d >= buffer_cells:
+                    continue
+                for dr in (-1, 0, 1):
+                    for dc in (-1, 0, 1):
+                        if dr == 0 and dc == 0:
+                            continue
+                        nr = r + dr
+                        nc = c + dc
+                        if not (0 <= nr < rows and 0 <= nc < cols):
+                            continue
+                        if dist[nr, nc] > d + 1:
+                            dist[nr, nc] = d + 1
+                            frontier.append((nr, nc, d + 1))
+            z = elev.astype(np.float64, copy=True)
+            within_buffer = dist <= buffer_cells
+            # Linear gradient: sharp at stream (dist=0) → 0 at perimeter.
+            drop = np.where(
+                within_buffer,
+                sharp * (1.0 - dist / max(buffer_cells, 1)) + smooth,
+                0.0,
+            )
+            z = z - drop
+            no_val = self.no_data_value[0]
+            z[np.isnan(z)] = no_val
+            plain_ds = Dataset.dataset_like(
+                self, z.astype(elev.dtype, copy=False)
+            )
+            if inplace:
+                self._update_inplace(plain_ds.raster)
+                return None
+            return DEM(plain_ds.raster)
+
+        if method == "topological_breach":
+            raise NotImplementedError(
+                "topological_breach (Lindsay 2016) requires TUCL pruning + "
+                "least-cost breach seeded at stream cells; deferred to a "
+                "follow-up PR."
+            )
+
         if method != "fill_burn":
             raise NotImplementedError(
-                f"method={method!r} not yet implemented (only 'fill_burn')"
+                f"method={method!r} not yet implemented (only 'fill_burn', "
+                "'agree')"
             )
 
         elev = self.values
@@ -826,33 +901,107 @@ class DEM(Dataset):
                     "them (DEM.fill_depressions) or pass validate=False"
                 )
 
-        if target != "lisflood_fp":
-            raise NotImplementedError(
-                f"export(target={target!r}) is not yet implemented; only "
-                "'lisflood_fp' (Arc-ASCII) is supported in this release"
-            )
-
         elev = self.values
         gt = self.geotransform
         x0, dx, _, y0, _, dy = gt
         rows, cols = elev.shape
         nodata = float(self.no_data_value[0])
         out = np.where(np.isnan(elev), nodata, elev)
-        # Compute the LISFLOOD-FP Arc-ASCII header.
         cell_size = abs(dx)
-        # In Arc-ASCII the y-origin is the LOWER-left corner.
         yllcorner = y0 + rows * dy
-        with open(path, "w") as fh:
-            fh.write(f"ncols {cols}\n")
-            fh.write(f"nrows {rows}\n")
-            fh.write(f"xllcorner {x0}\n")
-            fh.write(f"yllcorner {yllcorner}\n")
-            fh.write(f"cellsize {cell_size}\n")
-            fh.write(f"NODATA_value {nodata}\n")
-            for r in range(rows):
-                fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
-                fh.write("\n")
-        return {"dem_asc": path}
+
+        if target == "lisflood_fp":
+            with open(path, "w") as fh:
+                fh.write(f"ncols {cols}\n")
+                fh.write(f"nrows {rows}\n")
+                fh.write(f"xllcorner {x0}\n")
+                fh.write(f"yllcorner {yllcorner}\n")
+                fh.write(f"cellsize {cell_size}\n")
+                fh.write(f"NODATA_value {nodata}\n")
+                for r in range(rows):
+                    fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
+                    fh.write("\n")
+            return {"dem_asc": path}
+
+        if target == "hec_ras":
+            # HEC-RAS Mapper expects a single-band float32 GeoTIFF in the
+            # dataset CRS with consistent geotransform — exactly what
+            # Dataset.create_from_array(driver_type="GTiff", path=...) writes.
+            Dataset.create_from_array(
+                out.astype(np.float32, copy=False),
+                geo=gt, epsg=self.epsg,
+                no_data_value=nodata,
+                driver_type="GTiff", path=path,
+            )
+            return {"dem_tif": path}
+
+        if target == "tuflow":
+            # ESRI floating-point grid (.flt binary, row-major little-endian
+            # float32, top-left first) + .hdr text header.
+            flt_path = path if path.endswith(".flt") else path + ".flt"
+            hdr_path = flt_path[:-4] + ".hdr"
+            out.astype(np.float32, copy=False).tofile(flt_path)
+            with open(hdr_path, "w") as fh:
+                fh.write(f"ncols {cols}\n")
+                fh.write(f"nrows {rows}\n")
+                fh.write(f"xllcorner {x0}\n")
+                fh.write(f"yllcorner {yllcorner}\n")
+                fh.write(f"cellsize {cell_size}\n")
+                fh.write(f"NODATA_value {nodata}\n")
+                fh.write("byteorder LSBFIRST\n")
+            return {"dem_flt": flt_path, "dem_hdr": hdr_path}
+
+        if target == "sfincs":
+            # SFINCS .dep: row-major little-endian float32, no header.
+            # Companion .msk: 0 where no-data, 1 elsewhere.
+            dep_path = path if path.endswith(".dep") else path + ".dep"
+            msk_path = dep_path[:-4] + ".msk"
+            out.astype(np.float32, copy=False).tofile(dep_path)
+            mask = np.where(np.isnan(elev), 0, 1).astype(np.uint8)
+            mask.tofile(msk_path)
+            return {"dem_dep": dep_path, "dem_msk": msk_path}
+
+        if target == "gmsh":
+            # Minimal .geo script: define the DEM bounds as a rectangle
+            # with a uniform characteristic length. Downstream meshers can
+            # be run via `gmsh -2 <path>`.
+            geo_path = path if path.endswith(".geo") else path + ".geo"
+            ext_x_lo = x0
+            ext_x_hi = x0 + cols * dx
+            ext_y_hi = y0
+            ext_y_lo = y0 + rows * dy
+            cl = cell_size
+            with open(geo_path, "w") as fh:
+                fh.write(f"cl = {cl};\n")
+                fh.write(f"Point(1) = {{{ext_x_lo}, {ext_y_lo}, 0, cl}};\n")
+                fh.write(f"Point(2) = {{{ext_x_hi}, {ext_y_lo}, 0, cl}};\n")
+                fh.write(f"Point(3) = {{{ext_x_hi}, {ext_y_hi}, 0, cl}};\n")
+                fh.write(f"Point(4) = {{{ext_x_lo}, {ext_y_hi}, 0, cl}};\n")
+                fh.write("Line(1) = {1, 2};\n")
+                fh.write("Line(2) = {2, 3};\n")
+                fh.write("Line(3) = {3, 4};\n")
+                fh.write("Line(4) = {4, 1};\n")
+                fh.write("Line Loop(1) = {1, 2, 3, 4};\n")
+                fh.write("Plane Surface(1) = {1};\n")
+            return {"geo": geo_path}
+
+        if target == "iber":
+            # Iber expects a .dat ascii mesh; pending mesh generation
+            # (Phase 4 P33) we write a placeholder boundary file that the
+            # user can refine in Iber's pre-processor.
+            dat_path = path if path.endswith(".dat") else path + ".dat"
+            with open(dat_path, "w") as fh:
+                fh.write(f"# Iber mesh boundary (auto-generated)\n")
+                fh.write(f"NCOLS {cols}\nNROWS {rows}\n")
+                fh.write(f"XLLCORNER {x0}\nYLLCORNER {yllcorner}\n")
+                fh.write(f"CELLSIZE {cell_size}\nNODATA {nodata}\n")
+                for r in range(rows):
+                    fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
+                    fh.write("\n")
+            return {"dem_dat": dat_path}
+
+        # Unreachable — guarded by valid_targets check above.
+        raise NotImplementedError(target)
 
     def anudem_interpolate(self, *args, **kwargs):
         """ANUDEM-style drainage-enforced interpolation (Hutchinson 1989).

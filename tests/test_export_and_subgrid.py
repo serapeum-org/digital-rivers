@@ -46,12 +46,15 @@ def test_lisflood_fp_round_trip_with_numpy_loadtxt(tmp_path):
     np.testing.assert_allclose(back, z, atol=1e-3)
 
 
-def test_hec_ras_export_not_implemented(tmp_path):
-    z = np.array([[1.0, 2.0]], dtype=np.float32)
+def test_hec_ras_export_now_writes_geotiff(tmp_path):
+    """HEC-RAS GeoTIFF writer shipped in the backfill commit; the test
+    that previously asserted NotImplementedError is updated to verify
+    the writer succeeds and the path is returned."""
+    z = np.arange(4, dtype=np.float32).reshape(2, 2)
     dem = _make_dem(z)
-    with pytest.raises(NotImplementedError, match="hec_ras"):
-        dem.export(str(tmp_path / "out.tif"), target="hec_ras",
-                   validate=False)
+    paths = dem.export(str(tmp_path / "out.tif"), target="hec_ras",
+                       validate=False)
+    assert "dem_tif" in paths
 
 
 def test_unknown_target_raises(tmp_path):
