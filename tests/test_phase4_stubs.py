@@ -107,6 +107,36 @@ def test_topobathy_fusion_invalid_blend_raises():
         stubs.topobathy_fusion(topo, topo, blend="bogus")
 
 
+def test_tile_windows_partitions_dataset_into_tiles():
+    """tile_windows yields edge-clipped (row, col, h, w) windows."""
+    import numpy as np
+    from pyramids.dataset import Dataset
+
+    ds = Dataset.create_from_array(
+        np.zeros((10, 10), dtype=np.float32),
+        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+    )
+    wins = list(stubs.tile_windows(ds, tile_rows=4, tile_cols=4))
+    # 10 / 4 = 3 row stripes (4, 4, 2) and 3 col stripes (4, 4, 2) = 9 tiles.
+    assert len(wins) == 9
+    # Edge tile clipped to remaining size.
+    assert (8, 8, 2, 2) in wins
+
+
+def test_tile_windows_invalid_sizes_raise():
+    import numpy as np
+    from pyramids.dataset import Dataset
+
+    ds = Dataset.create_from_array(
+        np.zeros((4, 4), dtype=np.float32),
+        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+    )
+    with pytest.raises(ValueError, match="tile_rows"):
+        list(stubs.tile_windows(ds, tile_rows=0, tile_cols=2))
+    with pytest.raises(ValueError, match="overlap"):
+        list(stubs.tile_windows(ds, tile_rows=2, tile_cols=2, overlap=-1))
+
+
 def test_module_loads_and_exposes_all_eight_stubs():
     """The module wires up the full Phase 4 API surface so downstream
     callers can ``from digitalrivers._phase4_stubs import …``."""
