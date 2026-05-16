@@ -38,38 +38,90 @@ def test_ihu_scale_one_is_noop():
     assert metrics == {}
 
 
-def test_ihu_higher_scale_not_yet_implemented():
+def test_ihu_higher_scale_now_implemented():
+    """IHU hill-climbing shipped — verify it produces a coarse FlowDirection."""
     z = np.array(
         [
-            [9, 9, 9, 9],
-            [9, 5, 4, 1],
-            [9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
         ],
         dtype=np.float32,
     )
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    with pytest.raises(NotImplementedError, match="IHU"):
-        fd.upscale_ihu(scale_factor=2, accumulation=acc, dem=dem)
+    up_dem, up_fd, metrics = fd.upscale_ihu(
+        scale_factor=2, accumulation=acc, dem=dem, report=True
+    )
+    assert isinstance(up_fd, FlowDirection)
+    assert up_dem is not None
+    # report=True returns the metrics dict with the documented keys.
+    for key in ("final_error", "iterations", "swaps", "converged"):
+        assert key in metrics
+
+
+def test_ihu_metrics_empty_when_report_false():
+    """Default report=False returns an empty metrics dict."""
+    z = np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+    dem = _make_dem(z)
+    fd = dem.flow_direction(method="d8")
+    acc = fd.accumulate()
+    _, _, metrics = fd.upscale_ihu(
+        scale_factor=2, accumulation=acc, dem=dem
+    )
+    assert metrics == {}
+
+
+def test_ihu_converges_with_swap_count():
+    """The hill-climbing engine sets converged=True when no swap improves."""
+    z = np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+    dem = _make_dem(z)
+    fd = dem.flow_direction(method="d8")
+    acc = fd.accumulate()
+    _, _, metrics = fd.upscale_ihu(
+        scale_factor=2, accumulation=acc, dem=dem, report=True,
+        max_iter=50,
+    )
+    assert metrics["converged"] is True
 
 
 def test_upscale_dispatch_ihu_routes_to_ihu():
+    """The unified dispatcher's method='ihu' branch wires through to
+    upscale_ihu and returns the (dem, fdir) tuple."""
     z = np.array(
         [
-            [9, 9, 9, 9],
-            [9, 5, 4, 1],
-            [9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
         ],
         dtype=np.float32,
     )
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    with pytest.raises(NotImplementedError, match="IHU"):
-        fd.upscale(
-            scale_factor=2, method="ihu", accumulation=acc, dem=dem
-        )
+    up_dem, up_fd = fd.upscale(
+        scale_factor=2, method="ihu", accumulation=acc, dem=dem
+    )
+    assert isinstance(up_fd, FlowDirection)
 
 
 def test_ihu_scale_zero_raises():

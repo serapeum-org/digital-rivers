@@ -38,20 +38,37 @@ def native_cotat_upscale(*args, **kwargs):
 
 
 def native_ihu_upscale(*args, **kwargs):
-    """Native Iterative Hydrography Upscaling (P29, Eilander 2021).
+    """Native IHU (P29, Eilander 2021) — now implemented via P19.
 
-    Replaces the pyflwdir vendor path from Phase 2 P19 with a native
-    swap-search + convergence engine. Effort: L (4-5 days).
+    The hill-climbing swap-search engine lives in
+    ``digitalrivers._ihu.ihu_upscale`` and is exposed through
+    ``FlowDirection.upscale_ihu(...)`` and ``FlowDirection.upscale(
+    method="ihu", ...)``. This umbrella stub is kept for API-discovery
+    symmetry with the other P28-P35 entry points; it points callers at
+    the real implementation.
+
+    Implementation: greedy hill-climbing on a global drainage-area-error
+    metric. Starts from a COTAT initial network; for each iteration,
+    each coarse cell tries every alternative outlet in turn and accepts
+    the first swap that reduces the global metric. Converges when no
+    single-cell swap improves; returns ``converged`` in the metrics
+    dict.
+
+    Performance: pure Python. Works on small/medium DEMs (thousands of
+    cells) in seconds; a Numba port is a follow-up. For continental
+    DEMs, consider the pyflwdir vendor path until then.
 
     References:
         Eilander D. et al. (2021). "A hydrography upscaling method for
-        scale-invariant parametrization of distributed hydrological models."
-        HESS 25(9):5287-5313.
+        scale-invariant parametrization of distributed hydrological
+        models." HESS 25(9):5287-5313.
     """
     raise NotImplementedError(
-        "Native IHU upscaling (P29) deferred. Phase 2 P19 ships the public "
-        "API; the iterative swap-search core needs a pyflwdir vendor path "
-        "or a native re-implementation."
+        "native_ihu_upscale umbrella API: use "
+        "FlowDirection.upscale_ihu(scale_factor, accumulation, dem, "
+        "max_iter, report) or FlowDirection.upscale(scale_factor, "
+        "method='ihu', accumulation, dem) — both wire through the "
+        "working IHU engine in digitalrivers._ihu."
     )
 
 

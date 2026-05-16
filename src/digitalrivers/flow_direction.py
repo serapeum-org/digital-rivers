@@ -269,13 +269,67 @@ class FlowDirection(Dataset):
                 accumulation=accumulation, dem=dem,
             )
             return up_dem, up_fdir, {}
-        raise NotImplementedError(
-            "IHU iterative upscaling is deferred to Phase 4. "
-            "v1 supports the API surface and the scale_factor=1 no-op; "
-            "for production runs use FlowDirection.upscale(scale_factor, "
-            "method='cotat', accumulation, dem) until the native IHU "
-            "engine lands."
+
+        import numpy as np
+
+        from digitalrivers._ihu import ihu_upscale
+
+        fdir_arr = self.read_array().astype(np.int32, copy=False)
+        acc_arr = accumulation.read_array().astype(np.float64, copy=False)
+        if fdir_arr.shape != acc_arr.shape:
+            raise ValueError(
+                f"accumulation shape {acc_arr.shape} != flow_direction "
+                f"shape {fdir_arr.shape}"
+            )
+
+        coarse_fdir, metrics, outlets = ihu_upscale(
+            fdir_arr, acc_arr, scale_factor, max_iter=max_iter,
         )
+        # Replace -1 with the dataset no-data sentinel for on-disk consistency.
+        coarse_fdir = np.where(
+            coarse_fdir < 0,
+            np.int32(Dataset.default_no_data_value),
+            coarse_fdir,
+        )
+
+        gt = self.geotransform
+        coarse_gt = (
+            gt[0], gt[1] * scale_factor, gt[2],
+            gt[3], gt[4], gt[5] * scale_factor,
+        )
+        plain_fdir = Dataset.create_from_array(
+            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            no_data_value=Dataset.default_no_data_value,
+        )
+        upscaled_fdir = FlowDirection.from_dataset(
+            plain_fdir, routing="d8", encoding=self.encoding,
+        )
+
+        upscaled_dem = None
+        if dem is not None:
+            from digitalrivers.dem import DEM as _DEM
+            out_rows = fdir_arr.shape[0] // scale_factor
+            out_cols = fdir_arr.shape[1] // scale_factor
+            coarse_z = np.full(
+                (out_rows, out_cols), Dataset.default_no_data_value,
+                dtype=np.float32,
+            )
+            z_arr = dem.read_array().astype(np.float64, copy=False)
+            for (br, bc), out in outlets.items():
+                fr = int(out[1])
+                fc = int(out[2])
+                zv = z_arr[fr, fc]
+                coarse_z[br, bc] = (
+                    float(zv) if np.isfinite(zv)
+                    else Dataset.default_no_data_value
+                )
+            plain_dem = Dataset.create_from_array(
+                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                no_data_value=Dataset.default_no_data_value,
+            )
+            upscaled_dem = _DEM(plain_dem.raster)
+
+        return upscaled_dem, upscaled_fdir, (metrics if report else {})
 
     def upscale(
         self,
