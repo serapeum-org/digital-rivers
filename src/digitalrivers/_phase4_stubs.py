@@ -107,7 +107,7 @@ def tile_windows(
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset
-            >>> from digitalrivers._phase4_stubs import tile_windows
+            >>> from digitalrivers.phase4 import tile_windows
             >>> ds = Dataset.create_from_array(
             ...     np.zeros((5, 5), dtype=np.float32),
             ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
@@ -149,7 +149,7 @@ def dask_backend(*args, **kwargs):
     """
     raise NotImplementedError(
         "dask_backend umbrella API (P30) deferred. Use "
-        "digitalrivers._phase4_stubs.tile_windows for per-tile streaming."
+        "digitalrivers.phase4.tile_windows for per-tile streaming."
     )
 
 
@@ -183,7 +183,7 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset
-            >>> from digitalrivers._phase4_stubs import write_cog
+            >>> from digitalrivers.phase4 import write_cog
             >>> import tempfile, os
             >>> arr = np.arange(25, dtype=np.float32).reshape(5, 5)
             >>> ds = Dataset.create_from_array(
@@ -222,7 +222,7 @@ def cloud_io(*args, **kwargs):
     """
     raise NotImplementedError(
         "cloud_io umbrella API (P31) deferred. The COG write half is "
-        "available via digitalrivers._phase4_stubs.write_cog."
+        "available via digitalrivers.phase4.write_cog."
     )
 
 
@@ -313,7 +313,7 @@ def grid_lidar_points(
         - Bucket four points into a 2x1 grid with min aggregation:
 
             >>> import numpy as np
-            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> from digitalrivers.phase4 import grid_lidar_points
             >>> xs = np.array([0.1, 0.2, 1.1])
             >>> ys = np.array([0.1, 0.2, 0.1])
             >>> zs = np.array([5.0, 2.0, 4.0])
@@ -327,7 +327,7 @@ def grid_lidar_points(
         - Mean aggregation averages every point that lands in a cell:
 
             >>> import numpy as np
-            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> from digitalrivers.phase4 import grid_lidar_points
             >>> xs = np.array([0.1, 0.2])
             >>> ys = np.array([0.1, 0.2])
             >>> zs = np.array([4.0, 6.0])
@@ -341,7 +341,7 @@ def grid_lidar_points(
         - Empty cells receive the dataset's no-data sentinel (-9999.0):
 
             >>> import numpy as np
-            >>> from digitalrivers._phase4_stubs import grid_lidar_points
+            >>> from digitalrivers.phase4 import grid_lidar_points
             >>> ds = grid_lidar_points(
             ...     np.array([0.5]), np.array([0.5]), np.array([3.0]),
             ...     cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
@@ -383,29 +383,32 @@ def grid_lidar_points(
     )
 
     nodata = -9999.0
+    # ``mean`` uses ``np.add.at`` for an O(N_points) reduction; ``min`` /
+    # ``max`` use ``np.minimum.at`` / ``np.maximum.at`` for the same.
+    # ``median`` still requires per-cell bucketing because there is no
+    # closed-form running median in NumPy.
     if aggregate == "min":
         out = np.full((rows, cols), np.inf, dtype=np.float64)
-        for r, c, z in zip(row_idx, col_idx, zs):
-            if z < out[r, c]:
-                out[r, c] = z
+        np.minimum.at(out, (row_idx, col_idx), zs)
         out[~np.isfinite(out)] = nodata
     elif aggregate == "max":
         out = np.full((rows, cols), -np.inf, dtype=np.float64)
-        for r, c, z in zip(row_idx, col_idx, zs):
-            if z > out[r, c]:
-                out[r, c] = z
+        np.maximum.at(out, (row_idx, col_idx), zs)
         out[~np.isfinite(out)] = nodata
-    else:  # mean / median — collect points per cell
+    elif aggregate == "mean":
+        sums = np.zeros((rows, cols), dtype=np.float64)
+        counts = np.zeros((rows, cols), dtype=np.int64)
+        np.add.at(sums, (row_idx, col_idx), zs)
+        np.add.at(counts, (row_idx, col_idx), 1)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            out = np.where(counts > 0, sums / counts, nodata)
+    else:  # median — per-cell bucketing
         buckets: dict[tuple[int, int], list[float]] = {}
         for r, c, z in zip(row_idx, col_idx, zs):
             buckets.setdefault((int(r), int(c)), []).append(float(z))
         out = np.full((rows, cols), nodata, dtype=np.float64)
         for (r, c), vals in buckets.items():
-            arr = np.asarray(vals, dtype=np.float64)
-            out[r, c] = (
-                float(arr.mean()) if aggregate == "mean"
-                else float(np.median(arr))
-            )
+            out[r, c] = float(np.median(np.asarray(vals, dtype=np.float64)))
 
     geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
     return Dataset.create_from_array(
@@ -425,7 +428,7 @@ def pdal_lidar_pipeline(*args, **kwargs):
     """
     raise NotImplementedError(
         "pdal_lidar_pipeline umbrella API (P34) deferred. The gridding "
-        "half is available via digitalrivers._phase4_stubs.grid_lidar_points"
+        "half is available via digitalrivers.phase4.grid_lidar_points"
         "; read LAS files externally with laspy / pylas / PDAL and pass "
         "the resulting arrays into grid_lidar_points."
     )
@@ -450,6 +453,9 @@ def topobathy_fusion(
       above the shoreline, bathy below — the canonical conservative
       choice when the two DEMs disagree across the shoreline (NOAA
       ETOPO uses this).
+    * ``"min"``: per-cell minimum — the pessimistic-bathymetry choice
+      for flood inundation studies where you want to assume the deeper
+      of two conflicting surveys.
     * ``"topo_above"``: pick topo where ``topo >= shoreline_elev``,
       bathy elsewhere. Sharp transition at the shoreline; preferred when
       the topo DEM is known accurate at the coastline.
@@ -461,13 +467,33 @@ def topobathy_fusion(
         bathy: Bathymetric ``Dataset`` aligned to ``topo``.
         shoreline_elev: Elevation defining the shoreline contour.
             Default 0.0 (MSL).
-        blend: ``"max"`` (default), ``"topo_above"``, ``"bathy_below"``.
+        blend: ``"max"`` (default), ``"min"``, ``"topo_above"``, or
+            ``"bathy_below"``.
 
     Returns:
         ``Dataset`` of the fused surface.
 
     Raises:
         ValueError: If shapes mismatch or ``blend`` is unknown.
+
+    Examples:
+        - The ``"min"`` blend picks the cell-by-cell minimum — useful as a
+          pessimistic-bathymetry baseline:
+
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers.phase4 import topobathy_fusion
+            >>> topo = Dataset.create_from_array(
+            ...     np.array([[5.0, -1.0]], dtype=np.float32),
+            ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            ... )
+            >>> bathy = Dataset.create_from_array(
+            ...     np.array([[-3.0, -5.0]], dtype=np.float32),
+            ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            ... )
+            >>> fused = topobathy_fusion(topo, bathy, blend="min")
+            >>> fused.read_array().tolist()
+            [[-3.0, -5.0]]
 
     References:
         Eakins B. W., Grothe P. R. (2014). "Challenges in building coastal
@@ -476,10 +502,10 @@ def topobathy_fusion(
     import numpy as np
     from pyramids.dataset import Dataset
 
-    if blend not in ("max", "topo_above", "bathy_below"):
+    if blend not in ("max", "min", "topo_above", "bathy_below"):
         raise ValueError(
-            f"blend must be one of 'max', 'topo_above', 'bathy_below'; "
-            f"got {blend!r}"
+            f"blend must be one of 'max', 'min', 'topo_above', "
+            f"'bathy_below'; got {blend!r}"
         )
 
     topo_arr = topo.read_array().astype(np.float64, copy=False)
@@ -499,6 +525,8 @@ def topobathy_fusion(
 
     if blend == "max":
         fused = np.fmax(topo_arr, bathy_arr)
+    elif blend == "min":
+        fused = np.fmin(topo_arr, bathy_arr)
     elif blend == "topo_above":
         fused = np.where(topo_arr >= shoreline_elev, topo_arr, bathy_arr)
     else:  # bathy_below

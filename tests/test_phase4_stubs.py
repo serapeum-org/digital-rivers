@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import pytest
 
-from digitalrivers import _phase4_stubs as stubs
+from digitalrivers import phase4
+from digitalrivers import _phase4_stubs as stubs  # umbrella stubs only
 
 
 def test_native_cotat_upscale_stub_raises():
@@ -70,7 +71,7 @@ def test_topobathy_fusion_now_implemented_max_blend():
         np.array([[-3.0, -5.0], [-4.0, -6.0]], dtype=np.float32),
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
     )
-    fused = stubs.topobathy_fusion(topo, bathy, blend="max")
+    fused = phase4.topobathy_fusion(topo, bathy, blend="max")
     arr = fused.read_array()
     # Cell-by-cell max picks the higher value.
     expected = np.array([[5.0, -1.0], [3.0, -2.0]], dtype=np.float32)
@@ -90,7 +91,7 @@ def test_topobathy_fusion_topo_above_branch():
         np.array([[-3.0, -5.0]], dtype=np.float32),
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
     )
-    fused = stubs.topobathy_fusion(topo, bathy, blend="topo_above",
+    fused = phase4.topobathy_fusion(topo, bathy, blend="topo_above",
                                     shoreline_elev=0.0)
     arr = fused.read_array()
     # Cell 0: topo=5 >= 0 → topo wins (5). Cell 1: topo=-1 < 0 → bathy (-5).
@@ -106,7 +107,7 @@ def test_topobathy_fusion_invalid_blend_raises():
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
     )
     with pytest.raises(ValueError, match="blend must be"):
-        stubs.topobathy_fusion(topo, topo, blend="bogus")
+        phase4.topobathy_fusion(topo, topo, blend="bogus")
 
 
 def test_tile_windows_partitions_dataset_into_tiles():
@@ -118,7 +119,7 @@ def test_tile_windows_partitions_dataset_into_tiles():
         np.zeros((10, 10), dtype=np.float32),
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
     )
-    wins = list(stubs.tile_windows(ds, tile_rows=4, tile_cols=4))
+    wins = list(phase4.tile_windows(ds, tile_rows=4, tile_cols=4))
     # 10 / 4 = 3 row stripes (4, 4, 2) and 3 col stripes (4, 4, 2) = 9 tiles.
     assert len(wins) == 9
     # Edge tile clipped to remaining size.
@@ -134,9 +135,9 @@ def test_tile_windows_invalid_sizes_raise():
         top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
     )
     with pytest.raises(ValueError, match="tile_rows"):
-        list(stubs.tile_windows(ds, tile_rows=0, tile_cols=2))
+        list(phase4.tile_windows(ds, tile_rows=0, tile_cols=2))
     with pytest.raises(ValueError, match="overlap"):
-        list(stubs.tile_windows(ds, tile_rows=2, tile_cols=2, overlap=-1))
+        list(phase4.tile_windows(ds, tile_rows=2, tile_cols=2, overlap=-1))
 
 
 def test_module_loads_and_exposes_all_eight_stubs():

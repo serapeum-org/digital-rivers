@@ -30,6 +30,20 @@ if TYPE_CHECKING:
     from digitalrivers.watershed_raster import WatershedRaster
 
 
+def _pick_coarse_elev(z_fine, fr: int, fc: int) -> float:
+    """Lift the fine-grid elevation at ``(fr, fc)`` to a coarse-cell value.
+
+    Returns ``z_fine[fr, fc]`` as a float, or
+    ``Dataset.default_no_data_value`` when the fine value is NaN / non-
+    finite. Used by every upscaler (COTAT, EAM/DMM, IHU) to project the
+    chosen-outlet fine elevation into the coarse DEM raster.
+    """
+    import math
+
+    zv = z_fine[fr, fc]
+    return float(zv) if math.isfinite(float(zv)) else Dataset.default_no_data_value
+
+
 class FlowDirection(Dataset):
     """Flow-direction raster with routing-scheme metadata.
 
@@ -326,11 +340,7 @@ class FlowDirection(Dataset):
             for (br, bc), out in outlets.items():
                 fr = int(out[1])
                 fc = int(out[2])
-                zv = z_arr[fr, fc]
-                coarse_z[br, bc] = (
-                    float(zv) if np.isfinite(zv)
-                    else Dataset.default_no_data_value
-                )
+                coarse_z[br, bc] = _pick_coarse_elev(z_arr, fr, fc)
             plain_dem = Dataset.create_from_array(
                 coarse_z, geo=coarse_gt, epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,
@@ -452,11 +462,7 @@ class FlowDirection(Dataset):
                         idx = int(np.argmax(block_acc))
                         fr = br * scale_factor + idx // scale_factor
                         fc = bc * scale_factor + idx % scale_factor
-                        zv = z[fr, fc]
-                        coarse_z[br, bc] = (
-                            float(zv) if np.isfinite(zv)
-                            else Dataset.default_no_data_value
-                        )
+                        coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
             gt = self.geotransform
             coarse_gt = (
                 gt[0], gt[1] * scale_factor, gt[2],
@@ -503,7 +509,7 @@ class FlowDirection(Dataset):
                 fr = r_lo + int(best[0])
                 fc = c_lo + int(best[1])
                 if z is not None:
-                    coarse_z[br, bc] = float(z[fr, fc]) if np.isfinite(z[fr, fc]) else Dataset.default_no_data_value
+                    coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
                 r, c = fr, fc
                 # Trace downstream until exiting the block.
                 while True:
@@ -688,11 +694,7 @@ class FlowDirection(Dataset):
                     idx = int(np.argmax(block_acc))
                     fr = br * scale_factor + idx // scale_factor
                     fc = bc * scale_factor + idx % scale_factor
-                    zv = z[fr, fc]
-                    coarse_z[br, bc] = (
-                        float(zv) if np.isfinite(zv)
-                        else Dataset.default_no_data_value
-                    )
+                    coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
             plain_dem = Dataset.create_from_array(
                 coarse_z, geo=coarse_gt, epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,

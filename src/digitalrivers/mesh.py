@@ -25,6 +25,11 @@ import numpy as np
 class Mesh:
     """A triangle mesh with vertex and triangle index arrays.
 
+    Performance note. ``boundary_vertex_mask``, ``neighbour_lists`` and
+    ``aspect_ratios`` iterate triangles in pure Python — fine for
+    small / medium meshes (<~50k triangles). Above that, prefer a vendor
+    library (``meshio`` / ``pymesh``) or vectorise the kernels.
+
     Args:
         vertices: ``(N, 2)`` or ``(N, 3)`` float64 array of vertex
             coordinates. 3-D inputs are kept as 3-D; smoothing operates

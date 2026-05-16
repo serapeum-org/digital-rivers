@@ -173,21 +173,58 @@ def ihu_upscale(
     acc: np.ndarray,
     scale_factor: int,
     max_iter: int = 20,
-) -> tuple[np.ndarray, dict]:
+) -> tuple[np.ndarray, dict, dict]:
     """Run hill-climbing IHU.
+
+    Complexity note. Each candidate swap re-runs the global Kahn
+    accumulation sweep over the coarse grid, so the run is
+    O(N · K · max_iter) where N is the number of coarse cells and K is
+    the average number of outlet candidates per coarse cell (bounded
+    above by ``scale_factor ** 2``). On a 50×50 coarse output with
+    ``max_iter=20`` the work fits in seconds; on a continental
+    coarse grid prefer the pyflwdir vendor path.
 
     Args:
         fdir: ``(rows, cols)`` int32 fine-resolution D8 direction codes.
         acc: ``(rows, cols)`` float64 fine accumulation.
         scale_factor: integer aggregation factor.
-        max_iter: hill-climbing sweep cap.
+        max_iter: hill-climbing sweep cap. Higher values run longer; the
+            engine short-circuits once an iteration produces no swap.
 
     Returns:
-        Tuple ``(coarse_fdir, metrics)``:
+        Tuple ``(coarse_fdir, metrics, outlets)``:
             coarse_fdir: ``(rows // sf, cols // sf)`` int32 with values 0-7
                 or -1 for cells without an outlet candidate.
             metrics: dict carrying ``"final_error"``, ``"iterations"``,
-                ``"swaps"``, ``"converged"``.
+                ``"swaps"``, ``"swaps_per_iteration"`` (per-iteration list),
+                and ``"converged"`` (bool).
+            outlets: dict mapping coarse-cell ``(br, bc)`` → outlet record
+                ``(fine_acc, fine_row, fine_col, exit_dr, exit_dc)``.
+                Useful for downstream callers that want to inspect the
+                final outlet network.
+
+    Examples:
+        - Upscale a small east-flowing chain by factor 2 and inspect the
+          full three-tuple return:
+
+            >>> import numpy as np
+            >>> from digitalrivers._ihu import ihu_upscale
+            >>> fdir = np.full((4, 4), 6, dtype=np.int32)
+            >>> fdir[:, -1] = -1  # right-edge sinks
+            >>> acc = np.tile(np.arange(4, dtype=np.float64), (4, 1))
+            >>> coarse_fdir, metrics, outlets = ihu_upscale(
+            ...     fdir, acc, scale_factor=2, max_iter=5,
+            ... )
+            >>> coarse_fdir.shape
+            (2, 2)
+            >>> sorted(metrics.keys())
+            ['converged', 'final_error', 'iterations', 'swaps', 'swaps_per_iteration']
+            >>> len(metrics["swaps_per_iteration"]) == metrics["iterations"]
+            True
+            >>> sum(metrics["swaps_per_iteration"]) == metrics["swaps"]
+            True
+            >>> len(outlets) > 0
+            True
     """
     rows, cols = fdir.shape
     out_rows = rows // scale_factor
@@ -216,6 +253,7 @@ def ihu_upscale(
     base_error = _global_error(outlets, acc, out_rows, out_cols, scale_factor)
     iterations = 0
     total_swaps = 0
+    swaps_per_iteration: list[int] = []
     converged = False
     for _ in range(max_iter):
         iterations += 1
@@ -237,6 +275,7 @@ def ihu_upscale(
                     swaps_this_pass += 1
                     total_swaps += 1
                     break
+        swaps_per_iteration.append(swaps_this_pass)
         if swaps_this_pass == 0:
             converged = True
             break
@@ -254,6 +293,7 @@ def ihu_upscale(
         "final_error": base_error,
         "iterations": iterations,
         "swaps": total_swaps,
+        "swaps_per_iteration": swaps_per_iteration,
         "converged": converged,
     }
     return coarse_fdir, metrics, outlets

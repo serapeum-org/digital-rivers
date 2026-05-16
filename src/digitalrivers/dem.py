@@ -577,8 +577,8 @@ class DEM(Dataset):
 
         if method != "fill_burn":
             raise NotImplementedError(
-                f"method={method!r} not yet implemented (only 'fill_burn', "
-                "'agree')"
+                f"method={method!r} not yet implemented (supported: "
+                "'fill_burn', 'agree', 'topological_breach')"
             )
 
         elev = self.values
@@ -1178,7 +1178,7 @@ class DEM(Dataset):
             # user can refine in Iber's pre-processor.
             dat_path = path if path.endswith(".dat") else path + ".dat"
             with open(dat_path, "w") as fh:
-                fh.write(f"# Iber mesh boundary (auto-generated)\n")
+                fh.write("# Iber mesh boundary (auto-generated)\n")
                 fh.write(f"NCOLS {cols}\nNROWS {rows}\n")
                 fh.write(f"XLLCORNER {x0}\nYLLCORNER {yllcorner}\n")
                 fh.write(f"CELLSIZE {cell_size}\nNODATA {nodata}\n")
@@ -1304,6 +1304,29 @@ class DEM(Dataset):
                     ...
                 ValueError: method must be 'laplacian' or 'biharmonic'; got 'bogus'
 
+            - The 5-point stencil uses edge-replication (Neumann) boundary
+              padding, so a NaN cell adjacent to the raster boundary is
+              filled from its in-bounds neighbours only — no periodic-wrap
+              contamination from the opposite edge:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> # Top-left NaN with very different anchor at bottom-right.
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> z[-1, -1] = -100.0
+                >>> z[0, 0] = np.nan
+                >>> ds = Dataset.create_from_array(
+                ...     np.where(np.isnan(z), -9999.0, z),
+                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> filled = DEM(ds.raster).anudem_interpolate(
+                ...     method="laplacian", max_iter=300, tol=1e-6,
+                ... )
+                >>> bool(abs(float(filled.values[0, 0]) - 10.0) < 5.0)
+                True
+
         See Also:
             DEM.fill_depressions: hydrologic conditioning that removes sinks.
             DEM.burn_streams: stream-network drainage enforcement.
@@ -1326,12 +1349,27 @@ class DEM(Dataset):
         # Seed unknown cells to the mean of known values to speed convergence.
         z = np.where(fixed, z, z[fixed].mean())
 
+        def _edge_shifts(arr):
+            """Return (north, south, east, west) views of ``arr`` with
+            edge-replication boundary handling (no periodic wrap).
+
+            Using ``np.pad(..., mode="edge")`` matches a Neumann (zero
+            normal-derivative) boundary, which is the natural choice for
+            an interpolation kernel — the original ``np.roll`` formed a
+            torus and injected far-edge values into near-edge cells,
+            corrupting anchors near the DEM boundary.
+            """
+            padded = np.pad(arr, 1, mode="edge")
+            return (
+                padded[:-2, 1:-1],
+                padded[2:, 1:-1],
+                padded[1:-1, 2:],
+                padded[1:-1, :-2],
+            )
+
         if method == "laplacian":
             for _ in range(max_iter):
-                north = np.roll(z, 1, axis=0)
-                south = np.roll(z, -1, axis=0)
-                east = np.roll(z, -1, axis=1)
-                west = np.roll(z, 1, axis=1)
+                north, south, east, west = _edge_shifts(z)
                 new_z = (north + south + east + west) / 4.0
                 new_z[fixed] = z[fixed]
                 diff = float(np.max(np.abs(new_z - z)))
@@ -1345,17 +1383,9 @@ class DEM(Dataset):
             # Composed, this approximates a biharmonic relaxation with C¹
             # continuity at the anchors.
             for _ in range(max_iter):
-                # Laplacian of z (5-point stencil).
-                north = np.roll(z, 1, axis=0)
-                south = np.roll(z, -1, axis=0)
-                east = np.roll(z, -1, axis=1)
-                west = np.roll(z, 1, axis=1)
+                north, south, east, west = _edge_shifts(z)
                 u = north + south + east + west - 4.0 * z
-                # Smooth u (one Laplacian sweep on u).
-                un = np.roll(u, 1, axis=0)
-                us = np.roll(u, -1, axis=0)
-                ue = np.roll(u, -1, axis=1)
-                uw = np.roll(u, 1, axis=1)
+                un, us, ue, uw = _edge_shifts(u)
                 u_smooth = (un + us + ue + uw) / 4.0
                 # Solve Δz = u_smooth → new z[i,j] =
                 # (sum of neighbours - u_smooth) / 4.
