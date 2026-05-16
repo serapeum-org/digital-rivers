@@ -23,8 +23,8 @@ from osgeo import gdal
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, Accumulation, FlowDirection, StreamRaster
-from digitalrivers._accumulation import accumulate as _accumulate_array
-from digitalrivers._breach import breach_depressions
+from digitalrivers._flow.accumulation import accumulate as _accumulate_array
+from digitalrivers._conditioning.breach import breach_depressions
 
 
 # ----- Full pipeline on Coello -------------------------------------------------------------
@@ -70,7 +70,7 @@ class TestCoelloEndToEndPipeline:
             Run fill_depressions(wang_liu) followed by resolve_flats and verify
             no cell is strictly lower than all eight valid 8-neighbours.
         """
-        from digitalrivers._pitremoval import local_minima_8
+        from digitalrivers._conditioning.pitremoval import local_minima_8
         resolved = pipeline["resolved"]
         sinks = local_minima_8(resolved.values)
         assert int(sinks.sum()) == 0, f"Expected no internal sinks, found {int(sinks.sum())}"
@@ -220,10 +220,10 @@ class TestNumbaFallbackExercised:
         )
 
         monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
-        for mod in ("digitalrivers._numba", "digitalrivers._pitremoval"):
+        for mod in ("digitalrivers._numba", "digitalrivers._conditioning.pitremoval"):
             sys.modules.pop(mod, None)
         try:
-            pitremoval = importlib.import_module("digitalrivers._pitremoval")
+            pitremoval = importlib.import_module("digitalrivers._conditioning.pitremoval")
             numba_mod = importlib.import_module("digitalrivers._numba")
             assert numba_mod.is_numba_enabled() is False
             out = pitremoval.fill_depressions(z.copy(), method="priority_flood",
@@ -231,10 +231,10 @@ class TestNumbaFallbackExercised:
             assert out[2, 2] == 5.0, f"Expected pit lift to rim, got {out[2, 2]}"
         finally:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
-            for mod in ("digitalrivers._numba", "digitalrivers._pitremoval"):
+            for mod in ("digitalrivers._numba", "digitalrivers._conditioning.pitremoval"):
                 sys.modules.pop(mod, None)
             importlib.import_module("digitalrivers._numba")
-            importlib.import_module("digitalrivers._pitremoval")
+            importlib.import_module("digitalrivers._conditioning.pitremoval")
 
     def test_kahn_accumulate_works_without_numba(self, monkeypatch) -> None:
         """Kahn accumulation produces correct counts via the pure-Python branch.
@@ -248,10 +248,10 @@ class TestNumbaFallbackExercised:
         valid = np.ones(fdir.shape, dtype=bool)
 
         monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
-        for mod in ("digitalrivers._numba", "digitalrivers._accumulation"):
+        for mod in ("digitalrivers._numba", "digitalrivers._flow.accumulation"):
             sys.modules.pop(mod, None)
         try:
-            accumulation = importlib.import_module("digitalrivers._accumulation")
+            accumulation = importlib.import_module("digitalrivers._flow.accumulation")
             numba_mod = importlib.import_module("digitalrivers._numba")
             assert numba_mod.is_numba_enabled() is False
             out = accumulation.accumulate(fdir, "d8", valid)
@@ -260,10 +260,10 @@ class TestNumbaFallbackExercised:
             )
         finally:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
-            for mod in ("digitalrivers._numba", "digitalrivers._accumulation"):
+            for mod in ("digitalrivers._numba", "digitalrivers._flow.accumulation"):
                 sys.modules.pop(mod, None)
             importlib.import_module("digitalrivers._numba")
-            importlib.import_module("digitalrivers._accumulation")
+            importlib.import_module("digitalrivers._flow.accumulation")
 
 
 # ----- Coverage gap fillers ---------------------------------------------------------------
@@ -413,7 +413,7 @@ class TestBreachAdditionalBranches:
             dtype=np.float64,
         )
         out = breach_depressions(z, method="least_cost", max_depth=1.0)
-        from digitalrivers._pitremoval import local_minima_8
+        from digitalrivers._conditioning.pitremoval import local_minima_8
         assert local_minima_8(out)[3, 3]
 
 

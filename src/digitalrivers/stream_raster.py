@@ -324,7 +324,7 @@ class StreamRaster(Dataset):
         """
         import numpy as np
 
-        from digitalrivers._stream_order import horton, shreve, strahler
+        from digitalrivers._streams.order import horton, shreve, strahler
         from digitalrivers.flow_direction import FlowDirection
 
         if method not in ("strahler", "shreve", "horton"):

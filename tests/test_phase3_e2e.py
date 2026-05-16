@@ -84,7 +84,7 @@ class TestPhase3ConditioningPipeline:
     def test_conditioned_dem_has_no_sinks(self, pipeline):
         """fill_depressions(method='priority_flood', epsilon=0.1) leaves
         the conditioned DEM sinks-free for downstream flow routing."""
-        from digitalrivers._pitremoval import local_minima_8
+        from digitalrivers._conditioning.pitremoval import local_minima_8
         sinks = local_minima_8(pipeline["conditioned"].values)
         assert int(sinks.sum()) == 0
 

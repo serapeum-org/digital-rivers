@@ -154,7 +154,7 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
     """A fine grid where every coarse block has exactly one outlet
     candidate cannot benefit from any swap — the engine must short-circuit
     (zero swaps) and report converged=True."""
-    from digitalrivers._ihu import ihu_upscale
+    from digitalrivers._flow.ihu import ihu_upscale
 
     # Tiny 4x4 grid → 2x2 coarse output at sf=2. Make every block contain
     # exactly one cell that has an exit by giving most cells fdir == -1
@@ -232,7 +232,7 @@ class TestIhuReturnAndMetrics:
         return fdir, acc
 
     def test_outlets_dict_has_one_entry_per_coarse_cell(self):
-        from digitalrivers._ihu import ihu_upscale
+        from digitalrivers._flow.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         sf = 2
@@ -247,14 +247,14 @@ class TestIhuReturnAndMetrics:
             assert all(isinstance(v, int) for v in k)
 
     def test_swaps_per_iteration_length_matches_iterations(self):
-        from digitalrivers._ihu import ihu_upscale
+        from digitalrivers._flow.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         _, metrics, _ = ihu_upscale(fdir, acc, scale_factor=2, max_iter=10)
         assert len(metrics["swaps_per_iteration"]) == metrics["iterations"]
 
     def test_swaps_per_iteration_sums_to_total_swaps(self):
-        from digitalrivers._ihu import ihu_upscale
+        from digitalrivers._flow.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         _, metrics, _ = ihu_upscale(fdir, acc, scale_factor=2, max_iter=10)

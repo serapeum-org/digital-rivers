@@ -362,7 +362,7 @@ def test_watershed_d8_non_unique_mode_visits_each_cell_at_most_once():
     """N7 fix: reversed-order BFS keeps the non-unique watershed labelling
     O(N) total. Verify the contract ("later seed wins on overlap") is still
     honoured."""
-    from digitalrivers._watershed import watershed_d8
+    from digitalrivers._flow.watershed import watershed_d8
 
     # 1×5 east-flowing chain; two seeds at (0, 2) and (0, 4). Both seeds
     # can reach (0, 0) → (0, 2) via upstream BFS, so cells {0, 1, 2} are

@@ -189,7 +189,7 @@ class TestWatershedD8ReversedOrder:
     on overlapping fan-ins."""
 
     def test_three_overlapping_seeds_last_seed_wins(self):
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
 
         fdir = np.array([[6, 6, 6, 6, 6, -1]], dtype=np.int32)
         out = watershed_d8(fdir, [(0, 1), (0, 3), (0, 5)], [1, 2, 3])
@@ -198,7 +198,7 @@ class TestWatershedD8ReversedOrder:
         assert int(out[0, 5]) == 3
 
     def test_unique_mode_first_claim_wins(self):
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
 
         fdir = np.array([[6, 6, 6, 6, 6, -1]], dtype=np.int32)
         out = watershed_d8(
@@ -212,7 +212,7 @@ class TestWatershedD8ReversedOrder:
         """200-cell chain × 5 overlapping seeds finishes well under 1s."""
         import time
 
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
 
         n = 200
         fdir = np.full((1, n), 6, dtype=np.int32)

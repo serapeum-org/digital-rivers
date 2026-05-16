@@ -189,7 +189,7 @@ class FlowDirection(Dataset):
         """
         import numpy as np
 
-        from digitalrivers._accumulation import accumulate as _accumulate_array
+        from digitalrivers._flow.accumulation import accumulate as _accumulate_array
         from digitalrivers.accumulation import Accumulation
 
         fd_arr = self.read_array()
@@ -294,7 +294,7 @@ class FlowDirection(Dataset):
 
         import numpy as np
 
-        from digitalrivers._ihu import ihu_upscale
+        from digitalrivers._flow.ihu import ihu_upscale
 
         fdir_arr = self.read_array().astype(np.int32, copy=False)
         acc_arr = accumulation.read_array().astype(np.float64, copy=False)
@@ -1003,7 +1003,7 @@ class FlowDirection(Dataset):
         for r0, c0 in main_stem:
             out[r0, c0] = 5
 
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
 
         codes = [2, 4, 6, 8]
         seeds = [(int(uh[2]), int(uh[3])) for uh in top4]
@@ -1083,7 +1083,7 @@ class FlowDirection(Dataset):
         """
         import numpy as np
 
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
         from digitalrivers.watershed_raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
@@ -1233,7 +1233,7 @@ class FlowDirection(Dataset):
         """
         import numpy as np
 
-        from digitalrivers._watershed import watershed_d8
+        from digitalrivers._flow.watershed import watershed_d8
         from digitalrivers.watershed_raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):

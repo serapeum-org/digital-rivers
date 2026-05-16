@@ -20,7 +20,7 @@ from collections import deque
 
 import numpy as np
 
-from digitalrivers._flow_routing import _DIR_DR, _DIR_DC
+from digitalrivers._flow.routing import _DIR_DR, _DIR_DC
 
 
 def _receivers_d8(

@@ -18,8 +18,8 @@ import numpy as np
 import pytest
 
 import digitalrivers._numba as _numba
-from digitalrivers._pitremoval import _priority_flood, fill_depressions
-from digitalrivers._accumulation import _receivers_d8, kahn_accumulate
+from digitalrivers._conditioning.pitremoval import _priority_flood, fill_depressions
+from digitalrivers._flow.accumulation import _receivers_d8, kahn_accumulate
 
 
 # ----- Toggle / availability ----------------------------------------------------------------

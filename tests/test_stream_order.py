@@ -6,7 +6,7 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
-from digitalrivers._stream_order import horton, shreve, strahler
+from digitalrivers._streams.order import horton, shreve, strahler
 
 
 def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:

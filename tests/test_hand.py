@@ -6,7 +6,7 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
-from digitalrivers._hand import hand_d8
+from digitalrivers._streams.hand import hand_d8
 
 
 def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:

@@ -10,7 +10,7 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, Accumulation
-from digitalrivers._accumulation import (
+from digitalrivers._flow.accumulation import (
     _receivers_d8,
     _receivers_dinf,
     _receivers_mfd,

@@ -6,7 +6,7 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection
-from digitalrivers._flow_routing import (
+from digitalrivers._flow.routing import (
     dinf_flow_direction,
     mfd_flow_direction,
     rho8_flow_direction,

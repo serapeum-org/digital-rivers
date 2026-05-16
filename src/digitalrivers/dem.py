@@ -13,14 +13,14 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
-from digitalrivers._breach import breach_depressions as _breach_depressions_array
-from digitalrivers._flats import resolve_flats as _resolve_flats_array
-from digitalrivers._flow_routing import (
+from digitalrivers._conditioning.breach import breach_depressions as _breach_depressions_array
+from digitalrivers._conditioning.flats import resolve_flats as _resolve_flats_array
+from digitalrivers._flow.routing import (
     dinf_flow_direction as _dinf_flow_direction,
     mfd_flow_direction as _mfd_flow_direction,
     rho8_flow_direction as _rho8_flow_direction,
 )
-from digitalrivers._pitremoval import fill_depressions as _fill_depressions_array
+from digitalrivers._conditioning.pitremoval import fill_depressions as _fill_depressions_array
 from digitalrivers.flow_direction import FlowDirection
 
 #: D8 direction offsets mapping direction index to (column_offset, row_offset).
@@ -376,7 +376,7 @@ class DEM(Dataset):
             ValueError: If shapes do not match or ``flow_direction`` is
                 multi-direction.
         """
-        from digitalrivers._hand import hand_d8
+        from digitalrivers._streams.hand import hand_d8
         from digitalrivers.flow_direction import FlowDirection
         from digitalrivers.stream_raster import StreamRaster
 
@@ -1080,7 +1080,7 @@ class DEM(Dataset):
         # NotImplementedError further down and would otherwise pay the full
         # validation cost for nothing.
         if validate and target == "lisflood_fp":
-            from digitalrivers._pitremoval import local_minima_8
+            from digitalrivers._conditioning.pitremoval import local_minima_8
             sinks = local_minima_8(self.values)
             if int(sinks.sum()) > 0:
                 raise RuntimeError(

@@ -208,7 +208,7 @@ def ihu_upscale(
           full three-tuple return:
 
             >>> import numpy as np
-            >>> from digitalrivers._ihu import ihu_upscale
+            >>> from digitalrivers._flow.ihu import ihu_upscale
             >>> fdir = np.full((4, 4), 6, dtype=np.int32)
             >>> fdir[:, -1] = -1  # right-edge sinks
             >>> acc = np.tile(np.arange(4, dtype=np.float64), (4, 1))
