@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from digitalrivers._phase4_stubs import grid_lidar_points
+from digitalrivers.phase4 import grid_lidar_points
 
 
 def test_grid_min_picks_lowest_per_cell():

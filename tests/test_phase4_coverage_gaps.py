@@ -86,7 +86,7 @@ def test_anudem_biharmonic_no_periodic_wrap_at_left_column():
 def test_grid_lidar_mean_isolates_per_cell():
     """Two cells with distinct point clouds must keep their means
     independent — no bucket leakage."""
-    from digitalrivers._phase4_stubs import grid_lidar_points
+    from digitalrivers.phase4 import grid_lidar_points
 
     # Cell (0,0) gets points {1, 3}; cell (0,1) gets points {100, 200}.
     xs = np.array([0.1, 0.4, 1.1, 1.4])
@@ -103,7 +103,7 @@ def test_grid_lidar_mean_isolates_per_cell():
 
 def test_grid_lidar_median_isolates_per_cell():
     """Same isolation check for the median aggregator."""
-    from digitalrivers._phase4_stubs import grid_lidar_points
+    from digitalrivers.phase4 import grid_lidar_points
 
     xs = np.array([0.1, 0.2, 0.3, 1.1, 1.2, 1.3])
     ys = np.array([0.1, 0.2, 0.3, 0.1, 0.2, 0.3])
@@ -123,7 +123,7 @@ def test_grid_lidar_median_isolates_per_cell():
 def test_write_cog_output_is_tiled_geotiff(tmp_path):
     """The COG writer's output must have block-tiled internal layout —
     a hard requirement of the COG spec."""
-    from digitalrivers._phase4_stubs import write_cog
+    from digitalrivers.phase4 import write_cog
 
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
     ds = Dataset.create_from_array(
@@ -182,7 +182,7 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
 
 def test_topobathy_fusion_min_blend_picks_lower():
     """The new ``"min"`` blend mode (I3 fix) returns ``np.fmin(topo, bathy)``."""
-    from digitalrivers._phase4_stubs import topobathy_fusion
+    from digitalrivers.phase4 import topobathy_fusion
 
     topo = Dataset.create_from_array(
         np.array([[5.0, -1.0], [3.0, -2.0]], dtype=np.float32),
@@ -290,7 +290,7 @@ def test_grid_lidar_mean_5000_points_matches_naive():
     naive Python-loop reference, and complete quickly."""
     import time
 
-    from digitalrivers._phase4_stubs import grid_lidar_points
+    from digitalrivers.phase4 import grid_lidar_points
 
     rng = np.random.default_rng(seed=1337)
     n = 5000
@@ -331,7 +331,7 @@ def test_grid_lidar_mean_5000_points_matches_naive():
 
 def test_topobathy_min_blend_nan_picks_other_operand():
     """When one operand is NaN, ``np.fmin`` returns the non-NaN value."""
-    from digitalrivers._phase4_stubs import topobathy_fusion
+    from digitalrivers.phase4 import topobathy_fusion
 
     topo = Dataset.create_from_array(
         np.array([[np.nan, 5.0]], dtype=np.float32),
@@ -350,7 +350,7 @@ def test_topobathy_min_blend_nan_picks_other_operand():
 
 def test_topobathy_invalid_blend_now_mentions_min():
     """The new error message lists ``'min'`` in the allow-list."""
-    from digitalrivers._phase4_stubs import topobathy_fusion
+    from digitalrivers.phase4 import topobathy_fusion
 
     arr = np.zeros((2, 2), dtype=np.float32)
     ds = Dataset.create_from_array(

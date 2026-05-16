@@ -11,51 +11,50 @@ from __future__ import annotations
 import pytest
 
 from digitalrivers import phase4
-from digitalrivers import _phase4_stubs as stubs  # umbrella stubs only
 
 
 def test_native_cotat_upscale_stub_raises():
     """P28 raises NotImplementedError with a P28-specific message."""
     with pytest.raises(NotImplementedError, match="P28"):
-        stubs.native_cotat_upscale()
+        phase4.native_cotat_upscale()
 
 
 def test_native_ihu_upscale_stub_points_to_working_api():
     """P29 stub now points callers at the working IHU implementation
     on FlowDirection.upscale_ihu / .upscale(method='ihu')."""
     with pytest.raises(NotImplementedError, match="upscale_ihu"):
-        stubs.native_ihu_upscale()
+        phase4.native_ihu_upscale()
 
 
 def test_dask_backend_stub_raises():
     """P30 raises with Dask backend deferral note."""
     with pytest.raises(NotImplementedError, match="P30"):
-        stubs.dask_backend()
+        phase4.dask_backend()
 
 
 def test_cloud_io_stub_raises():
     """P31 raises with cloud-IO deferral note."""
     with pytest.raises(NotImplementedError, match="P31"):
-        stubs.cloud_io()
+        phase4.cloud_io()
 
 
 def test_anudem_solver_stub_points_to_biharmonic():
     """P32 umbrella now points callers at the working biharmonic method
     on DEM.anudem_interpolate."""
     with pytest.raises(NotImplementedError, match="anudem_interpolate"):
-        stubs.anudem_solver()
+        phase4.anudem_solver()
 
 
 def test_mesh_quality_optimise_stub_points_to_mesh_module():
     """P33 umbrella now points callers at Mesh.laplacian_smooth."""
     with pytest.raises(NotImplementedError, match="laplacian_smooth"):
-        stubs.mesh_quality_optimise()
+        phase4.mesh_quality_optimise()
 
 
 def test_pdal_pipeline_stub_points_to_grid_lidar_points():
     """P34 umbrella now points callers at the working grid_lidar_points."""
     with pytest.raises(NotImplementedError, match="grid_lidar_points"):
-        stubs.pdal_lidar_pipeline()
+        phase4.pdal_lidar_pipeline()
 
 
 def test_topobathy_fusion_now_implemented_max_blend():
@@ -142,12 +141,12 @@ def test_tile_windows_invalid_sizes_raise():
 
 def test_module_loads_and_exposes_all_eight_stubs():
     """The module wires up the full Phase 4 API surface so downstream
-    callers can ``from digitalrivers._phase4_stubs import …``."""
+    callers can ``from digitalrivers.phase4 import …``."""
     expected = {
         "native_cotat_upscale", "native_ihu_upscale", "dask_backend",
         "cloud_io", "anudem_solver", "mesh_quality_optimise",
         "pdal_lidar_pipeline", "topobathy_fusion",
     }
-    public = {name for name in dir(stubs) if not name.startswith("_")}
+    public = {name for name in dir(phase4) if not name.startswith("_")}
     missing = expected - public
     assert not missing, f"Missing Phase 4 stubs: {missing}"
