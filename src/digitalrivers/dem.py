@@ -441,11 +441,51 @@ class DEM(Dataset):
             return DEM(plain_ds.raster)
 
         if method == "topological_breach":
-            raise NotImplementedError(
-                "topological_breach (Lindsay 2016) requires TUCL pruning + "
-                "least-cost breach seeded at stream cells; deferred to a "
-                "follow-up PR."
+            # Lindsay 2016: rasterise the stream network onto the DEM
+            # (like fill_burn but without the final priority-flood), then
+            # invoke the Phase 1 least-cost breach engine so every internal
+            # pit Dijkstras outward toward a stream cell. The burned stream
+            # cells sit max_breach_depth-or-equivalent below their
+            # surroundings, so the breach paths follow the vector topology
+            # by construction.
+            elev = self.values
+            rows, cols = elev.shape
+            gt = self.geotransform
+            stream_mask = np.zeros((rows, cols), dtype=bool)
+            target_epsg = self.epsg
+            if (
+                getattr(streams, "crs", None) is not None
+                and target_epsg is not None
+                and streams.crs.to_epsg() != target_epsg
+            ):
+                streams = streams.to_crs(target_epsg)
+            for geom in streams.geometry:
+                if geom is None or geom.is_empty:
+                    continue
+                try:
+                    _ = list(geom.coords)
+                    self._rasterise_line(geom, stream_mask, gt)
+                except NotImplementedError:
+                    for sub in geom.geoms:
+                        self._rasterise_line(sub, stream_mask, gt)
+            z = elev.astype(np.float64, copy=True)
+            z[stream_mask] = z[stream_mask] - constant_drop
+            nodata_mask = np.isnan(z)
+            z = _breach_depressions_array(
+                z, nodata_mask=nodata_mask, method="hybrid",
+                max_depth=max_breach_depth,
+                max_length=max_breach_length,
+                fill_remaining=True,
             )
+            no_val = self.no_data_value[0]
+            z[np.isnan(z)] = no_val
+            plain_ds = Dataset.dataset_like(
+                self, z.astype(elev.dtype, copy=False)
+            )
+            if inplace:
+                self._update_inplace(plain_ds.raster)
+                return None
+            return DEM(plain_ds.raster)
 
         if method != "fill_burn":
             raise NotImplementedError(

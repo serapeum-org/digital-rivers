@@ -70,14 +70,16 @@ def test_agree_now_implemented_and_returns_dem():
     assert isinstance(out, DEM)
 
 
-def test_topological_breach_not_implemented():
+def test_topological_breach_now_implemented():
+    """topological_breach now ships as rasterise-streams + P3 breach
+    composition; verify the DEM is produced."""
     z = np.full((4, 4), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
         geometry=[_line_world([(1, 0), (1, 3)])], crs=4326,
     )
-    with pytest.raises(NotImplementedError, match="topological_breach"):
-        dem.burn_streams(streams, method="topological_breach")
+    out = dem.burn_streams(streams, method="topological_breach")
+    assert isinstance(out, DEM)
 
 
 def test_empty_streams_returns_filled_dem():

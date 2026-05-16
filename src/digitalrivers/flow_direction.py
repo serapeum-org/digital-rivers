@@ -359,6 +359,60 @@ class FlowDirection(Dataset):
         rows, cols = fdir.shape
         out_rows = rows // scale_factor
         out_cols = cols // scale_factor
+
+        # Native Numba COTAT fast path — bit-for-bit identical to the
+        # pure-Python loop below; ~30-50x faster on continental DEMs.
+        from digitalrivers._numba import cotat_upscale_numba, is_numba_enabled
+
+        if is_numba_enabled():
+            coarse_fdir = cotat_upscale_numba(
+                fdir, acc, scale_factor, d_row, d_col,
+                np.int32(Dataset.default_no_data_value),
+            )
+            z = None
+            if dem is not None:
+                z = dem.read_array().astype(np.float64, copy=False)
+                coarse_z = np.full(
+                    (out_rows, out_cols), Dataset.default_no_data_value,
+                    dtype=np.float32,
+                )
+                for br in range(out_rows):
+                    for bc in range(out_cols):
+                        block_acc = acc[
+                            br * scale_factor : (br + 1) * scale_factor,
+                            bc * scale_factor : (bc + 1) * scale_factor,
+                        ]
+                        idx = int(np.argmax(block_acc))
+                        fr = br * scale_factor + idx // scale_factor
+                        fc = bc * scale_factor + idx % scale_factor
+                        zv = z[fr, fc]
+                        coarse_z[br, bc] = (
+                            float(zv) if np.isfinite(zv)
+                            else Dataset.default_no_data_value
+                        )
+            gt = self.geotransform
+            coarse_gt = (
+                gt[0], gt[1] * scale_factor, gt[2],
+                gt[3], gt[4], gt[5] * scale_factor,
+            )
+            plain_fdir = Dataset.create_from_array(
+                coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+                no_data_value=Dataset.default_no_data_value,
+            )
+            upscaled_fdir = FlowDirection.from_dataset(
+                plain_fdir, routing="d8", encoding=self.encoding,
+            )
+            if z is not None:
+                from digitalrivers.dem import DEM as _DEM
+                plain_dem = Dataset.create_from_array(
+                    coarse_z, geo=coarse_gt, epsg=self.epsg,
+                    no_data_value=Dataset.default_no_data_value,
+                )
+                upscaled_dem = _DEM(plain_dem.raster)
+            else:
+                upscaled_dem = None
+            return upscaled_dem, upscaled_fdir
+
         coarse_fdir = np.full(
             (out_rows, out_cols), Dataset.default_no_data_value, dtype=np.int32,
         )

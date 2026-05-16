@@ -270,6 +270,79 @@ def _heap_pop(prio: np.ndarray, idx: np.ndarray, size: int):
 
 
 @njit(cache=True)
+def cotat_upscale_numba(
+    fdir: np.ndarray,
+    acc: np.ndarray,
+    scale_factor: int,
+    d_row: np.ndarray,
+    d_col: np.ndarray,
+    nodata_out: np.int32,
+) -> np.ndarray:
+    """Native Numba COTAT upscaling kernel (P28 / Reed 2003).
+
+    For each coarse cell (a ``scale_factor`` × ``scale_factor`` block of fine
+    cells), finds the fine cell with the largest accumulation as the
+    coarse-cell outlet, traces downstream along ``fdir`` until leaving the
+    block, then assigns the coarse-cell direction by comparing the source
+    and destination coarse-cell coordinates.
+
+    Args:
+        fdir: ``(rows, cols)`` int32 fine-resolution D8 directions.
+        acc: ``(rows, cols)`` float64 fine-resolution accumulation.
+        scale_factor: integer coarsening factor (>= 2).
+        d_row, d_col: int32 DIR_OFFSETS neighbour offsets.
+        nodata_out: int32 sentinel for coarse cells with no defined outlet.
+
+    Returns:
+        ``(rows // scale_factor, cols // scale_factor)`` int32 coarse-grid
+        D8 raster.
+    """
+    rows, cols = fdir.shape
+    out_rows = rows // scale_factor
+    out_cols = cols // scale_factor
+    coarse_fdir = np.full((out_rows, out_cols), nodata_out, dtype=np.int32)
+    for br in range(out_rows):
+        for bc in range(out_cols):
+            r_lo = br * scale_factor
+            r_hi = r_lo + scale_factor
+            c_lo = bc * scale_factor
+            c_hi = c_lo + scale_factor
+            # Block argmax — explicit loop because numba doesn't support
+            # np.argmax over a sliced 2-D array in all versions.
+            best_v = -np.inf
+            fr = r_lo
+            fc = c_lo
+            for r in range(r_lo, r_hi):
+                for c in range(c_lo, c_hi):
+                    v = acc[r, c]
+                    if v > best_v:
+                        best_v = v
+                        fr = r
+                        fc = c
+            r = fr
+            c = fc
+            while True:
+                d = fdir[r, c]
+                if d < 0 or d > 7:
+                    break
+                nr = r + d_row[d]
+                nc = c + d_col[d]
+                if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+                    break
+                coarse_dr = (nr // scale_factor) - br
+                coarse_dc = (nc // scale_factor) - bc
+                if coarse_dr != 0 or coarse_dc != 0:
+                    for k in range(8):
+                        if d_row[k] == coarse_dr and d_col[k] == coarse_dc:
+                            coarse_fdir[br, bc] = k
+                            break
+                    break
+                r = nr
+                c = nc
+    return coarse_fdir
+
+
+@njit(cache=True)
 def priority_flood_numba(
     elev: np.ndarray,
     nodata_mask: np.ndarray,

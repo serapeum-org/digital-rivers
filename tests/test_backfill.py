@@ -141,11 +141,13 @@ def test_agree_returns_dem():
     assert isinstance(out, DEM)
 
 
-def test_topological_breach_still_not_implemented():
+def test_topological_breach_now_implemented_returns_dem():
+    """topological_breach shipped in the next backfill pass — verify the
+    composition returns a typed DEM."""
     z = np.full((4, 4), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
         geometry=[_line_world([(1, 0), (1, 3)])], crs=4326,
     )
-    with pytest.raises(NotImplementedError, match="topological_breach"):
-        dem.burn_streams(streams, method="topological_breach")
+    out = dem.burn_streams(streams, method="topological_breach")
+    assert isinstance(out, DEM)
