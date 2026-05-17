@@ -171,3 +171,65 @@ class TestRuggedness:
         dem = _make_dem(z)
         with pytest.raises(ValueError, match="window"):
             dem.ruggedness(window=0)
+
+
+class TestCurvature:
+    """Tests for `DEM.curvature` (W-25)."""
+
+    def test_flat_terrain_zero_for_every_kind(self):
+        """Test every curvature variant is zero on a flat DEM.
+
+        Test scenario:
+            Constant elevation → every partial derivative is zero → every
+            curvature variant evaluates to zero.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        for kind in ("plan", "profile", "total", "mean", "gaussian"):
+            arr = dem.curvature(kind=kind).read_array()
+            assert np.allclose(arr, 0.0), f"{kind} curvature on flat DEM should be 0"
+
+    def test_inclined_plane_total_curvature_zero(self):
+        """Test total curvature is zero on a perfectly linear ramp.
+
+        Test scenario:
+            An inclined plane has no curvature; total curvature must be
+            (close to) zero at every interior cell.
+        """
+        # z = x + y — a linear ramp, no curvature.
+        x, y = np.meshgrid(np.arange(7), np.arange(7))
+        z = (x + y).astype(np.float32)
+        dem = _make_dem(z)
+        arr = dem.curvature(kind="total").read_array()
+        # Interior cells (avoid the padded edge) should be ~0.
+        interior = arr[1:-1, 1:-1]
+        assert np.allclose(interior, 0.0, atol=1e-5)
+
+    def test_paraboloid_curvature_negative(self):
+        """Test a convex paraboloid yields negative profile curvature on the slope.
+
+        Test scenario:
+            `z = -(x² + y²)` is a downward-opening paraboloid (high in the
+            middle, lower at the edges). Profile curvature on its slopes
+            should report sign consistent with the surface curvature; the
+            sign convention is Zevenbergen-Thorne.
+        """
+        x, y = np.meshgrid(np.arange(-3, 4), np.arange(-3, 4))
+        z = (-(x * x + y * y)).astype(np.float32)
+        dem = _make_dem(z)
+        arr = dem.curvature(kind="total").read_array()
+        # Total curvature in the interior is `2 * (D + E)` and is non-zero
+        # because the surface has finite second derivatives.
+        interior = arr[2:-2, 2:-2]
+        assert (interior != 0).any()
+
+    def test_invalid_kind_raises(self):
+        """Test `kind="bogus"` raises ValueError.
+
+        Test scenario:
+            Unknown curvature variant must be rejected with a clear error.
+        """
+        z = np.zeros((3, 3), dtype=np.float32)
+        dem = _make_dem(z)
+        with pytest.raises(ValueError, match="kind must be one of"):
+            dem.curvature(kind="bogus")

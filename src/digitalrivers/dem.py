@@ -1897,6 +1897,78 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def curvature(self, kind: str = "profile") -> Dataset:
+        """Surface curvature (Zevenbergen & Thorne 1987).
+
+        Fits a partial quartic polynomial `z = Ax²y² + Bx²y + Cxy² + Dx² +
+        Ey² + Fxy + Gx + Hy + I` to the 3×3 neighbourhood of each cell and
+        evaluates one of the five canonical curvature variants from the
+        coefficient grid:
+
+        * `"plan"` — curvature perpendicular to the slope direction;
+          positive on diverging slopes, negative on converging ones.
+        * `"profile"` — curvature parallel to the slope direction; positive
+          on convex (decelerating) slopes, negative on concave (accelerating)
+          ones.
+        * `"total"` — `2 * (D + E)`; sign-independent total relief.
+        * `"mean"` — average of the two principal curvatures.
+        * `"gaussian"` — product of the two principal curvatures.
+
+        Args:
+            kind: One of `"plan"`, `"profile"`, `"total"`, `"mean"`,
+                `"gaussian"`. Defaults to `"profile"`.
+
+        Returns:
+            `Dataset` of float32 curvature values. No-data cells use this
+            DEM's no-data sentinel.
+
+        Raises:
+            ValueError: If `kind` is not one of the five recognised
+                variants.
+
+        References:
+            Zevenbergen, L. W. & Thorne, C. R. (1987). "Quantitative
+            analysis of land surface topography." *Earth Surface Processes
+            and Landforms* 12(1): 47-56.
+        """
+        if kind not in ("plan", "profile", "total", "mean", "gaussian"):
+            raise ValueError(
+                f"kind must be one of 'plan', 'profile', 'total', 'mean', "
+                f"'gaussian'; got {kind!r}"
+            )
+        z = self.values.astype(np.float64, copy=False)
+        L = float(abs(self.geotransform[1]))
+        # 3×3 stencil — `np.pad(mode="edge")` mirrors the boundary value so
+        # finite differences stay defined at the raster edge.
+        zp = np.pad(np.where(np.isnan(z), 0.0, z), 1, mode="edge")
+        z1, z2, z3 = zp[:-2, :-2], zp[:-2, 1:-1], zp[:-2, 2:]
+        z4, z5, z6 = zp[1:-1, :-2], zp[1:-1, 1:-1], zp[1:-1, 2:]
+        z7, z8, z9 = zp[2:, :-2], zp[2:, 1:-1], zp[2:, 2:]
+        # Zevenbergen-Thorne polynomial coefficients.
+        D = ((z4 + z6) / 2.0 - z5) / (L * L)
+        E = ((z2 + z8) / 2.0 - z5) / (L * L)
+        F = (-z1 + z3 + z7 - z9) / (4.0 * L * L)
+        G = (-z4 + z6) / (2.0 * L)
+        H = (z2 - z8) / (2.0 * L)
+        denom = G * G + H * H + 1.0e-12
+        with np.errstate(invalid="ignore", divide="ignore"):
+            if kind == "plan":
+                arr = -2.0 * (D * H * H + E * G * G - F * G * H) / denom
+            elif kind == "profile":
+                arr = 2.0 * (D * G * G + E * H * H + F * G * H) / denom
+            elif kind == "total":
+                arr = 2.0 * (D + E)
+            elif kind == "mean":
+                arr = D + E
+            else:  # gaussian
+                arr = 4.0 * D * E - F * F
+        out = arr.astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(z) | ~np.isfinite(out), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def ruggedness(self, window: int = 3) -> Dataset:
         """Terrain Ruggedness Index (Riley et al. 1999).
 
