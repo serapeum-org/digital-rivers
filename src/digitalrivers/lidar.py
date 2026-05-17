@@ -141,6 +141,95 @@ def read_las(path: str) -> LasPoints:
     )
 
 
+def clip(
+    points: LasPoints,
+    polygon,
+    *,
+    inverse: bool = False,
+) -> LasPoints:
+    """Clip a `LasPoints` cloud to a polygon (or its complement).
+
+    Args:
+        points: Input `LasPoints`.
+        polygon: Shapely Polygon or MultiPolygon in the same CRS as `points`.
+            All other geometry types are rejected.
+        inverse: If False (default), keep only points inside `polygon`. If
+            True, keep only points OUTSIDE the polygon (i.e. erase).
+
+    Returns:
+        A new `LasPoints` containing the surviving subset.
+    """
+    import shapely
+    inside = shapely.contains_xy(polygon, points.x, points.y)
+    keep = inside if not inverse else ~inside
+    return points.subset(keep)
+
+
+def merge(*pointclouds: LasPoints) -> LasPoints:
+    """Concatenate two or more `LasPoints` into a single cloud.
+
+    Numeric arrays are stacked field-by-field. Optional fields (intensity /
+    classification / return_number) are preserved only when every input
+    carries them — otherwise the field on the output is empty (size 0).
+    The CRS is taken from the first input.
+
+    Args:
+        *pointclouds: Two or more `LasPoints` to merge.
+
+    Returns:
+        A new `LasPoints` containing the concatenation.
+
+    Raises:
+        ValueError: If fewer than one cloud is supplied.
+    """
+    if not pointclouds:
+        raise ValueError("merge requires at least one point cloud")
+    x = np.concatenate([p.x for p in pointclouds])
+    y = np.concatenate([p.y for p in pointclouds])
+    z = np.concatenate([p.z for p in pointclouds])
+    kw: dict = {}
+    if all(p.intensity.size for p in pointclouds):
+        kw["intensity"] = np.concatenate([p.intensity for p in pointclouds])
+    if all(p.classification.size for p in pointclouds):
+        kw["classification"] = np.concatenate(
+            [p.classification for p in pointclouds]
+        )
+    if all(p.return_number.size for p in pointclouds):
+        kw["return_number"] = np.concatenate(
+            [p.return_number for p in pointclouds]
+        )
+    return LasPoints(x=x, y=y, z=z, crs=pointclouds[0].crs, **kw)
+
+
+def filter_classes(
+    points: LasPoints,
+    classes: set[int] | list[int] | tuple[int, ...],
+) -> LasPoints:
+    """Keep only points whose ASPRS classification is in `classes`.
+
+    Standard ASPRS codes include `2` (ground), `3` (low vegetation), `4`
+    (medium vegetation), `5` (high vegetation), `6` (building), `9` (water).
+
+    Args:
+        points: Input `LasPoints`. Must carry a populated
+            `classification` array (i.e. read from a LAS / LAZ file).
+        classes: Iterable of integer class codes to keep.
+
+    Returns:
+        A new `LasPoints` containing only the matching subset.
+
+    Raises:
+        ValueError: If `points.classification` is empty (the cloud carries
+            no class codes).
+    """
+    if not points.classification.size:
+        raise ValueError(
+            "points carries no classification data; nothing to filter"
+        )
+    keep = np.isin(points.classification, list(classes))
+    return points.subset(keep)
+
+
 def write_las(
     points: LasPoints,
     path: str,

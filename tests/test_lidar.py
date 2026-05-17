@@ -294,6 +294,133 @@ class TestLasIO:
         np.testing.assert_array_equal(back.intensity, pts.intensity)
         np.testing.assert_array_equal(back.classification, pts.classification)
 
+    def _placeholder(self):  # unused — anchor for the class above
+        pass
+
+
+class TestClipMergeFilter:
+    """Tests for `clip`, `merge`, `filter_classes`."""
+
+    def test_clip_keeps_only_points_inside_polygon(self):
+        """Test clip keeps only points inside the polygon.
+
+        Test scenario:
+            With a square polygon covering x,y ∈ [0, 1] and points at
+            (0.5, 0.5) and (2.0, 2.0), clip retains only the first.
+        """
+        from shapely.geometry import box
+        from digitalrivers.lidar import clip
+        pts = LasPoints(
+            x=np.array([0.5, 2.0]),
+            y=np.array([0.5, 2.0]),
+            z=np.array([1.0, 2.0]),
+        )
+        polygon = box(0, 0, 1, 1)
+        out = clip(pts, polygon)
+        assert len(out) == 1
+        assert out.x[0] == 0.5
+
+    def test_clip_inverse_keeps_only_points_outside(self):
+        """Test clip(inverse=True) drops points inside, keeps those outside.
+
+        Test scenario:
+            Inverse clip on the same fixture drops the inside point and keeps
+            the outside one.
+        """
+        from shapely.geometry import box
+        from digitalrivers.lidar import clip
+        pts = LasPoints(
+            x=np.array([0.5, 2.0]),
+            y=np.array([0.5, 2.0]),
+            z=np.array([1.0, 2.0]),
+        )
+        polygon = box(0, 0, 1, 1)
+        out = clip(pts, polygon, inverse=True)
+        assert len(out) == 1
+        assert out.x[0] == 2.0
+
+    def test_merge_concatenates_two_clouds(self):
+        """Test merge stacks two `LasPoints` end-to-end.
+
+        Test scenario:
+            Two single-point clouds merge into a two-point cloud preserving
+            the inputs' order.
+        """
+        from digitalrivers.lidar import merge
+        a = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+        )
+        b = LasPoints(
+            x=np.array([1.0]), y=np.array([1.0]), z=np.array([1.0]),
+        )
+        out = merge(a, b)
+        assert len(out) == 2
+        np.testing.assert_array_equal(out.x, [0.0, 1.0])
+
+    def test_merge_rejects_empty_input(self):
+        """Test merge with no clouds raises ValueError.
+
+        Test scenario:
+            Calling merge() with no arguments must raise.
+        """
+        from digitalrivers.lidar import merge
+        with pytest.raises(ValueError, match="at least one"):
+            merge()
+
+    def test_merge_drops_optional_field_when_only_some_inputs_have_it(self):
+        """Test merge drops intensity when not every input carries it.
+
+        Test scenario:
+            One input has intensity, the other does not — the merged
+            cloud's intensity must be empty (size 0).
+        """
+        from digitalrivers.lidar import merge
+        a = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            intensity=np.array([100], dtype=np.uint16),
+        )
+        b = LasPoints(
+            x=np.array([1.0]), y=np.array([1.0]), z=np.array([1.0]),
+        )
+        out = merge(a, b)
+        assert out.intensity.size == 0
+
+    def test_filter_classes_keeps_only_ground(self):
+        """Test filter_classes(classes={2}) keeps only ground points.
+
+        Test scenario:
+            A cloud mixing ground (2) and vegetation (5) points returns
+            only the ground subset when filtered on {2}.
+        """
+        from digitalrivers.lidar import filter_classes
+        pts = LasPoints(
+            x=np.array([0.0, 1.0, 2.0]),
+            y=np.array([0.0, 1.0, 2.0]),
+            z=np.array([0.0, 1.0, 2.0]),
+            classification=np.array([2, 5, 2], dtype=np.uint8),
+        )
+        out = filter_classes(pts, {2})
+        assert len(out) == 2
+        np.testing.assert_array_equal(out.classification, [2, 2])
+
+    def test_filter_classes_rejects_cloud_without_classification(self):
+        """Test filter_classes raises when classification is empty.
+
+        Test scenario:
+            A cloud with no classification data cannot be filtered; raise.
+        """
+        from digitalrivers.lidar import filter_classes
+        pts = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+        )
+        with pytest.raises(ValueError, match="no classification"):
+            filter_classes(pts, {2})
+
+
+@requires_laspy
+class TestLasIORoundTrip:
+    """Round-trip tests gated on laspy availability."""
+
     def test_read_las_returns_las_points(self, tmp_path):
         """Test read_las returns a LasPoints instance.
 
