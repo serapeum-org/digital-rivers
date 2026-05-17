@@ -53,7 +53,10 @@ theme:
 
 plugins:
   - search
-  - mkdocs-jupyter
+  - mkdocs-jupyter:
+      execute: false  # notebooks are pre-executed; render the stored outputs
+      include_source: true
+      ignore: ["**/.ipynb_checkpoints/**"]
   - panzoom:
       hint_location: "top"
       key: "ctrl"
@@ -113,6 +116,16 @@ nav:
     - Watershed analytics: guides/watershed-analytics.md
     - Terrain indices: guides/terrain-indices.md
     - LiDAR pipeline: guides/lidar.md
+  - Examples:
+    - Hydrology pipeline: examples/01_hydrology_pipeline.ipynb
+    - Watershed analytics: examples/02_watershed_analytics.ipynb
+    - Terrain indices: examples/03_terrain_indices.ipynb
+    - Hydrologic indices: examples/04_hydrologic_indices.ipynb
+    - Stochastic depressions: examples/05_stochastic_depressions.ipynb
+    - LiDAR pipeline: examples/06_lidar_pipeline.ipynb
+    - Mesh + topobathy fusion: examples/07_mesh_and_fusion.ipynb
+    - Cloud I/O: examples/08_cloud_io.ipynb
+    - Real-world Mount Hood (SRTM): examples/09_real_world_mt_hood.ipynb
   - Reference:
     - DEM: reference/dem.md
     - FlowDirection: reference/flow_direction.md
