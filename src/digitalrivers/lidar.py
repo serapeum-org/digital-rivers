@@ -1,14 +1,184 @@
-"""LiDAR point-cloud → DEM gridding.
+"""LiDAR point-cloud I/O, gridding, ground filtering, and analysis.
 
-Working half ships today; the full PDAL pipeline (LAS / LAZ read +
-ground classification + filtering + DEM conditioning) remains deferred.
-
+* :class:`LasPoints` — in-memory point-cloud record (xyz + intensity +
+  classification + return-number + CRS).
+* :func:`read_las` / :func:`write_las` — LAS / LAZ I/O via `laspy`.
 * :func:`grid_lidar_points` — bucket raw `(x, y, z)` arrays into a
   gridded DEM with min / max / mean / median aggregation.
-* :func:`pdal_lidar_pipeline` — umbrella for the full PDAL pipeline;
-  raises `NotImplementedError` and points at the gridding helper.
+
+Reading / writing LAS files requires `laspy`. Install with
+`pip install laspy[lazrs]` to also handle LAZ compression. The
+gridding helper does not require laspy and operates on raw arrays.
 """
 from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+import numpy as np
+
+
+_LASPY_HINT = (
+    "laspy is required for LAS / LAZ I/O. Install with "
+    "`pip install laspy[lazrs]`."
+)
+
+
+@dataclass
+class LasPoints:
+    """In-memory LiDAR point cloud.
+
+    Numeric arrays are all parallel — index `i` selects the i-th point
+    across every field. `classification` follows the ASPRS LAS standard
+    (2 = ground, 5 = high vegetation, 6 = building, etc.).
+
+    Attributes:
+        x: `(N,)` float64 array of x-coordinates.
+        y: `(N,)` float64 array of y-coordinates.
+        z: `(N,)` float64 array of z-coordinates (elevation).
+        intensity: `(N,)` uint16 array of return intensity, or empty.
+        classification: `(N,)` uint8 array of ASPRS class codes, or empty.
+        return_number: `(N,)` uint8 array of return-number-within-pulse,
+            or empty.
+        crs: Optional CRS object (whatever `laspy.LasHeader.parse_crs`
+            returns; typically `pyproj.CRS`).
+    """
+
+    x: np.ndarray
+    y: np.ndarray
+    z: np.ndarray
+    intensity: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=np.uint16),
+    )
+    classification: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=np.uint8),
+    )
+    return_number: np.ndarray = field(
+        default_factory=lambda: np.empty(0, dtype=np.uint8),
+    )
+    crs: object | None = None
+
+    def __post_init__(self) -> None:
+        n = len(self.x)
+        if not (len(self.y) == n and len(self.z) == n):
+            raise ValueError(
+                f"x/y/z must have the same length; got {len(self.x)}, "
+                f"{len(self.y)}, {len(self.z)}"
+            )
+
+    def __len__(self) -> int:
+        """Number of points in the cloud."""
+        return int(self.x.shape[0])
+
+    def subset(self, mask: np.ndarray) -> "LasPoints":
+        """Return a new `LasPoints` containing only the points where `mask` is True.
+
+        Args:
+            mask: `(N,)` bool array (same length as the point cloud).
+
+        Returns:
+            A new `LasPoints` with the selected subset across every field.
+        """
+        mask = np.asarray(mask, dtype=bool)
+        if mask.shape != self.x.shape:
+            raise ValueError(
+                f"mask shape {mask.shape} != points shape {self.x.shape}"
+            )
+        kw = {"x": self.x[mask], "y": self.y[mask], "z": self.z[mask]}
+        if self.intensity.size:
+            kw["intensity"] = self.intensity[mask]
+        if self.classification.size:
+            kw["classification"] = self.classification[mask]
+        if self.return_number.size:
+            kw["return_number"] = self.return_number[mask]
+        return LasPoints(crs=self.crs, **kw)
+
+
+def read_las(path: str) -> LasPoints:
+    """Read a LAS or LAZ file into a `LasPoints` record.
+
+    Args:
+        path: Filesystem path to a `.las` / `.laz` file.
+
+    Returns:
+        `LasPoints` populated from the file. xyz are scaled+offset by
+        `laspy` so values are in the file's CRS units.
+
+    Raises:
+        ImportError: If `laspy` is not installed.
+    """
+    try:
+        import laspy  # type: ignore
+    except ImportError as exc:  # pragma: no cover — environment-specific
+        raise ImportError(_LASPY_HINT) from exc
+    f = laspy.read(path)
+    try:
+        crs = f.header.parse_crs()
+    except Exception:  # pragma: no cover — older LAS headers lack a CRS
+        crs = None
+    intensity = (
+        np.asarray(f.intensity, dtype=np.uint16)
+        if hasattr(f, "intensity")
+        else np.empty(0, dtype=np.uint16)
+    )
+    classification = (
+        np.asarray(f.classification, dtype=np.uint8)
+        if hasattr(f, "classification")
+        else np.empty(0, dtype=np.uint8)
+    )
+    return_number = (
+        np.asarray(f.return_number, dtype=np.uint8)
+        if hasattr(f, "return_number")
+        else np.empty(0, dtype=np.uint8)
+    )
+    return LasPoints(
+        x=np.asarray(f.x, dtype=np.float64),
+        y=np.asarray(f.y, dtype=np.float64),
+        z=np.asarray(f.z, dtype=np.float64),
+        intensity=intensity,
+        classification=classification,
+        return_number=return_number,
+        crs=crs,
+    )
+
+
+def write_las(
+    points: LasPoints,
+    path: str,
+    *,
+    point_format: int = 6,
+    version: str = "1.4",
+) -> None:
+    """Write a `LasPoints` cloud to a LAS or LAZ file.
+
+    The file extension determines compression: `.laz` uses LAZ
+    (requires `lazrs`), `.las` is uncompressed.
+
+    Args:
+        points: `LasPoints` to write.
+        path: Output filesystem path.
+        point_format: ASPRS LAS point format (default 6 — supports GPS time
+            and high-precision returns; pick 0 for legacy compatibility).
+        version: LAS version string (default `"1.4"`).
+
+    Raises:
+        ImportError: If `laspy` is not installed.
+    """
+    try:
+        import laspy  # type: ignore
+    except ImportError as exc:  # pragma: no cover — environment-specific
+        raise ImportError(_LASPY_HINT) from exc
+    header = laspy.LasHeader(point_format=point_format, version=version)
+    out = laspy.LasData(header)
+    out.x = points.x
+    out.y = points.y
+    out.z = points.z
+    if points.intensity.size:
+        out.intensity = points.intensity
+    if points.classification.size:
+        out.classification = points.classification
+    if points.return_number.size:
+        out.return_number = points.return_number
+    out.write(path)
 
 
 def grid_lidar_points(
@@ -155,18 +325,3 @@ def grid_lidar_points(
     )
 
 
-def pdal_lidar_pipeline(*args, **kwargs):
-    """Full PDAL pipeline — umbrella stub.
-
-    The point-cloud-to-DEM gridding half ships as :func:`grid_lidar_points`
-    and works on raw `(x, y, z)` arrays. The full PDAL pipeline (LAS /
-    LAZ read + ground classification + filtering + grid + Phase 1-3
-    conditioning chain) remains deferred pending the PDAL conda-forge
-    dependency.
-    """
-    raise NotImplementedError(
-        "pdal_lidar_pipeline umbrella API deferred. The gridding "
-        "half is available via digitalrivers.lidar.grid_lidar_points"
-        "; read LAS files externally with laspy / pylas / PDAL and pass "
-        "the resulting arrays into grid_lidar_points."
-    )

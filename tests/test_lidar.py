@@ -4,13 +4,19 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from digitalrivers.lidar import grid_lidar_points, pdal_lidar_pipeline
+from digitalrivers.lidar import LasPoints, grid_lidar_points
 
+# Gridding tests run without laspy. The LAS I/O tests (below the
+# `requires_laspy` marker) skip when it's missing.
+try:
+    import laspy  # noqa: F401
+    HAS_LASPY = True
+except ImportError:  # pragma: no cover — environment-specific
+    HAS_LASPY = False
 
-def test_pdal_pipeline_umbrella_points_to_gridder():
-    """The umbrella stub raises and tells callers about grid_lidar_points."""
-    with pytest.raises(NotImplementedError, match="grid_lidar_points"):
-        pdal_lidar_pipeline()
+requires_laspy = pytest.mark.skipif(
+    not HAS_LASPY, reason="laspy required for LAS I/O tests"
+)
 
 
 def test_grid_min_picks_lowest_per_cell():
@@ -186,3 +192,126 @@ def test_grid_dense_cell_aggregates_many_points():
     )
     arr = ds.read_array()
     assert abs(float(arr[0, 0]) - float(zs.mean())) < 0.5
+
+
+class TestLasPoints:
+    """Tests for the `LasPoints` record class."""
+
+    def test_constructor_requires_matching_lengths(self):
+        """Test mismatched x/y/z lengths raise ValueError.
+
+        Test scenario:
+            Constructing LasPoints with arrays of different lengths must be
+            rejected.
+        """
+        with pytest.raises(ValueError, match="same length"):
+            LasPoints(
+                x=np.array([0.0]),
+                y=np.array([0.0, 1.0]),
+                z=np.array([0.0]),
+            )
+
+    def test_len_returns_point_count(self):
+        """Test `len(LasPoints)` equals the number of points.
+
+        Test scenario:
+            A cloud with 3 points reports length 3.
+        """
+        pts = LasPoints(
+            x=np.array([0.0, 1.0, 2.0]),
+            y=np.array([0.0, 1.0, 2.0]),
+            z=np.array([0.0, 1.0, 2.0]),
+        )
+        assert len(pts) == 3
+
+    def test_subset_filters_all_fields_in_sync(self):
+        """Test `subset` retains the same indices across every field.
+
+        Test scenario:
+            With intensity and classification populated, a bool mask must
+            select the same rows in all populated arrays.
+        """
+        pts = LasPoints(
+            x=np.array([0.0, 1.0, 2.0, 3.0]),
+            y=np.array([0.0, 1.0, 2.0, 3.0]),
+            z=np.array([0.0, 1.0, 2.0, 3.0]),
+            intensity=np.array([10, 20, 30, 40], dtype=np.uint16),
+            classification=np.array([2, 5, 2, 6], dtype=np.uint8),
+        )
+        mask = np.array([True, False, True, False])
+        sub = pts.subset(mask)
+        assert len(sub) == 2
+        np.testing.assert_array_equal(sub.x, [0.0, 2.0])
+        np.testing.assert_array_equal(sub.intensity, [10, 30])
+        np.testing.assert_array_equal(sub.classification, [2, 2])
+
+    def test_subset_rejects_wrong_shape_mask(self):
+        """Test subset rejects a mask of the wrong length.
+
+        Test scenario:
+            A mask shorter or longer than the point count must raise.
+        """
+        pts = LasPoints(
+            x=np.array([0.0, 1.0]),
+            y=np.array([0.0, 1.0]),
+            z=np.array([0.0, 1.0]),
+        )
+        with pytest.raises(ValueError, match="shape"):
+            pts.subset(np.array([True, True, True]))
+
+
+@requires_laspy
+class TestLasIO:
+    """Tests for `read_las` / `write_las`. Skipped when laspy is missing."""
+
+    def test_write_then_read_roundtrip(self, tmp_path):
+        """Test writing a LasPoints to disk and reading it back yields equivalent data.
+
+        Args:
+            tmp_path: pytest builtin fixture providing a temporary directory.
+
+        Test scenario:
+            A small LasPoints with intensity and classification is written
+            to `.las` and read back. Coordinates / intensity / classification
+            must match the source within laspy's quantisation precision.
+        """
+        from digitalrivers.lidar import read_las, write_las
+        pts = LasPoints(
+            x=np.array([100.0, 101.5, 103.25]),
+            y=np.array([200.0, 200.5, 201.0]),
+            z=np.array([50.0, 51.0, 52.5]),
+            intensity=np.array([100, 200, 300], dtype=np.uint16),
+            classification=np.array([2, 2, 5], dtype=np.uint8),
+        )
+        path = str(tmp_path / "roundtrip.las")
+        write_las(pts, path)
+        back = read_las(path)
+        # LAS stores coordinates as scaled int32s, so allow a small tolerance
+        # on xyz (typically ≤ 0.001).
+        np.testing.assert_allclose(back.x, pts.x, atol=0.01)
+        np.testing.assert_allclose(back.y, pts.y, atol=0.01)
+        np.testing.assert_allclose(back.z, pts.z, atol=0.01)
+        np.testing.assert_array_equal(back.intensity, pts.intensity)
+        np.testing.assert_array_equal(back.classification, pts.classification)
+
+    def test_read_las_returns_las_points(self, tmp_path):
+        """Test read_las returns a LasPoints instance.
+
+        Args:
+            tmp_path: pytest tmp_path fixture.
+
+        Test scenario:
+            After writing a tiny LAS file, read_las returns a LasPoints
+            with the expected length.
+        """
+        from digitalrivers.lidar import read_las, write_las
+        pts = LasPoints(
+            x=np.array([0.0, 1.0]),
+            y=np.array([0.0, 1.0]),
+            z=np.array([0.0, 1.0]),
+        )
+        path = str(tmp_path / "tiny.las")
+        write_las(pts, path)
+        back = read_las(path)
+        assert isinstance(back, LasPoints)
+        assert len(back) == 2
