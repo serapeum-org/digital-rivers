@@ -2082,6 +2082,55 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def sky_view_factor(
+        self,
+        *,
+        search_radius: int = 10,
+    ) -> Dataset:
+        """Sky-view factor (Zakšek et al. 2011).
+
+        For each cell, the fraction of the upper hemisphere that is visible
+        from that cell. Walks along 8 azimuths up to `search_radius`,
+        records the maximum elevation angle along each walk, and returns
+        the mean of `(1 - sin(horizon_angle))` across the 8 directions —
+        equivalent to the fraction of an isotropic sky dome not occluded
+        by surrounding terrain.
+
+        Shares the horizon-walk kernel with `openness` (W-27); the two
+        differ only in the per-direction aggregation function.
+
+        Args:
+            search_radius: Maximum walk distance in cells. Must be ≥ 1.
+                Defaults to 10.
+
+        Returns:
+            `Dataset` of float32 SVF values in `[0, 1]`. No-data cells use
+            this DEM's no-data sentinel.
+
+        Raises:
+            ValueError: If `search_radius < 1`.
+
+        References:
+            Zakšek, K., Oštir, K., & Kokalj, Ž. (2011). "Sky-view factor as
+            a relief visualization technique." *Remote Sensing* 3(2):
+            398-415.
+        """
+        from digitalrivers._numba import horizon_walk_kernel
+        if search_radius < 1:
+            raise ValueError(
+                f"search_radius must be >= 1; got {search_radius!r}"
+            )
+        z = self.values.astype(np.float64, copy=False)
+        z_filled = np.where(np.isnan(z), 0.0, z)
+        out = horizon_walk_kernel(
+            z_filled, float(abs(self.geotransform[1])), int(search_radius), 1,
+        ).astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(z), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def ruggedness(self, window: int = 3) -> Dataset:
         """Terrain Ruggedness Index (Riley et al. 1999).
 

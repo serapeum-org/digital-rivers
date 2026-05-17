@@ -335,3 +335,59 @@ class TestOpenness:
         dem = _make_dem(z)
         with pytest.raises(ValueError, match="search_radius"):
             dem.openness(search_radius=0)
+
+
+class TestSkyViewFactor:
+    """Tests for `DEM.sky_view_factor` (W-28)."""
+
+    def test_flat_terrain_svf_is_one(self):
+        """Test SVF on a flat DEM is 1 (full sky visible).
+
+        Test scenario:
+            Every horizon angle is 0 on a flat surface → `1 - sin(0) = 1`
+            per direction → mean is 1.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        arr = dem.sky_view_factor(search_radius=2).read_array()
+        assert np.allclose(arr, 1.0, atol=1e-5)
+
+    def test_pit_has_lower_svf_than_neighbour(self):
+        """Test a cell surrounded by higher cells reports lower SVF than the
+        higher cells themselves.
+
+        Test scenario:
+            A 5×5 DEM at z=10 with a pit at (2, 2)=0. The pit looks up at
+            the walls and sees less sky than the wall cells.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        z[2, 2] = 0.0
+        dem = _make_dem(z)
+        arr = dem.sky_view_factor(search_radius=2).read_array()
+        assert arr[2, 2] < arr[0, 0] - 1e-5
+
+    def test_svf_in_unit_interval(self):
+        """Test SVF values lie in `[0, 1]`.
+
+        Test scenario:
+            By construction `(1 - sin(angle))` ∈ `[0, 1]` for angles in
+            `[0, π/2]`; the mean stays in `[0, 1]`.
+        """
+        rng = np.random.default_rng(7)
+        z = rng.uniform(0, 50, size=(10, 10)).astype(np.float32)
+        dem = _make_dem(z)
+        arr = dem.sky_view_factor(search_radius=3).read_array()
+        valid = arr != float(dem.no_data_value[0])
+        assert (arr[valid] >= 0).all()
+        assert (arr[valid] <= 1).all()
+
+    def test_invalid_radius_rejected(self):
+        """Test search_radius < 1 raises ValueError.
+
+        Test scenario:
+            Zero search radius is meaningless; reject it.
+        """
+        z = np.zeros((3, 3), dtype=np.float32)
+        dem = _make_dem(z)
+        with pytest.raises(ValueError, match="search_radius"):
+            dem.sky_view_factor(search_radius=0)
