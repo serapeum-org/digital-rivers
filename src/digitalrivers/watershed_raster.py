@@ -273,50 +273,12 @@ class WatershedRaster(Dataset):
             # Longest flow path per basin = max upstream-path length at the
             # basin's outlet. Compute the per-cell upslope-max-length grid
             # once via a Kahn topological sweep, then look it up at every
-            # outlet. The `accumulation` argument is required because we
-            # need its per-cell value to drive the Kahn dequeuing order
-            # (cells with smaller accumulation are upstream of cells with
-            # larger accumulation along the same path).
-            cs = abs(gt[1])
-            diag = cs * np.sqrt(2.0)
+            # outlet. The `accumulation` argument is retained for API
+            # backwards compatibility — the actual computation uses only
+            # `flow_direction` and cell size.
+            from digitalrivers._flow.accumulation import kahn_max_upslope_length
             fdir_arr = flow_direction.read_array().astype(np.int32, copy=False)
-            rows, cols = fdir_arr.shape
-            # Receiver grid from D8 direction codes.
-            dr_lut = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-            dc_lut = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-            # In-degree count for Kahn ordering — number of upstream
-            # neighbours pointing at each cell.
-            inv = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
-            indeg = np.zeros((rows, cols), dtype=np.int32)
-            for k in range(8):
-                dr = int(dr_lut[k])
-                dc = int(dc_lut[k])
-                src_r = slice(max(0, dr), min(rows, rows + dr))
-                src_c = slice(max(0, dc), min(cols, cols + dc))
-                dst_r = slice(max(0, -dr), min(rows, rows - dr))
-                dst_c = slice(max(0, -dc), min(cols, cols - dc))
-                fd_src = fdir_arr[src_r, src_c]
-                indeg[dst_r, dst_c] += (fd_src == int(inv[k])).astype(np.int32)
-            lengths = np.zeros((rows, cols), dtype=np.float64)
-            from collections import deque
-            queue: deque[tuple[int, int]] = deque(
-                (int(r), int(c)) for r, c in zip(*np.where(indeg == 0))
-            )
-            while queue:
-                r, c = queue.popleft()
-                d = int(fdir_arr[r, c])
-                if d < 0 or d > 7:
-                    continue
-                nr, nc = r + int(dr_lut[d]), c + int(dc_lut[d])
-                if not (0 <= nr < rows and 0 <= nc < cols):
-                    continue
-                step = diag if (int(dr_lut[d]) and int(dc_lut[d])) else cs
-                cand = lengths[r, c] + step
-                if cand > lengths[nr, nc]:
-                    lengths[nr, nc] = cand
-                indeg[nr, nc] -= 1
-                if indeg[nr, nc] == 0:
-                    queue.append((nr, nc))
+            lengths = kahn_max_upslope_length(fdir_arr, abs(gt[1]))
 
             available["longest_flow_path_m"] = []
             for bid in unique_ids:

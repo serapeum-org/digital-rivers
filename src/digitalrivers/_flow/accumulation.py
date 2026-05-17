@@ -267,3 +267,63 @@ def accumulate(
     # Zero out weights at invalid cells.
     weights = np.where(valid_mask, weights, 0.0)
     return kahn_accumulate(receivers, proportions, weights, valid_mask)
+
+
+def kahn_max_upslope_length(
+    fdir: np.ndarray, cell_size: float,
+) -> np.ndarray:
+    """Per-cell longest upslope flow path (planimetric) under D8 / Rho8 routing.
+
+    Kahn topological sweep: each cell's value is the maximum, over all
+    immediate D8 upstream neighbours, of `neighbour.length + step_distance`.
+    Cardinal steps contribute `cell_size`; diagonal steps contribute
+    `cell_size * sqrt(2)`. Cells with no upstream stream neighbours (sources)
+    hold `0.0`.
+
+    Args:
+        fdir: `(rows, cols)` int32 single-direction direction-code raster
+            (DIR_OFFSETS encoding: `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E,
+            7=SE`).
+        cell_size: Cell size in map units. Must be positive.
+
+    Returns:
+        `(rows, cols)` float64 raster of per-cell maximum upslope flow path
+        in map units.
+    """
+    rows, cols = fdir.shape
+    diag = float(cell_size) * (2.0 ** 0.5)
+    cs = float(cell_size)
+    # In-degree count for Kahn ordering.
+    inv = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+    indeg = np.zeros((rows, cols), dtype=np.int32)
+    for k in range(8):
+        dr = int(_DIR_DR[k])
+        dc = int(_DIR_DC[k])
+        src_r = slice(max(0, dr), min(rows, rows + dr))
+        src_c = slice(max(0, dc), min(cols, cols + dc))
+        dst_r = slice(max(0, -dr), min(rows, rows - dr))
+        dst_c = slice(max(0, -dc), min(cols, cols - dc))
+        fd_src = fdir[src_r, src_c]
+        indeg[dst_r, dst_c] += (fd_src == int(inv[k])).astype(np.int32)
+
+    lengths = np.zeros((rows, cols), dtype=np.float64)
+    queue: deque[tuple[int, int]] = deque(
+        (int(r), int(c)) for r, c in zip(*np.where(indeg == 0))
+    )
+    while queue:
+        r, c = queue.popleft()
+        d = int(fdir[r, c])
+        if d < 0 or d > 7:
+            continue
+        nr = r + int(_DIR_DR[d])
+        nc = c + int(_DIR_DC[d])
+        if not (0 <= nr < rows and 0 <= nc < cols):
+            continue
+        step = diag if (int(_DIR_DR[d]) and int(_DIR_DC[d])) else cs
+        cand = lengths[r, c] + step
+        if cand > lengths[nr, nc]:
+            lengths[nr, nc] = cand
+        indeg[nr, nc] -= 1
+        if indeg[nr, nc] == 0:
+            queue.append((nr, nc))
+    return lengths

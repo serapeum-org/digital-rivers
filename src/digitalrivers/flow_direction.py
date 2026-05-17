@@ -1043,6 +1043,43 @@ class FlowDirection(Dataset):
         out[~basin_mask] = 0
         return out
 
+    def upslope_flowpath_length(self) -> Dataset:
+        """Return a per-cell raster of the longest upslope flow path.
+
+        For every cell in the raster, the returned value is the longest
+        planimetric flow path from any upstream source to that cell —
+        following D8 / Rho8 receivers, with cardinal steps contributing
+        `cell_size` and diagonal steps contributing `cell_size * sqrt(2)`.
+        Source cells (no upstream neighbour pointing at them) hold `0.0`.
+
+        Only single-direction routings (`d8` / `rho8`) are supported.
+
+        Returns:
+            `Dataset` of float32 lengths in map units, aligned to this
+            `FlowDirection` raster. Uses `-9999.0` as the on-disk no-data
+            sentinel.
+
+        Raises:
+            ValueError: If `self.routing` is not single-direction.
+        """
+        import numpy as np
+
+        from digitalrivers._flow.accumulation import kahn_max_upslope_length
+
+        if self.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"upslope_flowpath_length supports single-direction routing "
+                f"only; got {self.routing!r}"
+            )
+        fdir = self.read_array().astype(np.int32, copy=False)
+        lengths = kahn_max_upslope_length(fdir, float(abs(self.geotransform[1])))
+        return Dataset.create_from_array(
+            lengths.astype(np.float32),
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=-9999.0,
+        )
+
     def isobasins(
         self,
         streams,
