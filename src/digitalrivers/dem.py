@@ -1897,6 +1897,48 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def ruggedness(self, window: int = 3) -> Dataset:
+        """Terrain Ruggedness Index (Riley et al. 1999).
+
+        Per-cell mean of absolute elevation differences to every other cell
+        in a `window×window` neighbourhood. Output unit is the DEM elevation
+        unit (metres). Higher values mark rougher terrain; flat terrain is
+        zero.
+
+        Args:
+            window: Side length of the focal window in cells (≥ 1).
+                Defaults to 3 (Riley's original 3×3 neighbourhood).
+
+        Returns:
+            `Dataset` of float32 ruggedness values. No-data cells use this
+            DEM's no-data sentinel.
+
+        References:
+            Riley, S. J., DeGloria, S. D., & Elliot, R. (1999). "A terrain
+            ruggedness index that quantifies topographic heterogeneity."
+            *Intermountain Journal of Sciences* 5(1-4): 23-27.
+        """
+        if window < 1:
+            raise ValueError(f"window must be >= 1; got {window!r}")
+        z = self.values.astype(np.float64, copy=False)
+        z_filled = np.where(np.isnan(z), 0.0, z)
+        total = np.zeros_like(z_filled)
+        count = 0
+        half = int(window) // 2
+        for dr in range(-half, half + 1):
+            for dc in range(-half, half + 1):
+                if dr == 0 and dc == 0:
+                    continue
+                shifted = np.roll(z_filled, shift=(dr, dc), axis=(0, 1))
+                total += np.abs(z_filled - shifted)
+                count += 1
+        out = (total / float(count)).astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(z), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def slope(self) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 

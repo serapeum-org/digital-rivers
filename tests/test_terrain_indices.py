@@ -128,3 +128,46 @@ class TestElevStd:
         sd = dem.elev_std(window=3).read_array()
         # Cells along the boundary column have SD > 0.
         assert (sd[:, 2] > 0).all()
+
+
+class TestRuggedness:
+    """Tests for `DEM.ruggedness`."""
+
+    def test_flat_terrain_zero_everywhere(self):
+        """Test ruggedness on a flat DEM is zero everywhere.
+
+        Test scenario:
+            Constant elevation → every per-neighbour absolute difference
+            is zero, so ruggedness is zero.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        tri = dem.ruggedness(window=3).read_array()
+        assert np.allclose(tri, 0.0)
+
+    def test_centre_peak_has_positive_ruggedness_around_it(self):
+        """Test ruggedness is non-zero around a peak surrounded by flat terrain.
+
+        Test scenario:
+            A single elevated cell at (2, 2)=9 on flat DEM yields positive
+            ruggedness at the peak and its immediate neighbours.
+        """
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[2, 2] = 9.0
+        dem = _make_dem(z)
+        tri = dem.ruggedness(window=3).read_array()
+        assert tri[2, 2] > 0
+        # Neighbours of the peak also see the height difference.
+        assert tri[1, 2] > 0
+        assert tri[3, 2] > 0
+
+    def test_invalid_window_rejected(self):
+        """Test window < 1 raises ValueError.
+
+        Test scenario:
+            A zero or negative window is not a meaningful focal radius.
+        """
+        z = np.zeros((3, 3), dtype=np.float32)
+        dem = _make_dem(z)
+        with pytest.raises(ValueError, match="window"):
+            dem.ruggedness(window=0)
