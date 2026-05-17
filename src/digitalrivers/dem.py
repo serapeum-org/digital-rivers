@@ -1615,6 +1615,141 @@ class DEM(Dataset):
 
         return slopes
 
+    def twi(
+        self,
+        accumulation,
+        slope_deg: Dataset | None = None,
+    ) -> Dataset:
+        """Topographic Wetness Index (Beven & Kirkby 1979).
+
+        TWI = ln(SCA / tan(slope)) where SCA = specific catchment area =
+        `accumulation_cells * cell_size`. High TWI values mark cells likely
+        to be wet (low slope and / or large upstream area). Slope is treated
+        in radians internally; values below a small floor (≈ 0.06°) are
+        clamped to avoid log-singularity at flat cells.
+
+        Args:
+            accumulation: `Accumulation` raster aligned to this DEM.
+            slope_deg: Optional pre-computed slope raster in degrees. If
+                None, `Terrain.slope`-equivalent is computed on the fly via
+                `arctan` of `DEM.slope()`'s rise/run output.
+
+        Returns:
+            `Dataset` of float32 TWI values. No-data sentinel `-9999.0`.
+
+        References:
+            Beven, K. J. & Kirkby, M. J. (1979). "A physically based,
+            variable contributing area model of basin hydrology."
+            *Hydrological Sciences Bulletin* 24(1): 43-69.
+        """
+        return self._area_slope_index(accumulation, slope_deg, kind="twi")
+
+    def spi(
+        self,
+        accumulation,
+        slope_deg: Dataset | None = None,
+    ) -> Dataset:
+        """Stream Power Index (Moore et al. 1991).
+
+        SPI = SCA * tan(slope). Proportional to the rate at which overland
+        flow does work at a cell; useful as a proxy for erosion risk.
+
+        Args:
+            accumulation: `Accumulation` raster aligned to this DEM.
+            slope_deg: Optional pre-computed slope raster in degrees. If
+                None, computed on the fly.
+
+        Returns:
+            `Dataset` of float32 SPI values. No-data sentinel `-9999.0`.
+        """
+        return self._area_slope_index(accumulation, slope_deg, kind="spi")
+
+    def sti(
+        self,
+        accumulation,
+        slope_deg: Dataset | None = None,
+    ) -> Dataset:
+        """Sediment Transport Index (Moore & Burch 1986).
+
+        STI = (SCA / 22.13)^0.6 * (sin(slope) / 0.0896)^1.3. The 22.13 m and
+        0.0896 m/m constants come from the original USLE plot length and
+        slope; STI predicts where overland flow will transport sediment
+        rather than deposit it.
+
+        Args:
+            accumulation: `Accumulation` raster aligned to this DEM.
+            slope_deg: Optional pre-computed slope raster in degrees.
+
+        Returns:
+            `Dataset` of float32 STI values. No-data sentinel `-9999.0`.
+        """
+        return self._area_slope_index(accumulation, slope_deg, kind="sti")
+
+    def _area_slope_index(
+        self,
+        accumulation,
+        slope_deg,
+        *,
+        kind: str,
+    ) -> Dataset:
+        """Shared kernel for the TWI / SPI / STI family.
+
+        All three indices need `(SCA, slope_rad)`; the difference is the
+        functional form applied to them.
+        """
+        if slope_deg is None:
+            slope_ratio = self.slope().read_array().astype(np.float64, copy=False)
+            slope_deg_arr = np.degrees(np.arctan(np.where(
+                np.isfinite(slope_ratio), slope_ratio, 0.0
+            )))
+        else:
+            slope_deg_arr = slope_deg.read_array().astype(np.float64, copy=False)
+            no_val = (
+                slope_deg.no_data_value[0] if slope_deg.no_data_value else None
+            )
+            if no_val is not None:
+                slope_deg_arr = np.where(
+                    slope_deg_arr == no_val, np.nan, slope_deg_arr
+                )
+
+        acc = accumulation.read_array().astype(np.float64, copy=False)
+        if slope_deg_arr.shape != acc.shape:
+            raise ValueError(
+                f"slope shape {slope_deg_arr.shape} != accumulation shape "
+                f"{acc.shape}"
+            )
+
+        slope_rad = np.deg2rad(slope_deg_arr)
+        # Floor at ~0.001 rad (≈ 0.06°) to keep tan() / sin() bounded away
+        # from zero on flats.
+        slope_rad = np.where(
+            np.isfinite(slope_rad), np.maximum(slope_rad, 1.0e-3), np.nan,
+        )
+
+        cs = float(abs(self.geotransform[1]))
+        sca = acc * cs  # specific catchment area (m, since width ≈ cell_size)
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            if kind == "twi":
+                arr = np.log(sca / np.tan(slope_rad))
+            elif kind == "spi":
+                arr = sca * np.tan(slope_rad)
+            elif kind == "sti":
+                arr = ((sca / 22.13) ** 0.6) * (
+                    (np.sin(slope_rad) / 0.0896) ** 1.3
+                )
+            else:  # pragma: no cover — defensive
+                raise ValueError(f"unknown kind {kind!r}")
+
+        no_val = -9999.0
+        arr = np.where(np.isfinite(arr), arr, no_val).astype(np.float32)
+        return Dataset.create_from_array(
+            arr,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
+        )
+
     def slope(self) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 
