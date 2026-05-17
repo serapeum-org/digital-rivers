@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1657,14 +1657,14 @@ for color relief, hill shade, slope, and aspect computation.</p>
 <span class="normal"><a href="#__codelineno-0-529">529</a></span>
 <span class="normal"><a href="#__codelineno-0-530">530</a></span>
 <span class="normal"><a href="#__codelineno-0-531">531</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="k">class</span><span class="w"> </span><span class="nc">Terrain</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Terrain analysis tools built on GDAL ``DEMProcessing``.</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Terrain analysis tools built on GDAL `DEMProcessing`.</span>
 <a id="__codelineno-0-22" name="__codelineno-0-22"></a>
 <a id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="sd">    Wraps a single- or multi-band raster and exposes convenience methods</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="sd">    for color relief, hill shade, slope, and aspect computation.</span>
 <a id="__codelineno-0-25" name="__codelineno-0-25"></a>
 <a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="sd">        raster: File path or GDAL dataset to open.</span>
-<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        access: ``&quot;read_only&quot;`` (default) or ``&quot;write&quot;``.</span>
+<a id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="sd">        access: `&quot;read_only&quot;` (default) or `&quot;write&quot;`.</span>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a>
 <a id="__codelineno-0-31" name="__codelineno-0-31"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raster</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">access</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;read_only&quot;</span><span class="p">):</span>
@@ -1971,18 +1971,18 @@ for color relief, hill shade, slope, and aspect computation.</p>
 <a id="__codelineno-0-332" name="__codelineno-0-332"></a>        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run a single GDAL ``DEMProcessing(&quot;hillshade&quot;)`` call.</span>
+<a id="__codelineno-0-335" name="__codelineno-0-335"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Run a single GDAL `DEMProcessing(&quot;hillshade&quot;)` call.</span>
 <a id="__codelineno-0-336" name="__codelineno-0-336"></a>
 <a id="__codelineno-0-337" name="__codelineno-0-337"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-338" name="__codelineno-0-338"></a><span class="sd">            band: Zero-based band index.</span>
-<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">            driver: GDAL driver name (``&quot;MEM&quot;`` or ``&quot;GTiff&quot;``).</span>
+<a id="__codelineno-0-339" name="__codelineno-0-339"></a><span class="sd">            driver: GDAL driver name (`&quot;MEM&quot;` or `&quot;GTiff&quot;`).</span>
 <a id="__codelineno-0-340" name="__codelineno-0-340"></a><span class="sd">            azimuth: Light-source azimuth in degrees clockwise from</span>
 <a id="__codelineno-0-341" name="__codelineno-0-341"></a><span class="sd">                north.</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="sd">            altitude: Light-source elevation in degrees above horizon.</span>
 <a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="sd">            vertical_exaggeration: Z-factor for vertical emphasis.</span>
 <a id="__codelineno-0-344" name="__codelineno-0-344"></a><span class="sd">            scale: Ratio of vertical to horizontal units.</span>
 <a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">            path: Output file path (empty string for in-memory).</span>
-<a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.</span>
+<a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.</span>
 <a id="__codelineno-0-347" name="__codelineno-0-347"></a>
 <a id="__codelineno-0-348" name="__codelineno-0-348"></a><span class="sd">        Returns:</span>
 <a id="__codelineno-0-349" name="__codelineno-0-349"></a><span class="sd">            gdal.Dataset: Raw GDAL dataset with the computed hill shade.</span>
@@ -2013,29 +2013,29 @@ for color relief, hill shade, slope, and aspect computation.</p>
 <a id="__codelineno-0-374" name="__codelineno-0-374"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Dataset&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the slope of the terrain surface.</span>
 <a id="__codelineno-0-376" name="__codelineno-0-376"></a>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">        Uses GDAL ``DEMProcessing`` to calculate the slope (rate of</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">        Uses GDAL `DEMProcessing` to calculate the slope (rate of</span>
 <a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        elevation change) for every cell.</span>
 <a id="__codelineno-0-379" name="__codelineno-0-379"></a>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">            band: Zero-based band index. Defaults to 0.</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">            scale: Ratio of vertical to horizontal units.  Use</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">                ``111120`` when the horizontal CRS is in degrees and</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">                `111120` when the horizontal CRS is in degrees and</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">                vertical units are metres.  Defaults to 1.</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            slope_format: Output format — ``&quot;degree&quot;`` (default) or</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                ``&quot;percent&quot;``.</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">            algorithm: Slope algorithm.  One of ``&quot;Horn&quot;``,</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">                ``&quot;ZevenbergenThorne&quot;``, or ``None`` (GDAL default).</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">            slope_format: Output format — `&quot;degree&quot;` (default) or</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">                `&quot;percent&quot;`.</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">            algorithm: Slope algorithm.  One of `&quot;Horn&quot;`,</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">                `&quot;ZevenbergenThorne&quot;`, or `None` (GDAL default).</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">                Zevenbergen-Thorne suits smooth landscapes; Horn</span>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">                performs better on rough terrain.</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">            path: If given, write the result to this GeoTIFF path.</span>
 <a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">                Otherwise the raster is created in memory.</span>
 <a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">            creation_options: GDAL creation options.  Defaults to</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">                ``[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]``.</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">                `[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]`.</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.</span>
 <a id="__codelineno-0-396" name="__codelineno-0-396"></a>
 <a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">            Dataset: Single-band ``float32`` raster with slope values.</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">                No-data value is ``-9999.0``.</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">            Dataset: Single-band `float32` raster with slope values.</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">                No-data value is `-9999.0`.</span>
 <a id="__codelineno-0-400" name="__codelineno-0-400"></a>
 <a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">        Examples:</span>
 <a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">            - First create a one band dataset, consisting of 10 columns</span>
@@ -2097,31 +2097,31 @@ for color relief, hill shade, slope, and aspect computation.</p>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Dataset&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the aspect (slope direction) of the terrain surface.</span>
 <a id="__codelineno-0-460" name="__codelineno-0-460"></a>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">        Uses GDAL ``DEMProcessing`` to calculate the compass direction</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">        Uses GDAL `DEMProcessing` to calculate the compass direction</span>
 <a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">        of the steepest downhill slope for every cell.  Values range</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">        from 0° (north) clockwise to 360°.</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">            band: Zero-based band index. Defaults to 0.</span>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">            scale: Ratio of vertical to horizontal units.  Use</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">                ``111120`` when the horizontal CRS is in degrees and</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">                `111120` when the horizontal CRS is in degrees and</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">                vertical units are metres.  Defaults to 1.</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">            vertical_exaggeration: Z-factor used to emphasise vertical</span>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">                features.  Defaults to 1.</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">            zero_flat_surface: If ``True`` flat areas get an aspect of</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">                0°.  If ``False`` (default) flat areas receive the</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">            zero_flat_surface: If `True` flat areas get an aspect of</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">                0°.  If `False` (default) flat areas receive the</span>
 <a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">                no-data value.</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            algorithm: Aspect algorithm.  One of ``&quot;Horn&quot;``,</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">                ``&quot;ZevenbergenThorne&quot;``, or ``None`` (GDAL default).</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">            algorithm: Aspect algorithm.  One of `&quot;Horn&quot;`,</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">                `&quot;ZevenbergenThorne&quot;`, or `None` (GDAL default).</span>
 <a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">            path: If given, write the result to this GeoTIFF path.</span>
 <a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">                Otherwise the raster is created in memory.</span>
 <a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">            creation_options: GDAL creation options.  Defaults to</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">                ``[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]``.</span>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.</span>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">                `[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]`.</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.</span>
 <a id="__codelineno-0-482" name="__codelineno-0-482"></a>
 <a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">            Dataset: Single-band ``float32`` raster with aspect values</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">                in degrees (0–360).  No-data value is ``-9999.0``.</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">            Dataset: Single-band `float32` raster with aspect values</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">                in degrees (0–360).  No-data value is `-9999.0`.</span>
 <a id="__codelineno-0-486" name="__codelineno-0-486"></a>
 <a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">        Examples:</span>
 <a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">            - Create a small raster and compute its aspect.</span>
@@ -3478,29 +3478,29 @@ Terrain.color_relief: Create a color relief for a band in
 <a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Dataset&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the slope of the terrain surface.</span>
 <a id="__codelineno-0-376" name="__codelineno-0-376"></a>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">    Uses GDAL ``DEMProcessing`` to calculate the slope (rate of</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">    Uses GDAL `DEMProcessing` to calculate the slope (rate of</span>
 <a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    elevation change) for every cell.</span>
 <a id="__codelineno-0-379" name="__codelineno-0-379"></a>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a><span class="sd">        band: Zero-based band index. Defaults to 0.</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a><span class="sd">        scale: Ratio of vertical to horizontal units.  Use</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            ``111120`` when the horizontal CRS is in degrees and</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a><span class="sd">            `111120` when the horizontal CRS is in degrees and</span>
 <a id="__codelineno-0-384" name="__codelineno-0-384"></a><span class="sd">            vertical units are metres.  Defaults to 1.</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        slope_format: Output format — ``&quot;degree&quot;`` (default) or</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            ``&quot;percent&quot;``.</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">        algorithm: Slope algorithm.  One of ``&quot;Horn&quot;``,</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            ``&quot;ZevenbergenThorne&quot;``, or ``None`` (GDAL default).</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a><span class="sd">        slope_format: Output format — `&quot;degree&quot;` (default) or</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a><span class="sd">            `&quot;percent&quot;`.</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a><span class="sd">        algorithm: Slope algorithm.  One of `&quot;Horn&quot;`,</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a><span class="sd">            `&quot;ZevenbergenThorne&quot;`, or `None` (GDAL default).</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a><span class="sd">            Zevenbergen-Thorne suits smooth landscapes; Horn</span>
 <a id="__codelineno-0-390" name="__codelineno-0-390"></a><span class="sd">            performs better on rough terrain.</span>
 <a id="__codelineno-0-391" name="__codelineno-0-391"></a><span class="sd">        path: If given, write the result to this GeoTIFF path.</span>
 <a id="__codelineno-0-392" name="__codelineno-0-392"></a><span class="sd">            Otherwise the raster is created in memory.</span>
 <a id="__codelineno-0-393" name="__codelineno-0-393"></a><span class="sd">        creation_options: GDAL creation options.  Defaults to</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">            ``[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]``.</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">        **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a><span class="sd">            `[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]`.</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="sd">        **kwargs: Forwarded to `gdal.DEMProcessingOptions`.</span>
 <a id="__codelineno-0-396" name="__codelineno-0-396"></a>
 <a id="__codelineno-0-397" name="__codelineno-0-397"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        Dataset: Single-band ``float32`` raster with slope values.</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            No-data value is ``-9999.0``.</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">        Dataset: Single-band `float32` raster with slope values.</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">            No-data value is `-9999.0`.</span>
 <a id="__codelineno-0-400" name="__codelineno-0-400"></a>
 <a id="__codelineno-0-401" name="__codelineno-0-401"></a><span class="sd">    Examples:</span>
 <a id="__codelineno-0-402" name="__codelineno-0-402"></a><span class="sd">        - First create a one band dataset, consisting of 10 columns</span>
@@ -3867,31 +3867,31 @@ Terrain.slope: Compute the slope of the terrain surface.</p>
 <a id="__codelineno-0-458" name="__codelineno-0-458"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Dataset&quot;</span><span class="p">:</span>
 <a id="__codelineno-0-459" name="__codelineno-0-459"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute the aspect (slope direction) of the terrain surface.</span>
 <a id="__codelineno-0-460" name="__codelineno-0-460"></a>
-<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    Uses GDAL ``DEMProcessing`` to calculate the compass direction</span>
+<a id="__codelineno-0-461" name="__codelineno-0-461"></a><span class="sd">    Uses GDAL `DEMProcessing` to calculate the compass direction</span>
 <a id="__codelineno-0-462" name="__codelineno-0-462"></a><span class="sd">    of the steepest downhill slope for every cell.  Values range</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a><span class="sd">    from 0° (north) clockwise to 360°.</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>
 <a id="__codelineno-0-465" name="__codelineno-0-465"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a><span class="sd">        band: Zero-based band index. Defaults to 0.</span>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a><span class="sd">        scale: Ratio of vertical to horizontal units.  Use</span>
-<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">            ``111120`` when the horizontal CRS is in degrees and</span>
+<a id="__codelineno-0-468" name="__codelineno-0-468"></a><span class="sd">            `111120` when the horizontal CRS is in degrees and</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a><span class="sd">            vertical units are metres.  Defaults to 1.</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a><span class="sd">        vertical_exaggeration: Z-factor used to emphasise vertical</span>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="sd">            features.  Defaults to 1.</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">        zero_flat_surface: If ``True`` flat areas get an aspect of</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">            0°.  If ``False`` (default) flat areas receive the</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="sd">        zero_flat_surface: If `True` flat areas get an aspect of</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="sd">            0°.  If `False` (default) flat areas receive the</span>
 <a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">            no-data value.</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">        algorithm: Aspect algorithm.  One of ``&quot;Horn&quot;``,</span>
-<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">            ``&quot;ZevenbergenThorne&quot;``, or ``None`` (GDAL default).</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">        algorithm: Aspect algorithm.  One of `&quot;Horn&quot;`,</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">            `&quot;ZevenbergenThorne&quot;`, or `None` (GDAL default).</span>
 <a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">        path: If given, write the result to this GeoTIFF path.</span>
 <a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">            Otherwise the raster is created in memory.</span>
 <a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">        creation_options: GDAL creation options.  Defaults to</span>
-<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">            ``[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]``.</span>
-<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">        **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.</span>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a><span class="sd">            `[&#39;COMPRESS=DEFLATE&#39;, &#39;PREDICTOR=2&#39;]`.</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a><span class="sd">        **kwargs: Forwarded to `gdal.DEMProcessingOptions`.</span>
 <a id="__codelineno-0-482" name="__codelineno-0-482"></a>
 <a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        Dataset: Single-band ``float32`` raster with aspect values</span>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">            in degrees (0–360).  No-data value is ``-9999.0``.</span>
+<a id="__codelineno-0-484" name="__codelineno-0-484"></a><span class="sd">        Dataset: Single-band `float32` raster with aspect values</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">            in degrees (0–360).  No-data value is `-9999.0`.</span>
 <a id="__codelineno-0-486" name="__codelineno-0-486"></a>
 <a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    Examples:</span>
 <a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">        - Create a small raster and compute its aspect.</span>
