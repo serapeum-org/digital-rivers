@@ -115,6 +115,38 @@ class TestTPI:
         assert out.shape == z.shape
 
 
+class TestTPINoDataBoundary:
+    """M2 regression: TPI / focal-window stats must not bias near no-data cells."""
+
+    def test_tpi_near_nodata_boundary_uses_only_valid_neighbours(self):
+        """Test TPI at the data/no-data boundary is computed only from valid cells.
+
+        Test scenario:
+            Half the DEM is at z=100, half is no-data. Valid cells near the
+            boundary should report TPI = 0 (focal_mean over valid cells
+            equals the cell's own elevation, since every valid neighbour is
+            at z=100). The pre-fix buggy version would have biased the mean
+            toward 0 and reported large negative TPI at the boundary.
+        """
+        # 5×6 DEM, left 3 columns valid at z=100, right 3 columns no-data.
+        z = np.full((5, 6), 100.0, dtype=np.float32)
+        z[:, 3:] = np.nan
+        dem = _make_dem(z)
+        tpi = dem.tpi(window=3).read_array()
+        no_val = float(dem.no_data_value[0])
+        # Cells at columns 0-2 (all valid neighbours at z=100) — TPI must be 0
+        # because every valid neighbour shares the cell's elevation. The
+        # boundary column (col=2) used to be biased by the buggy 0-fill;
+        # after the no-data-aware fix it stays at 0.
+        for col in (0, 1, 2):
+            for row in range(5):
+                assert tpi[row, col] == 0.0, (
+                    f"Cell ({row}, {col}) TPI must be 0, got {tpi[row, col]}"
+                )
+        # No-data cells (columns 3-5) emit the sentinel.
+        assert (tpi[:, 3:] == no_val).all()
+
+
 class TestDeviationFromMean:
     """Tests for `DEM.deviation_from_mean`."""
 

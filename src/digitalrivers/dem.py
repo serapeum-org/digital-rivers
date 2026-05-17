@@ -1804,23 +1804,39 @@ class DEM(Dataset):
         """Shared focal-window kernel for the terrain-index family.
 
         Returns `(z, focal_mean, focal_sd)` where the focal stats are
-        rectangular `window×window` reductions computed by
-        `scipy.ndimage.uniform_filter`. No-data cells contribute zero to the
-        running sums; `valid` is recovered from `np.isnan(z)`.
+        rectangular `window×window` reductions, **no-data-aware**: the mean
+        and SD at each cell are computed only over the valid (non-NaN)
+        cells inside its window. Cells whose window contains zero valid
+        neighbours receive NaN — the per-caller wrapping converts those to
+        the DEM's no-data sentinel.
 
-        Used by `tpi`, `deviation_from_mean`, `elev_std`, `ruggedness` —
-        every entry point applies the same NaN-handling and return-type
-        wrapping, so the shared helper centralises the messy parts.
+        Used by `tpi`, `deviation_from_mean`, and `elev_std`. `ruggedness`
+        has its own per-shift kernel and does not call this helper.
         """
         from scipy.ndimage import uniform_filter
         if window < 1:
             raise ValueError(f"window must be >= 1; got {window!r}")
         z = self.values.astype(np.float64, copy=False)
         valid = ~np.isnan(z)
+        valid_f = valid.astype(np.float64)
         z_filled = np.where(valid, z, 0.0)
-        m = uniform_filter(z_filled, size=int(window), mode="reflect")
-        sq = uniform_filter(z_filled * z_filled, size=int(window), mode="reflect")
-        sd = np.sqrt(np.maximum(sq - m * m, 0.0))
+        # No-data-aware focal mean: total signal / count of valid neighbours
+        # in each window. Cells whose window has zero valid neighbours yield
+        # NaN (0 / 0); the caller's no-data wrapping converts those to the
+        # DEM's sentinel.
+        sum_z = uniform_filter(z_filled, size=int(window), mode="reflect")
+        sum_zz = uniform_filter(z_filled * z_filled, size=int(window), mode="reflect")
+        # `uniform_filter` averages by default — multiply by the window area
+        # to recover unscaled sums so the same divisor (count of valid cells
+        # in the window) applies to both numerator and second moment.
+        n_window = float(int(window) * int(window))
+        sum_z *= n_window
+        sum_zz *= n_window
+        count = uniform_filter(valid_f, size=int(window), mode="reflect") * n_window
+        with np.errstate(invalid="ignore", divide="ignore"):
+            m = sum_z / count
+            ex2 = sum_zz / count
+            sd = np.sqrt(np.maximum(ex2 - m * m, 0.0))
         return z, m, sd
 
     def tpi(self, window: int = 3) -> Dataset:
