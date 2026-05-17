@@ -1043,6 +1043,128 @@ class FlowDirection(Dataset):
         out[~basin_mask] = 0
         return out
 
+    def isobasins(
+        self,
+        streams,
+        accumulation,
+        target_area_km2: float,
+    ) -> WatershedRaster:
+        """Partition the catchment into sub-basins of approximately equal area.
+
+        Walks the stream network from heads to outlet via the accumulation
+        raster. At every stream cell whose floor-divided accumulation quantile
+        (`accumulation // target_cells`) is strictly greater than the maximum
+        quantile of its stream-upstream neighbours, a virtual sub-basin
+        outlet is placed. The final sub-basin labels are produced by
+        first-claim-wins reverse-BFS watershed delineation on those seeds.
+
+        Args:
+            streams: `StreamRaster` aligned to this flow-direction raster.
+            accumulation: `Accumulation` raster aligned to this flow-direction
+                raster (units: cells).
+            target_area_km2: Target sub-basin area in km². Converted to
+                target cell count via the dataset's cell size; must be
+                positive.
+
+        Returns:
+            `WatershedRaster` whose cells carry a `1..N` sub-basin label
+            (or 0 for cells outside any sub-basin) and whose `outlets`
+            mapping carries `{basin_id: (row, col)}`.
+
+        Raises:
+            ValueError: If routing is multi-direction, shapes mismatch, or
+                `target_area_km2` is not positive.
+        """
+        import numpy as np
+
+        from digitalrivers._flow.watershed import watershed_d8
+        from digitalrivers._streams.order import (
+            _DIR_DR,
+            _DIR_DC,
+            _INV_DIR,
+            _stream_outlets,
+        )
+        from digitalrivers.watershed_raster import WatershedRaster
+
+        if self.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"isobasins supports single-direction routing only; got "
+                f"{self.routing!r}"
+            )
+        if target_area_km2 <= 0:
+            raise ValueError(
+                f"target_area_km2 must be positive; got {target_area_km2!r}"
+            )
+
+        sm = streams.read_array().astype(bool, copy=False)
+        acc_arr = accumulation.read_array().astype(np.int64, copy=False)
+        fdir = self.read_array().astype(np.int32, copy=False)
+        if sm.shape != fdir.shape or acc_arr.shape != fdir.shape:
+            raise ValueError(
+                f"shape mismatch: fdir={fdir.shape}, streams={sm.shape}, "
+                f"accumulation={acc_arr.shape}"
+            )
+
+        gt = self.geotransform
+        cell_area_km2 = abs(gt[1] * gt[5]) / 1.0e6
+        target_cells = max(1, int(round(target_area_km2 / cell_area_km2)))
+
+        # Quantile bucket of each stream cell, -1 elsewhere.
+        quantile = np.where(sm, acc_arr // target_cells, -1).astype(np.int64)
+
+        # For each stream cell, find the max quantile across its stream-upstream
+        # neighbours. A cell with strictly larger quantile than that max marks a
+        # bucket-boundary — place a seed there.
+        rows, cols = sm.shape
+        up_max = np.full((rows, cols), -1, dtype=np.int64)
+        for k in range(8):
+            dr = int(_DIR_DR[k])
+            dc = int(_DIR_DC[k])
+            src_r = slice(max(0, dr), min(rows, rows + dr))
+            src_c = slice(max(0, dc), min(cols, cols + dc))
+            dst_r = slice(max(0, -dr), min(rows, rows - dr))
+            dst_c = slice(max(0, -dc), min(cols, cols - dc))
+            sm_src = sm[src_r, src_c]
+            fd_src = fdir[src_r, src_c]
+            inflow = sm_src & (fd_src == int(_INV_DIR[k])) & sm[dst_r, dst_c]
+            cand = np.where(inflow, quantile[src_r, src_c], -1).astype(np.int64)
+            block = up_max[dst_r, dst_c]
+            np.maximum(block, cand, out=block)
+            up_max[dst_r, dst_c] = block
+
+        seed_mask = sm & (quantile > up_max)
+        seed_rcs: list[tuple[int, int]] = [
+            (int(r), int(c)) for r, c in zip(*np.where(seed_mask))
+        ]
+        if not seed_rcs:
+            # Catchment smaller than target → fall back to a single basin at
+            # the outlet (consistent with WBT's behaviour at extreme inputs).
+            outlets = _stream_outlets(sm, fdir)
+            if not outlets:
+                # No stream cells at all — emit an all-zero basin raster.
+                labels = np.zeros((rows, cols), dtype=np.int32)
+                plain = Dataset.create_from_array(
+                    labels, geo=self.geotransform, epsg=self.epsg,
+                    no_data_value=0,
+                )
+                return WatershedRaster.from_dataset(
+                    plain, routing=self.routing, outlets={},
+                )
+            seed_rcs = [outlets[0]]
+
+        basin_ids = list(range(1, len(seed_rcs) + 1))
+        labels = watershed_d8(
+            fdir, seed_rcs, basin_ids, require_unique_basins=True,
+        )
+        plain = Dataset.create_from_array(
+            labels.astype(np.int32), geo=self.geotransform, epsg=self.epsg,
+            no_data_value=0,
+        )
+        outlets_dict = dict(zip(basin_ids, seed_rcs))
+        return WatershedRaster.from_dataset(
+            plain, routing=self.routing, outlets=outlets_dict,
+        )
+
     def basins(
         self,
         *,
