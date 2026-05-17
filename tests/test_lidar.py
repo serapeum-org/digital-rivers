@@ -309,6 +309,89 @@ class TestInterpolationGridders:
         assert float(arr[0, 0]) == 3.0
 
 
+class TestClassifyGround:
+    """Tests for `lidar.classify_ground` (Zhang 2003 tophat filter)."""
+
+    def test_flat_terrain_all_ground(self):
+        """Test a perfectly flat point cloud labels every point as ground.
+
+        Test scenario:
+            All points share z=0; the tophat opening leaves the grid flat,
+            so every point sits at the opening height and is ground (class 2).
+        """
+        from digitalrivers.lidar import classify_ground
+        n = 50
+        rng = np.random.default_rng(42)
+        xs = rng.uniform(0, 10, size=n)
+        ys = rng.uniform(0, 10, size=n)
+        zs = np.zeros(n)
+        pts = LasPoints(x=xs, y=ys, z=zs)
+        out = classify_ground(pts, cell_size=1.0)
+        assert (out == 2).all()
+
+    def test_tall_outlier_marked_non_ground(self):
+        """Test a single tall point above flat terrain is classified as non-ground.
+
+        Test scenario:
+            A dense set of ground points at z=0 plus one outlier at z=10.
+            The opening at the outlier's cell stays near 0, so the outlier
+            exceeds the threshold and gets class 1 (non-ground).
+        """
+        from digitalrivers.lidar import classify_ground
+        rng = np.random.default_rng(42)
+        xs = np.concatenate([rng.uniform(0, 10, size=200), [5.0]])
+        ys = np.concatenate([rng.uniform(0, 10, size=200), [5.0]])
+        zs = np.concatenate([np.zeros(200), [10.0]])
+        pts = LasPoints(x=xs, y=ys, z=zs)
+        out = classify_ground(pts, cell_size=1.0, slope_threshold=1.0)
+        assert out[-1] == 1, f"Outlier must be non-ground; got {out[-1]}"
+
+    def test_axelsson_raises_not_implemented(self):
+        """Test the Axelsson path raises NotImplementedError with a helpful message.
+
+        Test scenario:
+            classify_ground(method='axelsson') must signal the
+            unimplemented branch rather than fall through silently.
+        """
+        from digitalrivers.lidar import classify_ground
+        pts = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+        )
+        with pytest.raises(NotImplementedError, match="Axelsson"):
+            classify_ground(pts, method="axelsson")
+
+    def test_unknown_method_raises(self):
+        """Test an unknown method= raises ValueError.
+
+        Test scenario:
+            method='bogus' must be rejected with a clear error.
+        """
+        from digitalrivers.lidar import classify_ground
+        pts = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+        )
+        with pytest.raises(ValueError, match="method must be"):
+            classify_ground(pts, method="bogus")
+
+    def test_invalid_geometry_args_rejected(self):
+        """Test invalid cell_size / window_cells / slope_threshold raise.
+
+        Test scenario:
+            Negative cell_size, window_cells < 1, and negative threshold
+            must all be rejected.
+        """
+        from digitalrivers.lidar import classify_ground
+        pts = LasPoints(
+            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+        )
+        with pytest.raises(ValueError, match="cell_size"):
+            classify_ground(pts, cell_size=0)
+        with pytest.raises(ValueError, match="window_cells"):
+            classify_ground(pts, window_cells=0)
+        with pytest.raises(ValueError, match="slope_threshold"):
+            classify_ground(pts, slope_threshold=-0.1)
+
+
 class TestLasPoints:
     """Tests for the `LasPoints` record class."""
 
