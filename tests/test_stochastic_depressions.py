@@ -123,3 +123,24 @@ class TestStochasticDepressions:
         dem = _make_dem(z)
         with pytest.raises(ValueError, match="positive"):
             dem.stochastic_depressions(sigma=0.1, n_runs=0)
+
+    def test_many_runs_finish_under_budget(self):
+        """L1 regression: many Monte-Carlo iterations stay within a tight time budget.
+
+        Test scenario:
+            On a 32×32 DEM with `n_runs=50`, the pre-fix loop created and
+            tore down a GDAL Dataset per iteration — at this size that
+            still completes in well under 1 s, but ANY perf regression
+            that reintroduces the wrapper churn would land here. Keep the
+            budget loose enough to survive slow CI but tight enough to
+            catch a Dataset-per-iteration regression.
+        """
+        import time
+        rng = np.random.default_rng(123)
+        z = rng.uniform(0, 100, size=(32, 32)).astype(np.float32)
+        dem = _make_dem(z)
+        start = time.perf_counter()
+        out = dem.stochastic_depressions(sigma=1.0, n_runs=50, seed=0)
+        elapsed = time.perf_counter() - start
+        assert out.read_array().shape == z.shape
+        assert elapsed < 5.0, f"50-run Monte-Carlo took {elapsed:.2f}s — perf regression?"

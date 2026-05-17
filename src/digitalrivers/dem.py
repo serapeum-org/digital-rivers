@@ -551,28 +551,27 @@ class DEM(Dataset):
         if n_runs <= 0:
             raise ValueError(f"n_runs must be positive; got {n_runs!r}")
 
+        from digitalrivers._conditioning.pitremoval import (
+            fill_depressions as _fill_depressions_kernel,
+        )
+
         rng = np.random.default_rng(seed)
         elev = self.values
-        no_val = float(self.no_data_value[0])
+        # Pre-compute the no-data mask once — it doesn't change between
+        # realisations since the noise only perturbs valid cells.
+        nodata_mask = np.isnan(elev)
         prob = np.zeros(elev.shape, dtype=np.float32)
         for _ in range(int(n_runs)):
             noise = rng.normal(0.0, sigma, size=elev.shape).astype(
                 elev.dtype, copy=False
             )
             noisy = elev + noise
-            # Wrap the noisy elevation grid back in a DEM so we can reuse the
-            # existing fill_depressions kernel and its method dispatcher.
-            noisy_disk = np.where(np.isnan(noisy), no_val, noisy)
-            noisy_ds = Dataset.create_from_array(
-                noisy_disk,
-                geo=self.geotransform,
-                epsg=self.epsg,
-                no_data_value=no_val,
+            # Call the kernel directly — no GDAL Dataset wrapping inside the
+            # Monte-Carlo loop. The kernel accepts a plain ndarray and an
+            # optional nodata_mask.
+            filled = _fill_depressions_kernel(
+                noisy, nodata_mask=nodata_mask, method=method,
             )
-            noisy_dem = DEM(noisy_ds.raster)
-            filled = noisy_dem.fill_depressions(method=method).values
-            # A cell is part of a depression in this realisation iff the fill
-            # lifted it above the noisy elevation.
             depr = (filled - noisy) > 0
             prob += depr.astype(np.float32)
         prob /= float(n_runs)
