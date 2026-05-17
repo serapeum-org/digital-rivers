@@ -6,7 +6,15 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
-from digitalrivers._streams.order import hack, horton, shreve, strahler
+from digitalrivers._streams.order import (
+    _stream_outlets,
+    _upstream_length_from_head,
+    _build_topology,
+    hack,
+    horton,
+    shreve,
+    strahler,
+)
 
 
 def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
@@ -138,6 +146,50 @@ class TestHack:
         order = hack(sm, fd)
         assert (order[sm] == 1).all()
 
+    def test_empty_stream_mask_returns_all_zeros(self):
+        """Test hack with no stream cells returns a zero raster of the same shape.
+
+        Test scenario:
+            Empty (all-False) stream mask should produce an all-zero order
+            raster without crashing the outlet enumeration or upstream walk.
+        """
+        sm = np.zeros((3, 4), dtype=bool)
+        fd = np.full((3, 4), -1, dtype=np.int32)
+        order = hack(sm, fd)
+        assert order.shape == sm.shape, "Output shape must match input shape"
+        assert (order == 0).all(), "All cells must hold order 0 when no streams"
+
+    def test_disconnected_networks_each_get_own_main_stem(self):
+        """Test hack handles two disconnected stream networks independently.
+
+        Test scenario:
+            Two independent east-flowing chains share no flow path; each must
+            label its own outlet's chain as order 1 without interference.
+        """
+        sm = np.zeros((3, 5), dtype=bool)
+        sm[0, :] = True
+        sm[2, :] = True
+        fd = np.full((3, 5), -1, dtype=np.int32)
+        fd[0, :-1] = 6
+        fd[2, :-1] = 6
+        order = hack(sm, fd)
+        assert (order[0, :] == 1).all(), "Top network all order 1"
+        assert (order[2, :] == 1).all(), "Bottom network all order 1"
+
+    def test_tie_break_picks_lower_linear_index(self):
+        """Test hack tie-break on equal upstream lengths is deterministic.
+
+        Test scenario:
+            Two single-cell heads of equal upstream length meeting at a
+            confluence — the head with the lower row-major linear index
+            must be promoted to the main stem (order 1); the other becomes
+            order 2.
+        """
+        sm, fd = _y_junction_streams()
+        order = hack(sm, fd)
+        assert order[0, 0] == 1, "Lower-linear-index head should be main stem"
+        assert order[0, 2] == 2, "Higher-linear-index head should be tributary"
+
     def test_tributary_of_tributary_gets_order_three(self):
         # Main stem runs along row 0 (head at (0, 7), outlet at (0, 0)).
         # Tributary T joins the main stem at (0, 4); T itself has a
@@ -169,6 +221,85 @@ class TestHack:
         assert order[1, 6] == 2
         # U (sub-tributary at (2, 5)) is order 3.
         assert order[2, 5] == 3
+
+
+# ----- _upstream_length_from_head -----------------------------------------------------------
+
+class TestUpstreamLengthFromHead:
+    """Tests for the `_upstream_length_from_head` helper."""
+
+    def test_heads_have_length_zero(self):
+        """Test heads (no upstream inflow) carry length 0.
+
+        Test scenario:
+            A 2-head Y-junction: both heads are sources in the stream DAG, so
+            their length-from-head must be 0.
+        """
+        sm, fd = _y_junction_streams()
+        indeg, _ = _build_topology(sm, fd)
+        length = _upstream_length_from_head(sm, fd, indeg)
+        assert length[0, 0] == 0, "Head A length must be 0"
+        assert length[0, 2] == 0, "Head B length must be 0"
+
+    def test_outlet_length_matches_longest_chain(self):
+        """Test outlet length equals one less than the longest source-to-outlet path.
+
+        Test scenario:
+            On a single 5-cell east-flowing chain the outlet must carry
+            length 4 (four steps from the only head).
+        """
+        sm = np.zeros((1, 5), dtype=bool)
+        sm[0, :] = True
+        fd = np.full((1, 5), 6, dtype=np.int32)
+        fd[0, -1] = -1
+        indeg, _ = _build_topology(sm, fd)
+        length = _upstream_length_from_head(sm, fd, indeg)
+        assert length[0, 4] == 4, f"Outlet length should be 4, got {length[0, 4]}"
+
+
+# ----- _stream_outlets ----------------------------------------------------------------------
+
+class TestStreamOutlets:
+    """Tests for the `_stream_outlets` helper."""
+
+    def test_sink_cell_is_outlet(self):
+        """Test a stream cell with `fdir = -1` is treated as an outlet.
+
+        Test scenario:
+            On a chain whose downstream-most cell has fdir = -1, that cell
+            must be reported in the outlet list and nothing else.
+        """
+        sm = np.zeros((1, 3), dtype=bool)
+        sm[0, :] = True
+        fd = np.array([[6, 6, -1]], dtype=np.int32)
+        outlets = _stream_outlets(sm, fd)
+        assert outlets == [(0, 2)], f"Expected single outlet at (0, 2), got {outlets}"
+
+    def test_edge_cell_is_outlet_when_receiver_off_grid(self):
+        """Test a stream cell flowing off the grid is reported as an outlet.
+
+        Test scenario:
+            A 1×3 chain whose last cell flows east goes off-grid; it must
+            still be an outlet.
+        """
+        sm = np.zeros((1, 3), dtype=bool)
+        sm[0, :] = True
+        fd = np.array([[6, 6, 6]], dtype=np.int32)
+        outlets = _stream_outlets(sm, fd)
+        assert (0, 2) in outlets, f"Edge-flow cell should be outlet, got {outlets}"
+
+    def test_non_stream_receiver_makes_cell_an_outlet(self):
+        """Test a stream cell whose D8 receiver is non-stream is an outlet.
+
+        Test scenario:
+            A single stream cell at (0, 0) flowing east into a non-stream
+            cell at (0, 1) must be reported as an outlet.
+        """
+        sm = np.zeros((1, 3), dtype=bool)
+        sm[0, 0] = True
+        fd = np.array([[6, -1, -1]], dtype=np.int32)
+        outlets = _stream_outlets(sm, fd)
+        assert outlets == [(0, 0)], f"Expected outlet at (0, 0), got {outlets}"
 
 
 # ----- DEM/StreamRaster end-to-end --------------------------------------------------------
