@@ -1969,6 +1969,57 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def normal_vector_deviation(self, window: int = 3) -> Dataset:
+        """Per-cell angular deviation of the surface normal from its focal mean.
+
+        Computes each cell's outward-pointing surface normal from finite
+        differences of the elevation grid, then takes the focal-mean of the
+        unit-normal components in a `window×window` neighbourhood. The
+        result at each cell is the angle (in radians) between the local
+        normal and the focal-mean normal — a roughness metric that grows
+        with how strongly the surface bends within the window.
+
+        Args:
+            window: Side length of the focal window in cells (≥ 1).
+
+        Returns:
+            `Dataset` of float32 angular deviations in radians,
+            `[0, π/2]`. No-data cells use this DEM's no-data sentinel.
+        """
+        from scipy.ndimage import uniform_filter
+        if window < 1:
+            raise ValueError(f"window must be >= 1; got {window!r}")
+        z = self.values.astype(np.float64, copy=False)
+        L = float(abs(self.geotransform[1]))
+        # Finite-difference partials with reflective edge padding.
+        zp = np.pad(np.where(np.isnan(z), 0.0, z), 1, mode="edge")
+        dzdx = (zp[1:-1, 2:] - zp[1:-1, :-2]) / (2.0 * L)
+        dzdy = (zp[2:, 1:-1] - zp[:-2, 1:-1]) / (2.0 * L)
+        # Outward-pointing normal `(-dz/dx, -dz/dy, 1)`; renormalise to unit.
+        nx_raw = -dzdx
+        ny_raw = -dzdy
+        nz_raw = np.ones_like(z)
+        nm = np.sqrt(nx_raw * nx_raw + ny_raw * ny_raw + nz_raw * nz_raw)
+        nx = nx_raw / nm
+        ny = ny_raw / nm
+        nz = nz_raw / nm
+        # Focal mean of each component, then renormalise to keep the mean
+        # vector unit-length.
+        mnx = uniform_filter(nx, size=int(window), mode="reflect")
+        mny = uniform_filter(ny, size=int(window), mode="reflect")
+        mnz = uniform_filter(nz, size=int(window), mode="reflect")
+        mm = np.sqrt(mnx * mnx + mny * mny + mnz * mnz) + 1.0e-12
+        mnx /= mm
+        mny /= mm
+        mnz /= mm
+        cos_theta = np.clip(nx * mnx + ny * mny + nz * mnz, -1.0, 1.0)
+        out = np.arccos(cos_theta).astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(z), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def ruggedness(self, window: int = 3) -> Dataset:
         """Terrain Ruggedness Index (Riley et al. 1999).
 
