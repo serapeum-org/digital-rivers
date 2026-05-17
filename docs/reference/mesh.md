@@ -9,7 +9,8 @@ Top-level surface:
 * **`boundary_vertex_mask`** — bool mask flagging boundary vertices (used as fixed anchors in
   smoothing).
 * **`neighbour_lists`** — per-vertex adjacency from the triangle index list.
-* **`laplacian_smooth(iterations=..., omega=...)`** — Persson & Strang 2004 Laplacian smoothing.
+* **`laplacian_smooth(n_iterations=..., relaxation=..., hold_boundary=True)`** — Persson & Strang
+  2004 Laplacian smoothing; boundary vertices are pinned by default.
 * **`aspect_ratios()`** — per-triangle aspect-ratio quality metric.
 
 ::: digitalrivers.mesh.Mesh

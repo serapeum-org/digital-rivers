@@ -82,7 +82,7 @@ the call switches to the Montgomery & Foufoula-Georgiou (1993) area-slope criter
 |--------|------------------|
 | `FlowDirection.watershed(points, ...)` | One basin per pour point (D8 / Rho8) |
 | `FlowDirection.basins(...)` | Partition into terminal-outlet basins |
-| `FlowDirection.subbasins_pfafstetter(max_level=N)` | Pfafstetter coding levels 1..N |
+| `FlowDirection.subbasins_pfafstetter(accumulation, streams, level=N)` | Pfafstetter coding to level N (1 or 2) |
 | `FlowDirection.isobasins(streams, accumulation, target_area_km2)` | **W-7** — equal-area sub-basin partition |
 | `StreamRaster.subbasins(flow_direction)` | Per-link sub-basins (head / confluence segments) |
 

@@ -66,7 +66,8 @@ Shared private helpers: `_focal_window_stats` (no-data-aware focal mean / SD) an
 * `Mesh` — triangle-mesh container with Laplacian smoothing and aspect-ratio quality metrics.
 * `grid_lidar_points` (foundation that W-17 extended).
 * `DEM.anudem_interpolate` — Hutchinson 1989 biharmonic ANUDEM.
-* `FlowDirection.subbasins_pfafstetter(max_level=N)` — multi-level Pfafstetter coding.
+* `FlowDirection.subbasins_pfafstetter(accumulation, streams, level=N)` — multi-level Pfafstetter
+  coding (levels 1 and 2; deeper recursion deferred).
 
 **Dependencies**
 

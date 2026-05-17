@@ -20,7 +20,7 @@ no-data sentinel — either the data envelope or an unfilled internal sink).
 
 `min_area_cells` / `min_area_km2` + `merge_small="drop"` / `"merge"` post-processes small basins.
 
-## 3. Hierarchical Pfafstetter coding — `FlowDirection.subbasins_pfafstetter(max_level=N)`
+## 3. Hierarchical Pfafstetter coding — `FlowDirection.subbasins_pfafstetter(accumulation, streams, level=N)`
 
 Pfafstetter coding to level N. Each cell carries an N-digit integer:
 
