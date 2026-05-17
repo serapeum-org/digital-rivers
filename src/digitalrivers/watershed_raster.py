@@ -132,19 +132,18 @@ class WatershedRaster(Dataset):
           every stream cell is assumed cardinal, which under-estimates
           length on diagonal-heavy networks by ~5-10%.
         - `longest_flow_path_m`: longest upstream-to-outlet flow path for
-          the basin, in map units. Requires both `accumulation` and
-          `flow_direction`. Computed via a single Kahn topological sweep
-          over the entire raster.
+          the basin, in map units. Requires `flow_direction` (and a
+          single-direction routing). Computed via a single Kahn topological
+          sweep over the entire raster.
         - `centroid_x`, `centroid_y`: basin centroid in dataset CRS.
           Always present, regardless of which optional inputs are supplied.
 
         Args:
             dem: Aligned DEM for elevation metrics.
-            accumulation: Accumulation raster used to drive the
-                longest-flow-path computation. When supplied together with
-                `flow_direction`, the result table carries a
-                `longest_flow_path_m` column with each basin's longest
-                upstream-to-outlet flow path in map units.
+            accumulation: Optional accumulation raster (kept for API
+                symmetry with `streams=`). The longest-flow-path metric
+                no longer requires it — supply `flow_direction` alone for
+                the same result.
             slope: Aligned slope raster (m/m) for `mean_slope`.
             streams: Aligned StreamRaster for `drainage_density_km_per_km2`.
             flow_direction: Aligned single-direction `FlowDirection`.
@@ -269,13 +268,13 @@ class WatershedRaster(Dataset):
                     float(vals.mean()) if vals.size else np.nan
                 )
 
-        if accumulation is not None and flow_direction is not None:
+        if flow_direction is not None:
             # Longest flow path per basin = max upstream-path length at the
             # basin's outlet. Compute the per-cell upslope-max-length grid
             # once via a Kahn topological sweep, then look it up at every
-            # outlet. The `accumulation` argument is retained for API
-            # backwards compatibility — the actual computation uses only
-            # `flow_direction` and cell size.
+            # outlet. Only `flow_direction` and the cell size drive the
+            # computation; pass `accumulation` if you want the matching
+            # routing checked against this WatershedRaster's routing tag.
             from digitalrivers._flow.accumulation import kahn_max_upslope_length
             fdir_arr = flow_direction.read_array().astype(np.int32, copy=False)
             lengths = kahn_max_upslope_length(fdir_arr, abs(gt[1]))
