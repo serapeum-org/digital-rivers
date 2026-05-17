@@ -1,15 +1,10 @@
 name: pypi-release
 
-# Trigger only on a real GitHub Release being published (created by the
-# `github-release` workflow). Avoids the `workflow_run` + checkout-from-event
-# pattern that CodeQL flags as `actions/untrusted-checkout/high` (CWE-829):
-# the `release` event is GitHub-owned, cannot fire from a fork PR, and the
-# default checkout resolves the release's own commit SHA — there's no
-# attacker-controlled ref to substitute.
 on:
   workflow_dispatch:
-  release:
-    types: [published]
+  workflow_run:
+    workflows: ['github-release']
+    types: [completed]
 
 permissions:
   contents: read
@@ -17,10 +12,21 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # Security: when triggered via `workflow_run`, require that the upstream
+    # workflow ran from the base repository (not a fork) so we can never run
+    # untrusted code in a context that holds `secrets.PYPI_PUBLISH`.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success'
+       && github.event.workflow_run.head_repository.fork == false) }}
+
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          # Pin to the immutable SHA recorded on the originating run, not the
+          # mutable `head_branch` label (CWE-829: actions/untrusted-checkout).
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Build and publish to PyPI
         uses: serapeum-org/github-actions/actions/release/pypi@aadd88f55aa024d5047447bb28adbd25c4e994b0 # pypi-release/v1.0.1
