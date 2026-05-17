@@ -152,3 +152,7 @@ conda/
 tests/mo/*
 *.pptx
 *.xml
+
+# Local-only project instructions (not shared on remote)
+CLAUDE.md
+.claude/
