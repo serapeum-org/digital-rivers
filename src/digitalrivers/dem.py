@@ -436,6 +436,7 @@ class DEM(Dataset):
 
     def _hand_euclidean(self, streams) -> Dataset:
         """Euclidean-nearest-stream HAND — no flow direction required."""
+        import warnings
         from scipy.ndimage import distance_transform_edt
 
         elev = self.values
@@ -444,9 +445,24 @@ class DEM(Dataset):
             raise ValueError(
                 f"Shape mismatch: dem={elev.shape}, streams={stream_arr.shape}"
             )
+        # Drop stream cells that sit on no-data DEM positions. If we don't,
+        # `distance_transform_edt` will happily point at them and the
+        # resulting per-cell elevation lookup returns NaN — silently
+        # corrupting HAND over a swath around the bad pixel.
+        valid_elev = ~np.isnan(elev)
+        dropped = int((stream_arr & ~valid_elev).sum())
+        if dropped:
+            warnings.warn(
+                f"{dropped} stream cell(s) coincide with DEM no-data; "
+                f"dropping them before the Euclidean nearest-stream lookup.",
+                UserWarning,
+                stacklevel=3,
+            )
+            stream_arr = stream_arr & valid_elev
         if not stream_arr.any():
             raise ValueError(
-                "streams raster contains no stream cells — HAND is undefined"
+                "streams raster contains no stream cells with valid elevation "
+                "— HAND is undefined"
             )
         # distance_transform_edt with return_indices returns (distance, indices),
         # where indices[*, r, c] is the (row, col) of the nearest True (stream)

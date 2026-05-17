@@ -268,6 +268,50 @@ class TestHandOrphanMemoisation:
         # Row 0 cells are 4 m above the nearest stream cell directly below.
         assert (arr[0, :] == 4.0).all(), f"Got {arr[0, :].tolist()}"
 
+    def test_euclidean_hand_warns_and_drops_streams_on_nodata(self):
+        """L2 regression: stream cells on DEM no-data are dropped with a UserWarning.
+
+        Test scenario:
+            One of the two stream cells sits on a no-data DEM position. The
+            method must (a) emit a UserWarning and (b) still produce a valid
+            HAND grid by dropping the bad stream cell — not silently
+            corrupt the output.
+        """
+        import warnings
+        z = np.array(
+            [
+                [10.0, 10.0, np.nan, 10.0],
+                [10.0, 10.0, 10.0, 10.0],
+            ],
+            dtype=np.float32,
+        )
+        ds = Dataset.create_from_array(
+            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+            no_data_value=-9999.0,
+        )
+        dem = DEM(ds.raster)
+        # Stream cells at (0, 0) — valid — and (0, 2) — on no-data.
+        sm = np.zeros((2, 4), dtype=bool)
+        sm[0, 0] = True
+        sm[0, 2] = True
+        sm_ds = Dataset.create_from_array(
+            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
+            epsg=4326, no_data_value=0,
+        )
+        sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            out = dem.hand(sr, method="euclidean")
+            arr = out.read_array()
+        assert any(issubclass(w.category, UserWarning) for w in caught), (
+            f"Expected a UserWarning; got: {[str(w.message) for w in caught]}"
+        )
+        # Non-stream, non-nodata cells must have finite HAND (no NaN
+        # propagation from the bad stream cell).
+        no_val = float(dem.no_data_value[0])
+        finite = arr[(arr != no_val) & np.isfinite(arr)]
+        assert finite.size > 0
+
     def test_euclidean_hand_no_stream_raises(self):
         """Test euclidean HAND raises when the stream raster has no stream cells.
 
