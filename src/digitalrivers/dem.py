@@ -1905,8 +1905,8 @@ class DEM(Dataset):
                 >>> bool(DEM(ds.raster).tpi(window=3).read_array()[2, 2] > 0)
                 True
         """
-        z, m, _sd = self._focal_window_stats(window)
-        out = (z - m).astype(np.float32)
+        z, focal_mean, _focal_sd = self._focal_window_stats(window)
+        out = (z - focal_mean).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
         return Dataset.create_from_array(
@@ -1959,8 +1959,8 @@ class DEM(Dataset):
                 >>> bool(out[2, 2] > 0)
                 True
         """
-        z, m, sd = self._focal_window_stats(window)
-        out = (z - m) / np.where(sd == 0.0, 1.0, sd)
+        z, focal_mean, focal_sd = self._focal_window_stats(window)
+        out = (z - focal_mean) / np.where(focal_sd == 0.0, 1.0, focal_sd)
         out = out.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
@@ -2012,8 +2012,8 @@ class DEM(Dataset):
                 >>> bool((sd[:, 2] > 0).all())
                 True
         """
-        _z, _m, sd = self._focal_window_stats(window)
-        out = sd.astype(np.float32)
+        _z, _focal_mean, focal_sd = self._focal_window_stats(window)
+        out = focal_sd.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
         return Dataset.create_from_array(
