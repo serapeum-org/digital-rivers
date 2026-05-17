@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Notebook example data downloads (fetched on first run)
+examples/data/*.hgt
+examples/data/*.hgt.gz
+
 # C extensions
 *.so
 
