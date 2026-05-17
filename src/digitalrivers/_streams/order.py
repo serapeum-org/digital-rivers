@@ -1,6 +1,6 @@
-"""Stream-network ordering schemes (P10): Strahler, Shreve, Horton.
+"""Stream-network ordering schemes: Strahler, Shreve, Horton, Hack.
 
-All three operate on a stream-cell mask plus a D8 flow-direction raster. Output is a
+All four operate on a stream-cell mask plus a D8 flow-direction raster. Output is a
 2-D `uint16` raster of orders / magnitudes; non-stream cells hold `0`.
 
 * **Strahler (1957)** — Kahn BFS over stream cells. Heads get order 1; at each
@@ -13,6 +13,10 @@ All three operate on a stream-cell mask plus a D8 flow-direction raster. Output 
   longer trace and re-stamp its entire path back to its head with the
   confluence's outgoing order. The shorter sibling keeps its local Strahler
   value. Ties broken by lower row-major linear index for determinism.
+* **Hack (1957)** — main-stem-first. The main stem (longest path from any
+  outlet to any head) is order 1. Every tributary joining the main stem is
+  order 2; tributaries of those are order 3; and so on recursively. Ties
+  broken by lower row-major linear index for determinism.
 """
 from __future__ import annotations
 
@@ -75,6 +79,66 @@ def _build_topology(
             ds_idx[r, c, 0] = nr - r
             ds_idx[r, c, 1] = nc - c
     return indeg, ds_idx
+
+
+def _upstream_length_from_head(
+    stream_mask: np.ndarray, fdir: np.ndarray, indeg: np.ndarray,
+) -> np.ndarray:
+    """Per-stream-cell longest path from any head, measured in cell steps.
+
+    Kahn forward sweep over the stream graph: each cell's value is one more
+    than the maximum value of any upstream stream neighbour, with heads at
+    zero. Shared by `horton` (main-stem tiebreak) and `hack` (main-stem
+    selection).
+    """
+    rows, cols = stream_mask.shape
+    length = np.zeros((rows, cols), dtype=np.int32)
+    indeg_copy = indeg.copy()
+    queue: deque[tuple[int, int]] = deque()
+    for r, c in zip(*np.where(stream_mask & (indeg_copy == 0))):
+        queue.append((int(r), int(c)))
+    while queue:
+        r, c = queue.popleft()
+        d = int(fdir[r, c])
+        if d < 0 or d > 7:
+            continue
+        nr = r + int(_DIR_DR[d])
+        nc = c + int(_DIR_DC[d])
+        if not (0 <= nr < rows and 0 <= nc < cols):
+            continue
+        if not stream_mask[nr, nc]:
+            continue
+        cand = length[r, c] + 1
+        if cand > length[nr, nc]:
+            length[nr, nc] = cand
+        indeg_copy[nr, nc] -= 1
+        if indeg_copy[nr, nc] == 0:
+            queue.append((nr, nc))
+    return length
+
+
+def _stream_outlets(
+    stream_mask: np.ndarray, fdir: np.ndarray,
+) -> list[tuple[int, int]]:
+    """Stream cells whose D8 receiver is off-grid, undefined, or non-stream."""
+    rows, cols = stream_mask.shape
+    outlets: list[tuple[int, int]] = []
+    for r in range(rows):
+        for c in range(cols):
+            if not stream_mask[r, c]:
+                continue
+            d = int(fdir[r, c])
+            if d < 0 or d > 7:
+                outlets.append((r, c))
+                continue
+            nr = r + int(_DIR_DR[d])
+            nc = c + int(_DIR_DC[d])
+            if not (0 <= nr < rows and 0 <= nc < cols):
+                outlets.append((r, c))
+                continue
+            if not stream_mask[nr, nc]:
+                outlets.append((r, c))
+    return outlets
 
 
 def strahler(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
@@ -219,51 +283,8 @@ def horton(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     rows, cols = stream_mask.shape
     out = strahler(stream_mask, fdir).copy()
     indeg, _ds_idx = _build_topology(stream_mask, fdir)
-
-    # Length-from-head (in cell steps) for every stream cell via topological sweep
-    # in the same order as Strahler. Used as the main-stem tiebreaker.
-    length_from_head = np.zeros((rows, cols), dtype=np.int32)
-    indeg_copy = indeg.copy()
-    queue: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(stream_mask & (indeg_copy == 0))):
-        queue.append((int(r), int(c)))
-
-    while queue:
-        r, c = queue.popleft()
-        d = int(fdir[r, c])
-        if d < 0 or d > 7:
-            continue
-        nr = r + int(_DIR_DR[d])
-        nc = c + int(_DIR_DC[d])
-        if not (0 <= nr < rows and 0 <= nc < cols):
-            continue
-        if not stream_mask[nr, nc]:
-            continue
-        # Main-stem length = max over incoming tributaries + 1.
-        cand = length_from_head[r, c] + 1
-        if cand > length_from_head[nr, nc]:
-            length_from_head[nr, nc] = cand
-        indeg_copy[nr, nc] -= 1
-        if indeg_copy[nr, nc] == 0:
-            queue.append((nr, nc))
-
-    # For Horton main-stem promotion, walk upstream from every outlet. At each
-    # confluence pick the tributary with the longest length_from_head trace; restamp
-    # its whole path back to its head with the confluence's outgoing order.
-    # Outlets = stream cells with no downstream stream neighbour.
-    outlets: list[tuple[int, int]] = []
-    for r in range(rows):
-        for c in range(cols):
-            if not stream_mask[r, c]:
-                continue
-            d = int(fdir[r, c])
-            if d < 0 or d > 7:
-                outlets.append((r, c))
-                continue
-            nr = r + int(_DIR_DR[d])
-            nc = c + int(_DIR_DC[d])
-            if not (0 <= nr < rows and 0 <= nc < cols) or not stream_mask[nr, nc]:
-                outlets.append((r, c))
+    length_from_head = _upstream_length_from_head(stream_mask, fdir, indeg)
+    outlets = _stream_outlets(stream_mask, fdir)
 
     # Reverse-walk via inverse-direction inflows. Process each outlet recursively
     # (iterative stack) and restamp.
@@ -302,4 +323,59 @@ def horton(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
             # within their subtree.
             for _l, _lin, sr, sc in inflow_cells[1:]:
                 stack.append((sr, sc, int(out[sr, sc])))
+    return out
+
+
+def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
+    """Hack stream order (Hack 1957) — main-stem-first.
+
+    Trace from each outlet upstream picking the upstream stream neighbour with
+    the greatest upstream flow length at every junction; cells on that trace
+    are order N. At every junction the non-main tributaries enter a new
+    subtree whose own main stem becomes order N+1, and so on recursively.
+    Heads receive whatever order the descent that reaches them carried.
+
+    Ties in upstream length are broken by lower row-major linear index so the
+    result is deterministic.
+
+    Args:
+        stream_mask: `(rows, cols)` bool stream-cell mask.
+        fdir: `(rows, cols)` int direction-code raster (DIR_OFFSETS encoding).
+
+    Returns:
+        `(rows, cols)` uint16 of Hack orders. Non-stream cells hold `0`.
+    """
+    rows, cols = stream_mask.shape
+    out = np.zeros((rows, cols), dtype=np.uint16)
+    indeg, _ds_idx = _build_topology(stream_mask, fdir)
+    length = _upstream_length_from_head(stream_mask, fdir, indeg)
+    outlets = _stream_outlets(stream_mask, fdir)
+
+    stack: list[tuple[int, int, int]] = [(r, c, 1) for r, c in outlets]
+    while stack:
+        r, c, n = stack.pop()
+        while True:
+            out[r, c] = n
+            # Find inflow neighbours — same arithmetic as the Horton kernel.
+            inflows: list[tuple[int, int, int, int]] = []
+            for k in range(8):
+                dr = int(_DIR_DR[k])
+                dc = int(_DIR_DC[k])
+                ur = r + dr
+                uc = c + dc
+                if not (0 <= ur < rows and 0 <= uc < cols):
+                    continue
+                if not stream_mask[ur, uc]:
+                    continue
+                if int(fdir[ur, uc]) != int(_INV_DIR[k]):
+                    continue
+                inflows.append((int(length[ur, uc]), ur * cols + uc, ur, uc))
+            if not inflows:
+                break
+            # Main stem = longest upstream length; tie-break by lower linear index.
+            inflows.sort(key=lambda t: (-t[0], t[1]))
+            _main_len, _main_lin, main_r, main_c = inflows[0]
+            for _l, _lin, sr, sc in inflows[1:]:
+                stack.append((sr, sc, n + 1))
+            r, c = main_r, main_c
     return out

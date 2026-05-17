@@ -6,7 +6,7 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
-from digitalrivers._streams.order import horton, shreve, strahler
+from digitalrivers._streams.order import hack, horton, shreve, strahler
 
 
 def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
@@ -111,6 +111,66 @@ class TestHorton:
         assert min(int(order[0, 0]), int(order[0, 2])) == 1
 
 
+# ----- Hack --------------------------------------------------------------------------------
+
+class TestHack:
+    def test_y_junction_main_stem_is_order_one_tributaries_two(self):
+        # In the Y-fixture both tributaries have length 1 from their head; the
+        # main stem of the catchment runs from head A (or B — ties broken by
+        # lower row-major index) through (1, 1), (2, 1), to outlet (3, 1).
+        sm, fd = _y_junction_streams()
+        order = hack(sm, fd)
+        # Outlet, confluence and trunk are all order 1 (main stem).
+        assert order[3, 1] == 1
+        assert order[2, 1] == 1
+        assert order[1, 1] == 1
+        # Exactly one of the two heads is on the main stem (order 1); the other
+        # is a tributary (order 2). Deterministic tie-break by lower linear
+        # index picks (0, 0).
+        assert order[0, 0] == 1
+        assert order[0, 2] == 2
+
+    def test_single_chain_is_order_one_throughout(self):
+        sm = np.zeros((1, 5), dtype=bool)
+        sm[0, :] = True
+        fd = np.full((1, 5), 6, dtype=np.int32)
+        fd[0, -1] = -1
+        order = hack(sm, fd)
+        assert (order[sm] == 1).all()
+
+    def test_tributary_of_tributary_gets_order_three(self):
+        # Main stem runs along row 0 (head at (0, 7), outlet at (0, 0)).
+        # Tributary T joins the main stem at (0, 4); T itself has a
+        # sub-tributary U joining at (1, 5).
+        #
+        #   col:    0  1  2  3  4  5  6  7
+        # row 0:    O  X  X  X  X  X  X  H   ← main stem (length 7)
+        # row 1:    .  .  .  .  T  T  H  .   ← tributary T joining at (0, 4)
+        # row 2:    .  .  .  .  .  H  .  .   ← sub-tributary U joining at (1, 5)
+        sm = np.zeros((3, 8), dtype=bool)
+        sm[0, :] = True
+        sm[1, 4:7] = True
+        sm[2, 5] = True
+        # DIR_OFFSETS: 0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE.
+        fd = np.full((3, 8), -1, dtype=np.int32)
+        fd[0, 0] = -1  # outlet
+        for c in range(1, 8):
+            fd[0, c] = 2  # W along the main stem
+        fd[1, 4] = 4   # N into (0, 4) — T merges with main stem here
+        fd[1, 5] = 2   # W into (1, 4)
+        fd[1, 6] = 2   # W into (1, 5)
+        fd[2, 5] = 4   # N into (1, 5) — U merges with T here
+        order = hack(sm, fd)
+        # Main stem along row 0 is order 1.
+        assert (order[0, :] == 1).all()
+        # T (row 1 stream cells) is order 2.
+        assert order[1, 4] == 2
+        assert order[1, 5] == 2
+        assert order[1, 6] == 2
+        # U (sub-tributary at (2, 5)) is order 3.
+        assert order[2, 5] == 3
+
+
 # ----- DEM/StreamRaster end-to-end --------------------------------------------------------
 
 class TestStreamRasterOrder:
@@ -152,6 +212,21 @@ class TestStreamRasterOrder:
         # extracted network.
         outlet_value = int(ord_arr[sr_mask].max())
         assert outlet_value >= 1
+
+    def test_hack_dispatcher_returns_typed_stream_raster(self):
+        z = np.array(
+            [
+                [9, 9, 9, 9, 9, 9],
+                [9, 5, 4, 3, 2, 1],
+                [9, 9, 9, 9, 9, 9],
+            ],
+            dtype=np.float32,
+        )
+        dem, fd, sr = _build_pipeline(z, threshold=1)
+        ordered = sr.order(method="hack", flow_direction=fd)
+        assert type(ordered) is StreamRaster
+        # Single horizontal chain → entire chain is the main stem (order 1).
+        assert (ordered.read_array()[sr.read_array().astype(bool)] == 1).all()
 
     def test_invalid_method_raises(self):
         z = np.array(
