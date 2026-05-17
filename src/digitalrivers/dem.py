@@ -352,45 +352,68 @@ class DEM(Dataset):
     def hand(
         self,
         streams,
-        flow_direction,
+        flow_direction=None,
+        *,
+        method: str = "d8",
     ) -> Dataset:
         """Compute Height Above Nearest Drainage (Rennó 2008 / Nobre 2011).
 
-        For every cell, follows the flow-direction raster downstream until it
-        reaches a stream cell, and assigns `elev[cell] - elev[stream_cell]`
-        as the cell's HAND value. Stream cells themselves are 0; cells whose
-        flow path does not reach a stream (orphans, sinks, no-data) are NaN.
+        Two methods are supported:
+
+        * **`"d8"` (default)** — follows the D8 / Rho8 flow-direction raster
+          downstream from every cell until it reaches a stream cell, and
+          assigns `elev[cell] - elev[stream_cell]`. Orphans / sinks / no-data
+          cells whose flow path never reaches a stream are NaN.
+        * **`"euclidean"`** — for every cell, the nearest stream cell in 2-D
+          space (Euclidean distance) is used as the reference. Cheaper than
+          D8-HAND because there is no path tracing, but it does the wrong
+          thing across ridges (a cell can be 2-D-closer to a stream in a
+          different basin). Requires `scipy.ndimage`.
 
         Args:
             streams: `StreamRaster` aligned to this DEM. Only the underlying
                 stream mask is read.
             flow_direction: Single-direction `FlowDirection` (`d8` /
-                `rho8`) aligned to this DEM.
+                `rho8`) aligned to this DEM. Required for `method="d8"`;
+                ignored for `method="euclidean"`.
+            method: `"d8"` (default) or `"euclidean"`.
 
         Returns:
             `Dataset` containing the float32 HAND raster. No-data cells use
-            this DEM's no-data sentinel (NaN in the underlying values
-            property; the on-disk sentinel restored before write-back).
+            this DEM's no-data sentinel.
 
         Raises:
-            ValueError: If shapes do not match or `flow_direction` is
-                multi-direction.
+            ValueError: If `method` is unknown, shapes do not match, or
+                `flow_direction` is missing / multi-direction for the D8
+                method.
         """
+        from digitalrivers.stream_raster import StreamRaster
+
+        if method not in ("d8", "euclidean"):
+            raise ValueError(
+                f"method must be 'd8' or 'euclidean'; got {method!r}"
+            )
+        if not isinstance(streams, StreamRaster):
+            raise ValueError("streams must be a StreamRaster instance")
+
+        if method == "d8":
+            return self._hand_d8(streams, flow_direction)
+        return self._hand_euclidean(streams)
+
+    def _hand_d8(self, streams, flow_direction) -> Dataset:
+        """D8-traced HAND — original Rennó-style implementation."""
         from digitalrivers._streams.hand import hand_d8
         from digitalrivers.flow_direction import FlowDirection
-        from digitalrivers.stream_raster import StreamRaster
 
         if not isinstance(flow_direction, FlowDirection):
             raise ValueError(
-                "flow_direction must be a FlowDirection instance"
+                "flow_direction must be a FlowDirection instance for method='d8'"
             )
         if flow_direction.routing not in ("d8", "rho8"):
             raise ValueError(
                 f"hand currently supports single-direction routing only; "
                 f"got {flow_direction.routing!r}"
             )
-        if not isinstance(streams, StreamRaster):
-            raise ValueError("streams must be a StreamRaster instance")
 
         elev = self.values
         fdir = flow_direction.read_array().astype(np.int32, copy=False)
@@ -402,6 +425,36 @@ class DEM(Dataset):
             )
 
         hand_arr = hand_d8(elev, fdir, stream_arr).astype(np.float32, copy=False)
+        no_val = float(self.no_data_value[0])
+        hand_arr = np.where(np.isnan(hand_arr), no_val, hand_arr)
+        return Dataset.create_from_array(
+            hand_arr,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
+        )
+
+    def _hand_euclidean(self, streams) -> Dataset:
+        """Euclidean-nearest-stream HAND — no flow direction required."""
+        from scipy.ndimage import distance_transform_edt
+
+        elev = self.values
+        stream_arr = streams.read_array().astype(bool, copy=False)
+        if elev.shape != stream_arr.shape:
+            raise ValueError(
+                f"Shape mismatch: dem={elev.shape}, streams={stream_arr.shape}"
+            )
+        if not stream_arr.any():
+            raise ValueError(
+                "streams raster contains no stream cells — HAND is undefined"
+            )
+        # distance_transform_edt with return_indices returns (distance, indices),
+        # where indices[*, r, c] is the (row, col) of the nearest True (stream)
+        # cell from (r, c). We want the *complement* of stream_arr because
+        # the EDT measures distance to the nearest False cell.
+        _, (ri, ci) = distance_transform_edt(~stream_arr, return_indices=True)
+        nearest_elev = elev[ri, ci]
+        hand_arr = (elev - nearest_elev).astype(np.float32, copy=False)
         no_val = float(self.no_data_value[0])
         hand_arr = np.where(np.isnan(hand_arr), no_val, hand_arr)
         return Dataset.create_from_array(

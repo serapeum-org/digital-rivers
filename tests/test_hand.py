@@ -212,6 +212,102 @@ class TestHandOrphanMemoisation:
             f"unreachable-memoisation may be broken"
         )
 
+    def test_euclidean_hand_zero_at_stream_cells(self):
+        """Test euclidean HAND is zero on every stream cell.
+
+        Test scenario:
+            With method='euclidean', stream cells must hold 0 (each is its
+            own nearest stream cell).
+        """
+        z = np.array(
+            [
+                [9, 9, 9, 9, 9, 9],
+                [9, 5, 4, 3, 2, 1],
+                [9, 9, 9, 9, 9, 9],
+            ],
+            dtype=np.float32,
+        )
+        dem, fd, sr = _build_pipeline(z, threshold=1)
+        out = dem.hand(sr, method="euclidean")
+        arr = out.read_array()
+        sm = sr.read_array().astype(bool)
+        assert (arr[sm] == 0).all(), "Stream cells must have HAND = 0"
+
+    def test_euclidean_hand_uses_nearest_2d_stream(self):
+        """Test euclidean HAND uses 2-D-nearest stream — not flow-path-nearest.
+
+        Test scenario:
+            A non-stream cell sitting one cell row above a stream cell
+            (without any explicit flow direction tying them) must report
+            HAND = elev_self - elev_nearest_stream.
+        """
+        # 3-row grid; the middle row is the stream chain at elevation 1,
+        # row 0 sits at elevation 5 above it.
+        z = np.array(
+            [
+                [5, 5, 5, 5, 5],
+                [1, 1, 1, 1, 1],
+                [9, 9, 9, 9, 9],
+            ],
+            dtype=np.float32,
+        )
+        ds = Dataset.create_from_array(
+            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+            no_data_value=-9999.0,
+        )
+        dem = DEM(ds.raster)
+        sm = np.zeros((3, 5), dtype=bool)
+        sm[1, :] = True
+        sm_ds = Dataset.create_from_array(
+            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
+            epsg=4326, no_data_value=0,
+        )
+        sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
+        out = dem.hand(sr, method="euclidean")
+        arr = out.read_array()
+        # Row 0 cells are 4 m above the nearest stream cell directly below.
+        assert (arr[0, :] == 4.0).all(), f"Got {arr[0, :].tolist()}"
+
+    def test_euclidean_hand_no_stream_raises(self):
+        """Test euclidean HAND raises when the stream raster has no stream cells.
+
+        Test scenario:
+            With no streams, HAND is undefined; the API must raise rather
+            than emit zeros or NaN silently.
+        """
+        z = np.array([[5, 5], [5, 5]], dtype=np.float32)
+        ds = Dataset.create_from_array(
+            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+            no_data_value=-9999.0,
+        )
+        dem = DEM(ds.raster)
+        sm = np.zeros((2, 2), dtype=bool)
+        sm_ds = Dataset.create_from_array(
+            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
+            epsg=4326, no_data_value=0,
+        )
+        sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
+        with pytest.raises(ValueError, match="no stream cells"):
+            dem.hand(sr, method="euclidean")
+
+    def test_invalid_method_raises(self):
+        """Test an unknown method= raises ValueError.
+
+        Test scenario:
+            Caller passes method='bogus' — must raise with a clear message.
+        """
+        z = np.array(
+            [
+                [9, 9, 9, 9, 9, 9],
+                [9, 5, 4, 3, 2, 1],
+                [9, 9, 9, 9, 9, 9],
+            ],
+            dtype=np.float32,
+        )
+        dem, fd, sr = _build_pipeline(z, threshold=1)
+        with pytest.raises(ValueError, match="method must be"):
+            dem.hand(sr, fd, method="bogus")
+
     def test_mixed_reachable_and_orphan_paths(self):
         """A two-row grid where one row reaches a stream and the other
         doesn't: reachable cells get finite HAND, orphans stay NaN."""
