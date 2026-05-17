@@ -131,12 +131,20 @@ class WatershedRaster(Dataset):
           cell_size` instead of `cell_size`; without `flow_direction`
           every stream cell is assumed cardinal, which under-estimates
           length on diagonal-heavy networks by ~5-10%.
+        - `longest_flow_path_m`: longest upstream-to-outlet flow path for
+          the basin, in map units. Requires both `accumulation` and
+          `flow_direction`. Computed via a single Kahn topological sweep
+          over the entire raster.
         - `centroid_x`, `centroid_y`: basin centroid in dataset CRS.
           Always present, regardless of which optional inputs are supplied.
 
         Args:
             dem: Aligned DEM for elevation metrics.
-            accumulation: Reserved for future longest-flow-path metric.
+            accumulation: Accumulation raster used to drive the
+                longest-flow-path computation. When supplied together with
+                `flow_direction`, the result table carries a
+                `longest_flow_path_m` column with each basin's longest
+                upstream-to-outlet flow path in map units.
             slope: Aligned slope raster (m/m) for `mean_slope`.
             streams: Aligned StreamRaster for `drainage_density_km_per_km2`.
             flow_direction: Aligned single-direction `FlowDirection`.
@@ -260,6 +268,69 @@ class WatershedRaster(Dataset):
                 available["mean_slope"].append(
                     float(vals.mean()) if vals.size else np.nan
                 )
+
+        if accumulation is not None and flow_direction is not None:
+            # Longest flow path per basin = max upstream-path length at the
+            # basin's outlet. Compute the per-cell upslope-max-length grid
+            # once via a Kahn topological sweep, then look it up at every
+            # outlet. The `accumulation` argument is required because we
+            # need its per-cell value to drive the Kahn dequeuing order
+            # (cells with smaller accumulation are upstream of cells with
+            # larger accumulation along the same path).
+            cs = abs(gt[1])
+            diag = cs * np.sqrt(2.0)
+            fdir_arr = flow_direction.read_array().astype(np.int32, copy=False)
+            rows, cols = fdir_arr.shape
+            # Receiver grid from D8 direction codes.
+            dr_lut = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
+            dc_lut = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+            # In-degree count for Kahn ordering — number of upstream
+            # neighbours pointing at each cell.
+            inv = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+            indeg = np.zeros((rows, cols), dtype=np.int32)
+            for k in range(8):
+                dr = int(dr_lut[k])
+                dc = int(dc_lut[k])
+                src_r = slice(max(0, dr), min(rows, rows + dr))
+                src_c = slice(max(0, dc), min(cols, cols + dc))
+                dst_r = slice(max(0, -dr), min(rows, rows - dr))
+                dst_c = slice(max(0, -dc), min(cols, cols - dc))
+                fd_src = fdir_arr[src_r, src_c]
+                indeg[dst_r, dst_c] += (fd_src == int(inv[k])).astype(np.int32)
+            lengths = np.zeros((rows, cols), dtype=np.float64)
+            from collections import deque
+            queue: deque[tuple[int, int]] = deque(
+                (int(r), int(c)) for r, c in zip(*np.where(indeg == 0))
+            )
+            while queue:
+                r, c = queue.popleft()
+                d = int(fdir_arr[r, c])
+                if d < 0 or d > 7:
+                    continue
+                nr, nc = r + int(dr_lut[d]), c + int(dc_lut[d])
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    continue
+                step = diag if (int(dr_lut[d]) and int(dc_lut[d])) else cs
+                cand = lengths[r, c] + step
+                if cand > lengths[nr, nc]:
+                    lengths[nr, nc] = cand
+                indeg[nr, nc] -= 1
+                if indeg[nr, nc] == 0:
+                    queue.append((nr, nc))
+
+            available["longest_flow_path_m"] = []
+            for bid in unique_ids:
+                # Outlet of this basin = the cell within the basin that no
+                # downstream neighbour in the same basin points at; or the
+                # cell whose D8 receiver is off-grid / non-basin.
+                mask = labels == bid
+                # The basin-internal cell with the maximum path length is the
+                # outlet (since every cell flows downstream to its outlet).
+                vals = lengths[mask]
+                if vals.size:
+                    available["longest_flow_path_m"].append(float(vals.max()))
+                else:
+                    available["longest_flow_path_m"].append(np.nan)
 
         if streams is not None:
             sm = streams.read_array().astype(bool, copy=False)
