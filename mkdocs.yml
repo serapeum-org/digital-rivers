@@ -108,9 +108,22 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Installation: installation.md
+  - Guides:
+    - Hydrology pipeline: guides/hydrology-pipeline.md
+    - Watershed analytics: guides/watershed-analytics.md
+    - Terrain indices: guides/terrain-indices.md
+    - LiDAR pipeline: guides/lidar.md
   - Reference:
     - DEM: reference/dem.md
+    - FlowDirection: reference/flow_direction.md
+    - Accumulation: reference/accumulation.md
+    - StreamRaster: reference/stream_raster.md
+    - WatershedRaster: reference/watershed_raster.md
     - Terrain: reference/terrain.md
+    - LiDAR: reference/lidar.md
+    - Mesh: reference/mesh.md
+    - Cloud I/O: reference/cloud_io.md
+    - Topobathy fusion: reference/fusion.md
   - About:
     - Change-log: change-log.md
     - Code of Conduct: CODE_OF_CONDUCT.md
