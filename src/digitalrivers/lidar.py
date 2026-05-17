@@ -241,6 +241,88 @@ def classify_ground(
     return out
 
 
+def detect_trees(
+    chm,
+    *,
+    min_height_m: float = 2.0,
+    radius_fn=None,
+):
+    """Detect individual tree tops on a canopy height model.
+
+    Variable-window local-maxima search: for each candidate cell whose CHM
+    value is `>= min_height_m`, scan a square window whose half-width
+    scales with the cell's height (`radius_fn(h)` map units, default
+    `0.5 + 0.05 * h`, i.e. ~5% of canopy height). The cell is reported as
+    a tree top iff its CHM value is the maximum in the window.
+
+    Args:
+        chm: pyramids `Dataset` of the canopy height model (typically
+            DSM − DTM, in metres). Must be single-band and projected.
+        min_height_m: Minimum canopy height (m) for a cell to be a tree-top
+            candidate. Defaults to 2.0.
+        radius_fn: Callable mapping `height_m` -> window half-width in map
+            units. Defaults to `lambda h: 0.5 + 0.05 * h` (Popescu &
+            Wynne 2004 conifer rule of thumb).
+
+    Returns:
+        `geopandas.GeoDataFrame` of tree-top Point geometries with columns
+        `height_m` (canopy height at the top), `row`, `col` (raster
+        indices), and `geometry`. CRS is set from the CHM's EPSG.
+
+    References:
+        Popescu, S. C. & Wynne, R. H. (2004). "Seeing the trees in the
+        forest: Using LIDAR and multispectral data fusion with local
+        filtering and variable window size for estimating tree height."
+        *Photogrammetric Engineering & Remote Sensing* 70(5): 589–604.
+    """
+    import geopandas as gpd
+    from shapely.geometry import Point
+
+    if radius_fn is None:
+        radius_fn = lambda h: 0.5 + 0.05 * h  # noqa: E731
+
+    z = chm.read_array().astype(np.float32, copy=False)
+    no_val = chm.no_data_value[0] if chm.no_data_value else None
+    if no_val is not None:
+        z = np.where(z == no_val, np.nan, z)
+    cell_size = float(abs(chm.geotransform[1]))
+
+    rows, cols = z.shape
+    gt = chm.geotransform
+    candidates = np.argwhere(z >= min_height_m)
+    tops_r: list[int] = []
+    tops_c: list[int] = []
+    tops_h: list[float] = []
+    for r, c in candidates:
+        h = float(z[r, c])
+        rad = max(1, int(radius_fn(h) / cell_size))
+        r0 = max(0, int(r) - rad)
+        r1 = min(rows, int(r) + rad + 1)
+        c0 = max(0, int(c) - rad)
+        c1 = min(cols, int(c) + rad + 1)
+        window = z[r0:r1, c0:c1]
+        if not np.isfinite(window).any():
+            continue
+        win_max = float(np.nanmax(window))
+        if h >= win_max:
+            tops_r.append(int(r))
+            tops_c.append(int(c))
+            tops_h.append(h)
+
+    xs = [gt[0] + (c + 0.5) * gt[1] for c in tops_c]
+    ys = [gt[3] + (r + 0.5) * gt[5] for r in tops_r]
+    geometries = [Point(x, y) for x, y in zip(xs, ys)]
+    return gpd.GeoDataFrame(
+        {
+            "height_m": tops_h,
+            "row": tops_r,
+            "col": tops_c,
+            "geometry": geometries,
+        },
+        crs=chm.epsg,
+    )
+
+
 def clip(
     points: LasPoints,
     polygon,

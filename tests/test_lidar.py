@@ -309,6 +309,84 @@ class TestInterpolationGridders:
         assert float(arr[0, 0]) == 3.0
 
 
+class TestDetectTrees:
+    """Tests for `lidar.detect_trees` (local-maxima on a CHM)."""
+
+    def _make_chm(self, arr: np.ndarray, cell_size: float = 1.0):
+        from pyramids.dataset import Dataset
+        ds = Dataset.create_from_array(
+            arr.astype(np.float32), top_left_corner=(0.0, 0.0),
+            cell_size=cell_size, epsg=3857, no_data_value=-9999.0,
+        )
+        return ds
+
+    def test_single_peak_detected(self):
+        """Test a single elevated cell on a flat CHM is detected as a tree top.
+
+        Test scenario:
+            5×5 CHM with z=0 everywhere except z=15 at (2, 2). detect_trees
+            should return exactly one top at that cell.
+        """
+        from digitalrivers.lidar import detect_trees
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[2, 2] = 15.0
+        chm = self._make_chm(z)
+        gdf = detect_trees(chm, min_height_m=2.0)
+        assert len(gdf) == 1
+        row = gdf.iloc[0]
+        assert int(row["row"]) == 2 and int(row["col"]) == 2
+        assert float(row["height_m"]) == 15.0
+
+    def test_below_threshold_skipped(self):
+        """Test cells below `min_height_m` are not reported.
+
+        Test scenario:
+            A CHM with a 1.5 m peak below the 2.0 m threshold returns an
+            empty GeoDataFrame.
+        """
+        from digitalrivers.lidar import detect_trees
+        z = np.zeros((3, 3), dtype=np.float32)
+        z[1, 1] = 1.5
+        chm = self._make_chm(z)
+        gdf = detect_trees(chm, min_height_m=2.0)
+        assert len(gdf) == 0
+
+    def test_geometry_at_cell_centre(self):
+        """Test the geometry of each tree top sits at the cell centre.
+
+        Test scenario:
+            With cell_size=1, top_left=(0, 0), the tree top at (row, col) =
+            (2, 2) maps to world coordinates (2.5, -2.5).
+        """
+        from digitalrivers.lidar import detect_trees
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[2, 2] = 10.0
+        chm = self._make_chm(z)
+        gdf = detect_trees(chm, min_height_m=2.0)
+        pt = gdf.iloc[0]["geometry"]
+        assert abs(pt.x - 2.5) < 1e-5
+        assert abs(pt.y - (-2.5)) < 1e-5
+
+    def test_two_well_separated_peaks_both_detected(self):
+        """Test two peaks beyond each other's window are both detected.
+
+        Test scenario:
+            A large CHM with peaks at (2, 2) and (10, 10) are both reported
+            when the variable window radius is small enough that they don't
+            overlap.
+        """
+        from digitalrivers.lidar import detect_trees
+        z = np.zeros((15, 15), dtype=np.float32)
+        z[2, 2] = 5.0
+        z[10, 10] = 5.0
+        chm = self._make_chm(z)
+        # radius_fn keeps the window tiny so the two peaks don't compete.
+        gdf = detect_trees(
+            chm, min_height_m=2.0, radius_fn=lambda h: 1.0,
+        )
+        assert len(gdf) == 2
+
+
 class TestClassifyGround:
     """Tests for `lidar.classify_ground` (Zhang 2003 tophat filter)."""
 
