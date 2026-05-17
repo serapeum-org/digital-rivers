@@ -45,11 +45,59 @@
          <lastmod>2026-05-17</lastmod>
     </url>
     <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/guides/hydrology-pipeline/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/guides/lidar/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/guides/terrain-indices/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/guides/watershed-analytics/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/accumulation/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/cloud_io/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
          <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/dem/</loc>
          <lastmod>2026-05-17</lastmod>
     </url>
     <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/flow_direction/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/fusion/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/lidar/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/mesh/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/stream_raster/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
          <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/terrain/</loc>
+         <lastmod>2026-05-17</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/reference/watershed_raster/</loc>
          <lastmod>2026-05-17</lastmod>
     </url>
 </urlset>
