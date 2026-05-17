@@ -304,20 +304,21 @@ class StreamRaster(Dataset):
         method: str = "strahler",
         flow_direction=None,
     ) -> "StreamRaster":
-        """Compute Strahler / Shreve / Horton / Hack stream order on this raster.
+        """Compute a stream-order raster: Strahler, Shreve, Horton, Hack, or Topological.
 
         Args:
-            method: `"strahler"` (default), `"shreve"`, `"horton"`, or
-                `"hack"`.
+            method: `"strahler"` (default), `"shreve"`, `"horton"`,
+                `"hack"`, or `"topological"`.
             flow_direction: Single-direction (`d8` / `rho8`) FlowDirection
                 aligned to this stream raster. Required — the topology walks
                 the flow-direction edges.
 
         Returns:
-            A new `StreamRaster` whose underlying raster is uint16 (uint32
-            for `shreve`) and holds the stream order; non-stream cells hold
-            `0`. The returned object preserves this raster's `threshold`
-            and `routing` tags for downstream consumers.
+            A new `StreamRaster` whose underlying raster holds the stream
+            order; non-stream cells hold `0`. dtype is uint16 for most
+            methods and uint32 for `shreve` and `topological`. The returned
+            object preserves this raster's `threshold` and `routing` tags
+            for downstream consumers.
 
         Raises:
             ValueError: If `method` is unknown or `flow_direction` is
@@ -325,13 +326,19 @@ class StreamRaster(Dataset):
         """
         import numpy as np
 
-        from digitalrivers._streams.order import hack, horton, shreve, strahler
+        from digitalrivers._streams.order import (
+            hack,
+            horton,
+            shreve,
+            strahler,
+            topological,
+        )
         from digitalrivers.flow_direction import FlowDirection
 
-        if method not in ("strahler", "shreve", "horton", "hack"):
+        if method not in ("strahler", "shreve", "horton", "hack", "topological"):
             raise ValueError(
                 f"method must be one of 'strahler', 'shreve', 'horton', "
-                f"'hack'; got {method!r}"
+                f"'hack', 'topological'; got {method!r}"
             )
         if not isinstance(flow_direction, FlowDirection):
             raise ValueError(
@@ -355,8 +362,10 @@ class StreamRaster(Dataset):
             arr = shreve(stream_mask, fdir)
         elif method == "horton":
             arr = horton(stream_mask, fdir)
-        else:
+        elif method == "hack":
             arr = hack(stream_mask, fdir)
+        else:
+            arr = topological(stream_mask, fdir)
         plain = Dataset.create_from_array(
             arr, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
         )

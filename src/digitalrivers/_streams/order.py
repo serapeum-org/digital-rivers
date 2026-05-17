@@ -1,7 +1,8 @@
-"""Stream-network ordering schemes: Strahler, Shreve, Horton, Hack.
+"""Stream-network ordering schemes: Strahler, Shreve, Horton, Hack, Topological.
 
-All four operate on a stream-cell mask plus a D8 flow-direction raster. Output is a
-2-D `uint16` raster of orders / magnitudes; non-stream cells hold `0`.
+All operate on a stream-cell mask plus a D8 flow-direction raster. Output is a 2-D
+`uint16` / `uint32` raster of orders / magnitudes / indices; non-stream cells hold
+`0`.
 
 * **Strahler (1957)** — Kahn BFS over stream cells. Heads get order 1; at each
   confluence the downstream order is `max_in + 1` iff at least two upstream
@@ -17,6 +18,10 @@ All four operate on a stream-cell mask plus a D8 flow-direction raster. Output i
   outlet to any head) is order 1. Every tributary joining the main stem is
   order 2; tributaries of those are order 3; and so on recursively. Ties
   broken by lower row-major linear index for determinism.
+* **Topological** — Kahn-sort sequential numbering. Each stream cell receives
+  a unique integer 1..N in the order it becomes processable as the BFS frontier
+  advances downstream. Heads are enumerated in row-major order for
+  determinism; the value strictly increases along every flow path.
 """
 from __future__ import annotations
 
@@ -427,4 +432,85 @@ def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
             for _l, _lin, sr, sc in inflows[1:]:
                 stack.append((sr, sc, n + 1))
             r, c = main_r, main_c
+    return out
+
+
+def topological(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
+    """Topological stream ordering — Kahn-sort sequential numbering.
+
+    Each stream cell receives a unique 1-based integer in the order it becomes
+    processable as a Kahn BFS frontier advances downstream. Source cells
+    (in-degree zero) are enumerated first in row-major order to guarantee
+    determinism; the value strictly increases along every flow path.
+
+    Args:
+        stream_mask: `(rows, cols)` bool stream-cell mask.
+        fdir: `(rows, cols)` int direction-code raster (DIR_OFFSETS encoding:
+            `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`). Cells with
+            `fdir == -1` (or any out-of-range code) terminate their path.
+
+    Returns:
+        `(rows, cols)` uint32 of topological indices. Non-stream cells hold
+        `0`. The maximum value equals the total stream-cell count.
+
+    Examples:
+        - Single east-flowing chain: heads first, then progressively
+          downstream:
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._streams.order import topological
+            >>> sm = np.array([[True, True, True, True]], dtype=bool)
+            >>> fd = np.array([[6, 6, 6, -1]], dtype=np.int32)
+            >>> topological(sm, fd).tolist()
+            [[1, 2, 3, 4]]
+
+            ```
+        - Y-junction: both heads receive low indices (row-major order),
+          confluence and trunk receive higher indices in BFS order:
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._streams.order import topological
+            >>> sm = np.zeros((4, 3), dtype=bool)
+            >>> sm[0, 0] = sm[0, 2] = True
+            >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
+            >>> fd = np.array(
+            ...     [[7, -1, 1], [-1, 0, -1], [-1, 0, -1], [-1, -1, -1]],
+            ...     dtype=np.int32,
+            ... )
+            >>> order = topological(sm, fd)
+            >>> int(order[0, 0]), int(order[0, 2])
+            (1, 2)
+            >>> int(order[3, 1])
+            5
+
+            ```
+
+    See Also:
+        strahler: Topology-based ordering (heads = 1; +1 at matching-order
+            confluences).
+        hack: Main-stem-first ordering (longest path = order 1).
+    """
+    rows, cols = stream_mask.shape
+    out = np.zeros((rows, cols), dtype=np.uint32)
+    indeg, _ds_idx = _build_topology(stream_mask, fdir)
+    queue: deque[tuple[int, int]] = deque()
+    for r, c in zip(*np.where(stream_mask & (indeg == 0))):
+        queue.append((int(r), int(c)))
+    idx = 1
+    while queue:
+        r, c = queue.popleft()
+        out[r, c] = idx
+        idx += 1
+        d = int(fdir[r, c])
+        if d < 0 or d > 7:
+            continue
+        nr = r + int(_DIR_DR[d])
+        nc = c + int(_DIR_DC[d])
+        if not (0 <= nr < rows and 0 <= nc < cols):
+            continue
+        if not stream_mask[nr, nc]:
+            continue
+        indeg[nr, nc] -= 1
+        if indeg[nr, nc] == 0:
+            queue.append((nr, nc))
     return out

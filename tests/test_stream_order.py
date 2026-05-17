@@ -14,6 +14,7 @@ from digitalrivers._streams.order import (
     horton,
     shreve,
     strahler,
+    topological,
 )
 
 
@@ -223,6 +224,81 @@ class TestHack:
         assert order[2, 5] == 3
 
 
+# ----- Topological -------------------------------------------------------------------------
+
+class TestTopological:
+    """Tests for the `topological` ordering function."""
+
+    def test_single_chain_increments_along_flow(self):
+        """Test topological assigns 1..N along a single east-flowing chain.
+
+        Test scenario:
+            A 4-cell horizontal chain with one head must yield indices
+            `[1, 2, 3, 4]` since each downstream cell processes immediately
+            after its only upstream neighbour.
+        """
+        sm = np.array([[True, True, True, True]], dtype=bool)
+        fd = np.array([[6, 6, 6, -1]], dtype=np.int32)
+        order = topological(sm, fd)
+        assert order.tolist() == [[1, 2, 3, 4]], f"Got {order.tolist()}"
+
+    def test_y_junction_heads_processed_first(self):
+        """Test topological enumerates heads in row-major order, then trunk.
+
+        Test scenario:
+            Two heads at (0, 0) and (0, 2) get indices 1 and 2; the
+            confluence and trunk cells follow in BFS order so the outlet
+            holds the total stream-cell count (5).
+        """
+        sm, fd = _y_junction_streams()
+        order = topological(sm, fd)
+        assert order[0, 0] == 1, "First head must be index 1"
+        assert order[0, 2] == 2, "Second head must be index 2"
+        # All five stream cells have unique indices 1..5.
+        values = sorted(int(v) for v in order[sm].tolist())
+        assert values == [1, 2, 3, 4, 5], f"Got {values}"
+        # Outlet (last to process) holds the max.
+        assert order[3, 1] == 5, "Outlet must hold the maximum index"
+
+    def test_empty_mask_returns_all_zeros(self):
+        """Test topological with no stream cells returns a zero raster.
+
+        Test scenario:
+            Empty stream mask must produce a zero-filled output of the same
+            shape without crashing.
+        """
+        sm = np.zeros((3, 4), dtype=bool)
+        fd = np.full((3, 4), -1, dtype=np.int32)
+        order = topological(sm, fd)
+        assert (order == 0).all(), "All cells must be zero when no streams"
+
+    def test_indices_strictly_increase_along_flow_path(self):
+        """Test topological indices strictly increase along every flow path.
+
+        Test scenario:
+            On the Y-junction, every downstream stream cell must hold a
+            strictly larger index than the cell flowing into it.
+        """
+        sm, fd = _y_junction_streams()
+        order = topological(sm, fd)
+        # Walk each head downstream and verify monotonic increase.
+        for r0, c0 in [(0, 0), (0, 2)]:
+            r, c = r0, c0
+            prev = int(order[r, c])
+            for _ in range(10):
+                d = int(fd[r, c])
+                if d < 0 or d > 7:
+                    break
+                from digitalrivers._streams.order import _DIR_DR, _DIR_DC
+                nr, nc = r + int(_DIR_DR[d]), c + int(_DIR_DC[d])
+                if not sm[nr, nc]:
+                    break
+                cur = int(order[nr, nc])
+                assert cur > prev, f"Index must increase at ({nr}, {nc})"
+                prev = cur
+                r, c = nr, nc
+
+
 # ----- _upstream_length_from_head -----------------------------------------------------------
 
 class TestUpstreamLengthFromHead:
@@ -343,6 +419,32 @@ class TestStreamRasterOrder:
         # extracted network.
         outlet_value = int(ord_arr[sr_mask].max())
         assert outlet_value >= 1
+
+    def test_topological_dispatcher_returns_typed_stream_raster(self):
+        """Test method='topological' returns a typed StreamRaster with uint32 values.
+
+        Test scenario:
+            On a single chain DEM, the dispatched topological order must
+            produce a `StreamRaster` whose values strictly increase along the
+            chain.
+        """
+        z = np.array(
+            [
+                [9, 9, 9, 9, 9, 9],
+                [9, 5, 4, 3, 2, 1],
+                [9, 9, 9, 9, 9, 9],
+            ],
+            dtype=np.float32,
+        )
+        dem, fd, sr = _build_pipeline(z, threshold=1)
+        ordered = sr.order(method="topological", flow_direction=fd)
+        assert type(ordered) is StreamRaster
+        arr = ordered.read_array()
+        # All stream cells have distinct indices ≥ 1.
+        sm = sr.read_array().astype(bool)
+        values = sorted(int(v) for v in arr[sm].tolist())
+        assert values[0] == 1
+        assert len(values) == len(set(values)), "Indices must be unique"
 
     def test_hack_dispatcher_returns_typed_stream_raster(self):
         z = np.array(
