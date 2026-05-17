@@ -1843,6 +1843,36 @@ class DEM(Dataset):
             Guisan, A., Weiss, S. B., & Weiss, A. D. (1999). "GLM versus
             CCA spatial modeling of plant species distribution." *Plant
             Ecology* 143(1): 107-122.
+
+        Examples:
+            - A flat surface has every cell at its focal mean → TPI = 0:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> tpi = DEM(ds.raster).tpi(window=3).read_array()
+                >>> bool(np.allclose(tpi, 0.0))
+                True
+
+            - A single ridge cell on flat terrain reports positive TPI; a
+              pit reports negative:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.zeros((5, 5), dtype=np.float32)
+                >>> z[2, 2] = 9.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(DEM(ds.raster).tpi(window=3).read_array()[2, 2] > 0)
+                True
         """
         z, m, _sd = self._focal_window_stats(window)
         out = (z - m).astype(np.float32)
@@ -1866,6 +1896,37 @@ class DEM(Dataset):
             `Dataset` of float32 deviation values. Flat cells (focal_sd ≈ 0)
             yield 0.0 by definition. No-data cells use this DEM's no-data
             sentinel.
+
+        Examples:
+            - Flat terrain yields zero deviation everywhere:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((4, 4), 5.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(np.allclose(
+                ...     DEM(ds.raster).deviation_from_mean(window=3).read_array(), 0.0
+                ... ))
+                True
+
+            - A peak reports positive standardised deviation:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.zeros((5, 5), dtype=np.float32)
+                >>> z[2, 2] = 10.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> out = DEM(ds.raster).deviation_from_mean(window=3).read_array()
+                >>> bool(out[2, 2] > 0)
+                True
         """
         z, m, sd = self._focal_window_stats(window)
         out = (z - m) / np.where(sd == 0.0, 1.0, sd)
@@ -1888,6 +1949,37 @@ class DEM(Dataset):
         Returns:
             `Dataset` of float32 SD values. No-data cells use this DEM's
             no-data sentinel.
+
+        Examples:
+            - Flat terrain reports zero SD everywhere:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((4, 4), 5.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(np.allclose(
+                ...     DEM(ds.raster).elev_std(window=3).read_array(), 0.0
+                ... ))
+                True
+
+            - A step in elevation produces non-zero SD along the boundary:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.zeros((5, 5), dtype=np.float32)
+                >>> z[:, 3:] = 10.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> sd = DEM(ds.raster).elev_std(window=3).read_array()
+                >>> bool((sd[:, 2] > 0).all())
+                True
         """
         _z, _m, sd = self._focal_window_stats(window)
         out = sd.astype(np.float32)
@@ -1930,6 +2022,39 @@ class DEM(Dataset):
             Zevenbergen, L. W. & Thorne, C. R. (1987). "Quantitative
             analysis of land surface topography." *Earth Surface Processes
             and Landforms* 12(1): 47-56.
+
+        Examples:
+            - Every curvature variant is zero on a flat DEM:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(np.allclose(
+                ...     DEM(ds.raster).curvature(kind="total").read_array(), 0.0
+                ... ))
+                True
+
+            - Mean curvature equals total / 2 on a paraboloid (interior):
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> x, y = np.meshgrid(np.arange(-3, 4), np.arange(-3, 4))
+                >>> z = (-(x * x + y * y)).astype(np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> total = dem.curvature(kind="total").read_array()[2:-2, 2:-2]
+                >>> mean = dem.curvature(kind="mean").read_array()[2:-2, 2:-2]
+                >>> bool(np.allclose(mean, total / 2.0, atol=1e-5))
+                True
         """
         if kind not in ("plan", "profile", "total", "mean", "gaussian"):
             raise ValueError(
@@ -1985,6 +2110,39 @@ class DEM(Dataset):
         Returns:
             `Dataset` of float32 angular deviations in radians,
             `[0, π/2]`. No-data cells use this DEM's no-data sentinel.
+
+        Examples:
+            - Flat terrain yields zero angular deviation:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(np.allclose(
+                ...     DEM(ds.raster).normal_vector_deviation(window=3).read_array(),
+                ...     0.0, atol=1e-5,
+                ... ))
+                True
+
+            - A constant-slope plane has identical normals in its deep
+              interior, so deviation there is ~0:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> x, y = np.meshgrid(np.arange(7), np.arange(7))
+                >>> z = (2.0 * x + y).astype(np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> arr = DEM(ds.raster).normal_vector_deviation(window=3).read_array()
+                >>> bool(np.allclose(arr[2:-2, 2:-2], 0.0, atol=1e-4))
+                True
         """
         from scipy.ndimage import uniform_filter
         if window < 1:
@@ -2057,6 +2215,38 @@ class DEM(Dataset):
             topography by openness: A new application of image processing
             to digital elevation models." *Photogrammetric Engineering and
             Remote Sensing* 68(3): 257-265.
+
+        Examples:
+            - Flat terrain: every horizon angle is 0, so positive openness
+              is `π/2` at every cell:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> arr = DEM(ds.raster).openness(search_radius=2).read_array()
+                >>> bool(np.allclose(arr, np.pi / 2.0, atol=1e-5))
+                True
+
+            - A peak on flat terrain has strictly larger positive openness
+              than its neighbours (which look up at it):
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.zeros((5, 5), dtype=np.float32)
+                >>> z[2, 2] = 10.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> arr = DEM(ds.raster).openness(search_radius=3).read_array()
+                >>> bool(arr[2, 2] > arr[1, 2])
+                True
         """
         from digitalrivers._numba import horizon_walk_kernel
         if kind not in ("positive", "negative"):
@@ -2114,6 +2304,37 @@ class DEM(Dataset):
             Zakšek, K., Oštir, K., & Kokalj, Ž. (2011). "Sky-view factor as
             a relief visualization technique." *Remote Sensing* 3(2):
             398-415.
+
+        Examples:
+            - Flat terrain: nothing occludes the sky, SVF = 1 everywhere:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> arr = DEM(ds.raster).sky_view_factor(search_radius=2).read_array()
+                >>> bool(np.allclose(arr, 1.0, atol=1e-5))
+                True
+
+            - A pit surrounded by higher cells reports SVF strictly less
+              than 1 (the walls occlude part of the sky):
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((5, 5), 10.0, dtype=np.float32)
+                >>> z[2, 2] = 0.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> arr = DEM(ds.raster).sky_view_factor(search_radius=2).read_array()
+                >>> bool(arr[2, 2] < 1.0)
+                True
         """
         from digitalrivers._numba import horizon_walk_kernel
         if search_radius < 1:
@@ -2151,6 +2372,38 @@ class DEM(Dataset):
             Riley, S. J., DeGloria, S. D., & Elliot, R. (1999). "A terrain
             ruggedness index that quantifies topographic heterogeneity."
             *Intermountain Journal of Sciences* 5(1-4): 23-27.
+
+        Examples:
+            - Flat terrain has zero ruggedness everywhere:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.full((4, 4), 5.0, dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> bool(np.allclose(
+                ...     DEM(ds.raster).ruggedness(window=3).read_array(), 0.0
+                ... ))
+                True
+
+            - A peak surrounded by flat terrain contributes positive
+              ruggedness at the peak and its 8-neighbours:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import DEM
+                >>> z = np.zeros((5, 5), dtype=np.float32)
+                >>> z[2, 2] = 9.0
+                >>> ds = Dataset.create_from_array(
+                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
+                ...     epsg=4326, no_data_value=-9999.0,
+                ... )
+                >>> tri = DEM(ds.raster).ruggedness(window=3).read_array()
+                >>> bool(tri[2, 2] > 0 and tri[1, 2] > 0 and tri[3, 2] > 0)
+                True
         """
         if window < 1:
             raise ValueError(f"window must be >= 1; got {window!r}")
