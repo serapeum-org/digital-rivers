@@ -464,6 +464,78 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
+    def stochastic_depressions(
+        self,
+        sigma: float,
+        n_runs: int = 100,
+        *,
+        seed: int | None = None,
+        method: str = "priority_flood",
+    ) -> Dataset:
+        """Per-cell depression-occurrence probability via Monte-Carlo.
+
+        Adds Gaussian noise (zero-mean, supplied `sigma`) to the DEM, runs
+        depression detection on each noisy realisation, and aggregates the
+        per-cell probability across `n_runs` realisations. Cells with high
+        probability are robust depressions; low probability cells are likely
+        noise artefacts of a noisy DEM.
+
+        Args:
+            sigma: Standard deviation of the Gaussian noise in DEM elevation
+                units. Must be non-negative. A reasonable choice is the DEM's
+                stated vertical error.
+            n_runs: Number of Monte-Carlo realisations. Must be positive.
+                Defaults to 100.
+            seed: Optional seed for the random number generator. Pass an
+                integer for reproducible results.
+            method: Fill-depressions algorithm passed through to
+                `fill_depressions` for each realisation. Defaults to
+                `"priority_flood"`.
+
+        Returns:
+            `Dataset` of float32 occurrence probabilities in `[0.0, 1.0]`,
+            aligned to this DEM. No-data sentinel `-1.0`.
+
+        Raises:
+            ValueError: If `sigma` is negative or `n_runs` is not positive.
+        """
+        if sigma < 0:
+            raise ValueError(f"sigma must be non-negative; got {sigma!r}")
+        if n_runs <= 0:
+            raise ValueError(f"n_runs must be positive; got {n_runs!r}")
+
+        rng = np.random.default_rng(seed)
+        elev = self.values
+        no_val = float(self.no_data_value[0])
+        prob = np.zeros(elev.shape, dtype=np.float32)
+        for _ in range(int(n_runs)):
+            noise = rng.normal(0.0, sigma, size=elev.shape).astype(
+                elev.dtype, copy=False
+            )
+            noisy = elev + noise
+            # Wrap the noisy elevation grid back in a DEM so we can reuse the
+            # existing fill_depressions kernel and its method dispatcher.
+            noisy_disk = np.where(np.isnan(noisy), no_val, noisy)
+            noisy_ds = Dataset.create_from_array(
+                noisy_disk,
+                geo=self.geotransform,
+                epsg=self.epsg,
+                no_data_value=no_val,
+            )
+            noisy_dem = DEM(noisy_ds.raster)
+            filled = noisy_dem.fill_depressions(method=method).values
+            # A cell is part of a depression in this realisation iff the fill
+            # lifted it above the noisy elevation.
+            depr = (filled - noisy) > 0
+            prob += depr.astype(np.float32)
+        prob /= float(n_runs)
+        return Dataset.create_from_array(
+            prob,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=-1.0,
+        )
+
     def burn_streams(
         self,
         streams,
