@@ -340,10 +340,59 @@ def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
 
     Args:
         stream_mask: `(rows, cols)` bool stream-cell mask.
-        fdir: `(rows, cols)` int direction-code raster (DIR_OFFSETS encoding).
+        fdir: `(rows, cols)` int direction-code raster (DIR_OFFSETS encoding:
+            `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`). Cells with
+            `fdir == -1` (or any out-of-range code) are treated as outlets.
 
     Returns:
         `(rows, cols)` uint16 of Hack orders. Non-stream cells hold `0`.
+
+    Examples:
+        - Single east-flowing chain is entirely the main stem (order 1):
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._streams.order import hack
+            >>> sm = np.array([[True, True, True, True]], dtype=bool)
+            >>> fd = np.array([[6, 6, 6, -1]], dtype=np.int32)
+            >>> hack(sm, fd).tolist()
+            [[1, 1, 1, 1]]
+
+            ```
+        - Y-junction with two equal-length heads: lower-linear-index head
+          continues the main stem (order 1); the other becomes a tributary
+          (order 2):
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._streams.order import hack
+            >>> sm = np.zeros((4, 3), dtype=bool)
+            >>> sm[0, 0] = sm[0, 2] = True
+            >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
+            >>> fd = np.array(
+            ...     [[7, -1, 1], [-1, 0, -1], [-1, 0, -1], [-1, -1, -1]],
+            ...     dtype=np.int32,
+            ... )
+            >>> order = hack(sm, fd)
+            >>> int(order[0, 0]), int(order[0, 2])
+            (1, 2)
+            >>> int(order[3, 1])
+            1
+
+            ```
+        - Empty stream mask returns a zero raster of the same shape:
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._streams.order import hack
+            >>> sm = np.zeros((2, 3), dtype=bool)
+            >>> fd = np.full((2, 3), -1, dtype=np.int32)
+            >>> hack(sm, fd).tolist()
+            [[0, 0, 0], [0, 0, 0]]
+
+            ```
+
+    See Also:
+        strahler: Topology-based ordering (heads = 1; bumps at confluences
+            with two or more equal incoming orders).
+        horton: Strahler with main-stem promotion.
     """
     rows, cols = stream_mask.shape
     out = np.zeros((rows, cols), dtype=np.uint16)
