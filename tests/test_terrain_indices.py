@@ -99,3 +99,32 @@ class TestDeviationFromMean:
         dem = _make_dem(z)
         dev = dem.deviation_from_mean(window=3).read_array()
         assert dev[2, 2] > 0
+
+
+class TestElevStd:
+    """Tests for `DEM.elev_std`."""
+
+    def test_flat_terrain_zero_everywhere(self):
+        """Test focal-SD on a flat DEM is zero everywhere.
+
+        Test scenario:
+            Constant elevation → focal_sd = 0 at every cell.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        sd = dem.elev_std(window=3).read_array()
+        assert np.allclose(sd, 0.0)
+
+    def test_step_function_has_finite_sd_near_step(self):
+        """Test cells near a step in elevation carry positive SD.
+
+        Test scenario:
+            Half the DEM at z=0, half at z=10 — cells straddling the
+            boundary must have positive elev_std.
+        """
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[:, 3:] = 10.0
+        dem = _make_dem(z)
+        sd = dem.elev_std(window=3).read_array()
+        # Cells along the boundary column have SD > 0.
+        assert (sd[:, 2] > 0).all()

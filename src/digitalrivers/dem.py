@@ -1876,6 +1876,27 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def elev_std(self, window: int = 3) -> Dataset:
+        """Standard deviation of elevation in a focal window.
+
+        Pure focal-window SD on the elevation raster. A roughness proxy:
+        high values mark varied terrain, low values mark smooth terrain.
+
+        Args:
+            window: Side length of the focal window in cells (≥ 1).
+
+        Returns:
+            `Dataset` of float32 SD values. No-data cells use this DEM's
+            no-data sentinel.
+        """
+        _z, _m, sd = self._focal_window_stats(window)
+        out = sd.astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(out), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def slope(self) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 
