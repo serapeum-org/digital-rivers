@@ -1852,6 +1852,30 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def deviation_from_mean(self, window: int = 3) -> Dataset:
+        """Deviation from mean elevation — standardised TPI.
+
+        `(z - focal_mean) / focal_sd`. Dimensionless ridge / valley index;
+        because it normalises by local roughness it allows comparing
+        positions across regimes with very different relief.
+
+        Args:
+            window: Side length of the focal window in cells (≥ 1).
+
+        Returns:
+            `Dataset` of float32 deviation values. Flat cells (focal_sd ≈ 0)
+            yield 0.0 by definition. No-data cells use this DEM's no-data
+            sentinel.
+        """
+        z, m, sd = self._focal_window_stats(window)
+        out = (z - m) / np.where(sd == 0.0, 1.0, sd)
+        out = out.astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(out), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def slope(self) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 

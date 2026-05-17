@@ -71,3 +71,31 @@ class TestTPI:
         dem = _make_dem(z)
         with pytest.raises(ValueError, match="window"):
             dem.tpi(window=0)
+
+
+class TestDeviationFromMean:
+    """Tests for `DEM.deviation_from_mean`."""
+
+    def test_flat_terrain_zero_everywhere(self):
+        """Test deviation_from_mean on a flat DEM is zero everywhere.
+
+        Test scenario:
+            Constant elevation → focal_mean equals z, focal_sd is zero
+            (treated as 1 to avoid /0) — result is zero everywhere.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        dev = dem.deviation_from_mean(window=3).read_array()
+        assert np.allclose(dev, 0.0)
+
+    def test_peak_cell_positive_normalised_deviation(self):
+        """Test a peak cell yields a positive normalised deviation.
+
+        Test scenario:
+            A flat DEM with a single elevated cell has dev > 0 at the peak.
+        """
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[2, 2] = 10.0
+        dem = _make_dem(z)
+        dev = dem.deviation_from_mean(window=3).read_array()
+        assert dev[2, 2] > 0
