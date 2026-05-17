@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="GIS package">
+        <meta name="description" content="DEM and terrain processing utilities for GDAL-based GIS">
       
       
       
@@ -16,7 +16,7 @@
         <link rel="prev" href="..">
       
       
-        <link rel="next" href="../reference/dem/">
+        <link rel="next" href="../guides/hydrology-pipeline/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Installation - pyramids</title>
+        <title>Installation - digital-rivers</title>
       
     
     
@@ -103,7 +103,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="pyramids" class="md-header__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href=".." title="digital-rivers" class="md-header__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -117,7 +117,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            pyramids
+            digital-rivers
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -282,6 +282,50 @@
     
     
       <li class="md-tabs__item">
+        <a href="../guides/hydrology-pipeline/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../examples/01_hydrology_pipeline/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../reference/dem/" class="md-tabs__link">
           
   
@@ -346,13 +390,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="pyramids" class="md-nav__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href=".." title="digital-rivers" class="md-nav__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    pyramids
+    digital-rivers
   </label>
   
     <div class="md-nav__source">
@@ -475,21 +519,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#core-runtime-pypi" class="md-nav__link">
+  <a href="#runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core runtime (PyPI)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gis-stack-recommended-via-conda-forge" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GIS stack (recommended via conda-forge)
+        Runtime
       
     </span>
   </a>
@@ -513,33 +546,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#recommended-pixiconda-environment" class="md-nav__link">
+  <a href="#recommended-pixi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recommended: Pixi/Conda environment
+        Recommended: Pixi
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Recommended: Pixi/Conda environment">
+    <nav class="md-nav" aria-label="Recommended: Pixi">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#using-pixi" class="md-nav__link">
+  <a href="#available-pixi-environments" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using Pixi
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-condamamba-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Using conda/mamba directly
+        Available Pixi environments
       
     </span>
   </a>
@@ -552,10 +574,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing-with-pip-only-advanced" class="md-nav__link">
+  <a href="#alternative-conda-pip" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing with pip only (advanced)
+        Alternative: conda + pip
       
     </span>
   </a>
@@ -563,10 +585,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#pip-only-advanced" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from source
+        pip-only (advanced)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editable-development-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editable / development install
       
     </span>
   </a>
@@ -616,6 +649,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -641,7 +678,7 @@
   <span class="md-ellipsis">
     
   
-    Reference
+    Guides
   
 
     
@@ -654,6 +691,534 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/hydrology-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrology pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/watershed-analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watershed analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/terrain-indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terrain indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../guides/lidar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/01_hydrology_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrology pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/02_watershed_analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watershed analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/03_terrain_indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terrain attribute indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/04_hydrologic_indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrologic indices: TWI, SPI, STI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/05_stochastic_depressions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic depression analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/06_lidar_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/07_mesh_and_fusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh smoothing + topobathy fusion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/08_cloud_io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud I/O — tile-window iteration + Cloud-Optimized GeoTIFF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/09_real_world_mt_hood/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-world DEM workflow — Mount Hood, Oregon (SRTM 1° tile)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -698,6 +1263,118 @@
   
   
     <li class="md-nav__item">
+      <a href="../reference/flow_direction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FlowDirection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/accumulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accumulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/stream_raster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    StreamRaster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/watershed_raster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WatershedRaster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/terrain/" class="md-nav__link">
         
   
@@ -706,6 +1383,118 @@
     
   
     Terrain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/lidar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/mesh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/cloud_io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud I/O
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/fusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Topobathy fusion
   
 
     
@@ -762,10 +1551,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -783,8 +1572,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -962,7 +1751,7 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -985,8 +1774,8 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1052,21 +1841,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#core-runtime-pypi" class="md-nav__link">
+  <a href="#runtime" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core runtime (PyPI)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#gis-stack-recommended-via-conda-forge" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        GIS stack (recommended via conda-forge)
+        Runtime
       
     </span>
   </a>
@@ -1090,33 +1868,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#recommended-pixiconda-environment" class="md-nav__link">
+  <a href="#recommended-pixi" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Recommended: Pixi/Conda environment
+        Recommended: Pixi
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Recommended: Pixi/Conda environment">
+    <nav class="md-nav" aria-label="Recommended: Pixi">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#using-pixi" class="md-nav__link">
+  <a href="#available-pixi-environments" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using Pixi
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#using-condamamba-directly" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Using conda/mamba directly
+        Available Pixi environments
       
     </span>
   </a>
@@ -1129,10 +1896,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing-with-pip-only-advanced" class="md-nav__link">
+  <a href="#alternative-conda-pip" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installing with pip only (advanced)
+        Alternative: conda + pip
       
     </span>
   </a>
@@ -1140,10 +1907,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#install-from-source" class="md-nav__link">
+  <a href="#pip-only-advanced" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Install from source
+        pip-only (advanced)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editable-development-install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editable / development install
       
     </span>
   </a>
@@ -1206,99 +1984,170 @@
 
 
 <h1 id="installation"><a class="toclink" href="#installation">Installation</a><a class="headerlink" href="#installation" title="Permanent link">#</a></h1>
-<p>This page explains how to install pyramids-gis and its dependencies using Pixi/conda or pip. The instructions and versions below are aligned with the project’s pyproject.toml.</p>
-<p>Package name: pyramids-gis
-Current version: 0.7.3
-Supported Python versions: 3.11 – 3.13 (requires Python &gt;=3.11,&lt;4)</p>
+<p>This page covers installation of <strong>digital-rivers</strong> and its native dependencies.</p>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Distribution name (PyPI / conda-forge)</td>
+<td><code>digital-rivers</code> <em>(not yet published)</em></td>
+</tr>
+<tr>
+<td>Python import name</td>
+<td><code>digitalrivers</code></td>
+</tr>
+<tr>
+<td>Current version</td>
+<td><code>0.1.0</code> (pre-release)</td>
+</tr>
+<tr>
+<td>Supported Python</td>
+<td><strong>3.11 – 3.13</strong></td>
+</tr>
+<tr>
+<td>License</td>
+<td>GPL v3</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>The package is not yet on PyPI or conda-forge. Install from source using the instructions below.</p>
+</blockquote>
 <h2 id="dependencies"><a class="toclink" href="#dependencies">Dependencies</a><a class="headerlink" href="#dependencies" title="Permanent link">#</a></h2>
-<h3 id="core-runtime-pypi"><a class="toclink" href="#core-runtime-pypi">Core runtime (PyPI)</a><a class="headerlink" href="#core-runtime-pypi" title="Permanent link">#</a></h3>
+<h3 id="runtime"><a class="toclink" href="#runtime">Runtime</a><a class="headerlink" href="#runtime" title="Permanent link">#</a></h3>
 <ul>
-<li>numpy &gt;=2.0.0</li>
-<li>pandas &gt;=2.0.0</li>
-<li>geopandas &gt;=1.0.0</li>
-<li>Shapely &gt;=2.0.0</li>
-<li>pyproj &gt;=3.7.0</li>
-<li>PyYAML &gt;=6.0.0</li>
-<li>loguru &gt;=0.7.2</li>
-<li>hpc-utils &gt;=0.1.5</li>
-</ul>
-<h3 id="gis-stack-recommended-via-conda-forge"><a class="toclink" href="#gis-stack-recommended-via-conda-forge">GIS stack (recommended via conda-forge)</a><a class="headerlink" href="#gis-stack-recommended-via-conda-forge" title="Permanent link">#</a></h3>
-<ul>
-<li>GDAL &gt;=3.10,&lt;4</li>
-<li>libgdal-netcdf &gt;=3.10,&lt;4</li>
-<li>libgdal-hdf4 &gt;=3.10,&lt;4</li>
+<li><code>numpy &gt;= 2.0.0</code></li>
+<li><code>geopandas &gt;= 1.0.0</code></li>
+<li><code>pyramids-gis &gt;= 0.18.0</code> (provides the <code>pyramids</code> import; pulled from PyPI)</li>
+<li><code>gdal &gt;= 3.10, &lt; 4</code> (best installed from conda-forge — pip wheels are platform-fragile)</li>
 </ul>
 <h3 id="optional-extras"><a class="toclink" href="#optional-extras">Optional extras</a><a class="headerlink" href="#optional-extras" title="Permanent link">#</a></h3>
-<ul>
-<li>viz: cleopatra &gt;=0.5.1</li>
-<li>dev: nbval, pre-commit, pytest, coverage, build, twine, etc.</li>
-<li>docs: mkdocs, mkdocs-material, mkdocstrings, mike, etc.</li>
-</ul>
-<h2 id="recommended-pixiconda-environment"><a class="toclink" href="#recommended-pixiconda-environment">Recommended: Pixi/Conda environment</a><a class="headerlink" href="#recommended-pixiconda-environment" title="Permanent link">#</a></h2>
-<p>This repository includes a Pixi configuration to create fully-solvable environments with the right GDAL build from conda-forge.</p>
-<p>Prerequisites: Install Pixi (https://pixi.sh/) or have conda/mamba with the conda-forge channel available.</p>
-<h3 id="using-pixi"><a class="toclink" href="#using-pixi">Using Pixi</a><a class="headerlink" href="#using-pixi" title="Permanent link">#</a></h3>
-<p>From the project root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="go">pixi run main          # runs the main test suite to ensure the env is solvable</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">pixi shell             # enter the Pixi environment</span>
+<table>
+<thead>
+<tr>
+<th>Extra</th>
+<th>Purpose</th>
+<th>Pulls</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>viz</code></td>
+<td>plotting / color tables</td>
+<td><code>pyramids-gis[viz]</code> → <code>cleopatra</code></td>
+</tr>
+<tr>
+<td><code>dev</code></td>
+<td>tests, linting, build tooling</td>
+<td>pytest, pre-commit, mypy, build, twine, …</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td>documentation toolchain</td>
+<td>mkdocs, mkdocs-material, mkdocstrings, mike, …</td>
+</tr>
+<tr>
+<td><code>notebook</code></td>
+<td>Jupyter</td>
+<td>jupyterlab, notebook, ipykernel</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recommended-pixi"><a class="toclink" href="#recommended-pixi">Recommended: Pixi</a><a class="headerlink" href="#recommended-pixi" title="Permanent link">#</a></h2>
+<p>This repository ships a <a href="https://pixi.sh/">Pixi</a> configuration that resolves GDAL from conda-forge and <code>pyramids-gis</code> from PyPI, avoiding the usual GDAL-wheel headaches.</p>
+<p>Prerequisites: install <a href="https://pixi.sh/latest/#installation">Pixi</a>.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Solve and install the dev environment</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Drop into a shell with everything available</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>pixi<span class="w"> </span>shell<span class="w"> </span>-e<span class="w"> </span>dev
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Or run a task directly</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>pixi<span class="w"> </span>run<span class="w"> </span>main<span class="w">          </span><span class="c1"># main test suite</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>pixi<span class="w"> </span>run<span class="w"> </span>plot<span class="w">          </span><span class="c1"># plot/visualization tests</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>pixi<span class="w"> </span>run<span class="w"> </span>notebooks<span class="w">     </span><span class="c1"># validate example notebooks</span>
 </code></pre></div>
-<p>Pixi environments provided:
-- default: includes dev + viz extras
-- docs: documentation toolchain
-- py311 / py312 / py313: pinned Python versions</p>
-<p>To install the package in editable mode inside the Pixi environment:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="go">pip install -e .</span>
+<h3 id="available-pixi-environments"><a class="toclink" href="#available-pixi-environments">Available Pixi environments</a><a class="headerlink" href="#available-pixi-environments" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Environment</th>
+<th>Features</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>default</code></td>
+<td>base runtime</td>
+<td>minimal install</td>
+</tr>
+<tr>
+<td><code>dev</code></td>
+<td><code>dev</code> extra</td>
+<td>tests, linting, build tooling</td>
+</tr>
+<tr>
+<td><code>docs</code></td>
+<td><code>docs</code> extra</td>
+<td>docs site (<code>mkdocs serve</code>)</td>
+</tr>
+<tr>
+<td><code>py311</code></td>
+<td><code>py311</code> + <code>dev</code></td>
+<td>pinned Python 3.11</td>
+</tr>
+<tr>
+<td><code>py312</code></td>
+<td><code>py312</code> + <code>dev</code></td>
+<td>pinned Python 3.12</td>
+</tr>
+</tbody>
+</table>
+<h2 id="alternative-conda-pip"><a class="toclink" href="#alternative-conda-pip">Alternative: conda + pip</a><a class="headerlink" href="#alternative-conda-pip" title="Permanent link">#</a></h2>
+<p>If you'd rather use conda directly:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10,&lt;4&quot;</span><span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>mamba<span class="w"> </span>activate<span class="w"> </span>digital-rivers
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/serapeum-org/digital-rivers.git
 </code></pre></div>
-<h3 id="using-condamamba-directly"><a class="toclink" href="#using-condamamba-directly">Using conda/mamba directly</a><a class="headerlink" href="#using-condamamba-directly" title="Permanent link">#</a></h3>
-<p>Create and activate an environment (example with Python 3.12):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="go">mamba create -n pyramids -c conda-forge python=3.12 gdal libgdal-netcdf libgdal-hdf4</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="go">mamba activate pyramids-gis</span>
+<h2 id="pip-only-advanced"><a class="toclink" href="#pip-only-advanced">pip-only (advanced)</a><a class="headerlink" href="#pip-only-advanced" title="Permanent link">#</a></h2>
+<p>GDAL is hard to install via pip alone. If you must:</p>
+<ol>
+<li>Make sure <code>gdal</code> and <code>osgeo</code> are importable in your environment (system package, prebuilt wheel, etc.).</li>
+<li>Then:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/serapeum-org/digital-rivers.git
 </code></pre></div>
-<p>Then install the package from PyPI (release):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="go">pip install pyramids-gis==0.7.3</span>
+<p>With the <code>viz</code> extra:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git&quot;</span>
 </code></pre></div>
-<p>Optionally include extras (examples):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="go">pip install &quot;pyramids-gis[viz]&quot;        # installs cleopatra</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="go">pip install &quot;pyramids-gis[dev]&quot;        # developer tools</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="go">pip install &quot;pyramids-gis[docs]&quot;       # docs toolchain</span>
-</code></pre></div>
-<h2 id="installing-with-pip-only-advanced"><a class="toclink" href="#installing-with-pip-only-advanced">Installing with pip only (advanced)</a><a class="headerlink" href="#installing-with-pip-only-advanced" title="Permanent link">#</a></h2>
-<p>Installing GDAL wheels via pip can be platform-specific. We strongly recommend installing GDAL from conda-forge first, then using pip for pyramids-gis:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="go">conda install -c conda-forge gdal libgdal-netcdf libgdal-hdf4</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="go">pip install pyramids-gis</span>
-</code></pre></div>
-<p>If you insist on a pip-only approach, consult the GDAL wheel guidance for your platform and ensure gdal is available at runtime before installing pyramids-gis.</p>
-<h2 id="install-from-source"><a class="toclink" href="#install-from-source">Install from source</a><a class="headerlink" href="#install-from-source" title="Permanent link">#</a></h2>
-<p>Clone the repository and install:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="go">git clone https://github.com/serapeum-org/pyramids.git</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="go">cd pyramids</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="go">python -m pip install .</span>
-</code></pre></div>
-<p>Editable (development) install:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="go">git clone https://github.com/serapeum-org/pyramids.git</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="go">cd pyramids</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="go">pip install -e .[dev]</span>
-</code></pre></div>
-<p>Install directly from GitHub (latest main):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="go">pip install &quot;git+https://github.com/serapeum-org/pyramids.git&quot;</span>
-</code></pre></div>
-<p>Install a specific tagged release from GitHub:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="go">pip install &quot;git+https://github.com/serapeum-org/pyramids.git@v0.7.3&quot;</span>
+<h2 id="editable-development-install"><a class="toclink" href="#editable-development-install">Editable / development install</a><a class="headerlink" href="#editable-development-install" title="Permanent link">#</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev<span class="w">          </span><span class="c1"># or: pip install -e &quot;.[dev]&quot;</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>pre-commit<span class="w"> </span>install
 </code></pre></div>
 <h2 id="quick-check"><a class="toclink" href="#quick-check">Quick check</a><a class="headerlink" href="#quick-check" title="Permanent link">#</a></h2>
-<p>After installation, open Python and run:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pyramids</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">pyramids</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
-</code></pre></div>
-<p>You can also run the test suite if you installed dev tools:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="go">pytest -m &quot;not plot&quot; -q</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">digitalrivers</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">digitalrivers</span><span class="o">.</span><span class="n">__version__</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="s1">&#39;0.1.0&#39;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span><span class="p">,</span> <span class="n">Terrain</span>
 </code></pre></div>
 <h2 id="notes"><a class="toclink" href="#notes">Notes</a><a class="headerlink" href="#notes" title="Permanent link">#</a></h2>
 <ul>
-<li>Supported Python versions are 3.11–3.13.</li>
-<li>Prefer conda-forge for GDAL and related libraries.</li>
-<li>Documentation: https://serapeum-org.github.io/pyramids/latest</li>
-<li>Source repository: https://github.com/serapeum-org/pyramids</li>
+<li><code>pyramids</code> (conda-forge name) and <code>pyramids-gis</code> (PyPI name) are the <strong>same package</strong>. digital-rivers depends on the PyPI distribution name (<code>pyramids-gis</code>) so it works regardless of how pyramids itself was installed.</li>
+<li>For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if <code>pixi update</code> reports "No candidates were found for pyramids", either wait for the mapping to refresh or temporarily comment out the conda <code>pyramids</code> pin in <code>[tool.pixi.dependencies]</code>.</li>
+<li>Documentation: <a href="https://serapeum-org.github.io/digital-rivers/latest">https://serapeum-org.github.io/digital-rivers/latest</a></li>
+<li>Source repository: <a href="https://github.com/serapeum-org/digital-rivers">https://github.com/serapeum-org/digital-rivers</a></li>
 </ul>
 
 
@@ -1352,13 +2201,13 @@ Supported Python versions: 3.11 – 3.13 (requires Python &gt;=3.11,&lt;4)</p>
         
         
           
-          <a href="../reference/dem/" class="md-footer__link md-footer__link--next" aria-label="Next: DEM">
+          <a href="../guides/hydrology-pipeline/" class="md-footer__link md-footer__link--next" aria-label="Next: Hydrology pipeline">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                DEM
+                Hydrology pipeline
               </div>
             </div>
             <div class="md-footer__button md-icon">

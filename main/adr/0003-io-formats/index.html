@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="GIS package">
+        <meta name="description" content="DEM and terrain processing utilities for GDAL-based GIS">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>ADR-0003: I/O format choices - pyramids</title>
+        <title>ADR-0003: I/O format choices - digital-rivers</title>
       
     
     
@@ -99,7 +99,7 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="pyramids" class="md-header__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href="../.." title="digital-rivers" class="md-header__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -113,7 +113,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            pyramids
+            digital-rivers
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -276,6 +276,50 @@
     
     
       <li class="md-tabs__item">
+        <a href="../../guides/hydrology-pipeline/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../examples/01_hydrology_pipeline/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
         <a href="../../reference/dem/" class="md-tabs__link">
           
   
@@ -340,13 +384,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="pyramids" class="md-nav__button md-logo" aria-label="pyramids" data-md-component="logo">
+    <a href="../.." title="digital-rivers" class="md-nav__button md-logo" aria-label="digital-rivers" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    pyramids
+    digital-rivers
   </label>
   
     <div class="md-nav__source">
@@ -430,6 +474,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -455,7 +503,7 @@
   <span class="md-ellipsis">
     
   
-    Reference
+    Guides
   
 
     
@@ -468,6 +516,534 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/hydrology-pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrology pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/watershed-analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watershed analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/terrain-indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terrain indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/lidar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/01_hydrology_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrology pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/02_watershed_analytics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watershed analytics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/03_terrain_indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terrain attribute indices
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/04_hydrologic_indices/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hydrologic indices: TWI, SPI, STI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/05_stochastic_depressions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stochastic depression analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/06_lidar_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/07_mesh_and_fusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh smoothing + topobathy fusion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/08_cloud_io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud I/O — tile-window iteration + Cloud-Optimized GeoTIFF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../examples/09_real_world_mt_hood/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Real-world DEM workflow — Mount Hood, Oregon (SRTM 1° tile)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -512,6 +1088,118 @@
   
   
     <li class="md-nav__item">
+      <a href="../../reference/flow_direction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FlowDirection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/accumulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accumulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/stream_raster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    StreamRaster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/watershed_raster/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WatershedRaster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../reference/terrain/" class="md-nav__link">
         
   
@@ -520,6 +1208,118 @@
     
   
     Terrain
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/lidar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LiDAR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/mesh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Mesh
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cloud_io/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cloud I/O
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/fusion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Topobathy fusion
   
 
     
@@ -576,10 +1376,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -597,8 +1397,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -776,7 +1576,7 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4_6" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_6" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -799,8 +1599,8 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_6">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -925,16 +1725,19 @@
 <li>Date: 2025-08-16</li>
 </ul>
 <h2 id="context"><a class="toclink" href="#context">Context</a><a class="headerlink" href="#context" title="Permanent link">#</a></h2>
-<p><code>pyramids</code> processes raster and vector geospatial data and must interoperate with common GIS tools and libraries.</p>
+<p><code>digital-rivers</code> operates exclusively on raster Digital Elevation Models. All raster I/O is delegated to GDAL via the <code>pyramids.dataset.Dataset</code> base class.</p>
 <h2 id="decision"><a class="toclink" href="#decision">Decision</a><a class="headerlink" href="#decision" title="Permanent link">#</a></h2>
 <ul>
-<li>Raster: prioritize GeoTIFF for read/write; support ASCII Grid for simple interchange; support NetCDF for multi-dimensional datasets when appropriate.</li>
-<li>Vector: prioritize GeoJSON for web interoperability; support Shapefile and GeoPackage for desktop GIS.</li>
+<li><strong>Raster input</strong>: any GDAL-readable single-band elevation raster. GeoTIFF is the primary supported format.</li>
+<li><strong>Raster output</strong>: GeoTIFF, written through GDAL with DEFLATE + PREDICTOR=2 compression (<code>Terrain</code>) or via <code>pyramids</code> defaults (<code>DEM</code>).</li>
+<li><strong>Vector input</strong>: GeoJSON / Shapefile via <code>geopandas</code> for the optional <code>forced_direction</code> outfall point in <code>DEM.flow_direction</code>.</li>
+<li><strong>NetCDF / multi-dimensional formats</strong>: explicitly <strong>out of scope</strong>. If you need NetCDF support, work with <code>pyramids.netcdf.NetCDF</code> directly.</li>
 </ul>
 <h2 id="consequences"><a class="toclink" href="#consequences">Consequences</a><a class="headerlink" href="#consequences" title="Permanent link">#</a></h2>
 <ul>
-<li>Users can rely on standard formats across workflows.</li>
-<li>Additional drivers may be enabled via GDAL installation; docs should clarify environment requirements.</li>
+<li>The package surface stays small and focused on hydrological / terrain operations on a single elevation raster.</li>
+<li>Any GDAL-readable raster works as input without per-format code in this repo.</li>
+<li>Compression defaults for GeoTIFF outputs are tuned for elevation/byte rasters (<code>COMPRESS=DEFLATE</code>, <code>PREDICTOR=2</code>).</li>
 </ul>
 
 
