@@ -373,6 +373,111 @@ class StreamRaster(Dataset):
             plain, threshold=self.threshold, routing=self.routing
         )
 
+    def prune_short(
+        self,
+        flow_direction,
+        min_length_m: float,
+    ) -> "StreamRaster":
+        """Drop headwater links shorter than `min_length_m`.
+
+        A **headwater link** runs from a head (in-degree 0) downstream until
+        it hits either a confluence (in-degree ≥ 2) or an outlet (no
+        downstream stream neighbour). The link's planimetric length is the
+        sum of per-step distances using `cell_size` for cardinal moves and
+        `cell_size * sqrt(2)` for diagonals.
+
+        Internal links (between two confluences) are left untouched — pruning
+        them would create dangles and break the network topology. To prune
+        deep into the network repeatedly, call `prune_short` multiple times.
+
+        Args:
+            flow_direction: Single-direction (`d8` / `rho8`) `FlowDirection`
+                aligned to this stream raster.
+            min_length_m: Length threshold in map units. Headwater links with
+                planimetric length strictly less than this value are removed.
+
+        Returns:
+            A new `StreamRaster` carrying the same `routing` and `threshold`
+            tags; the underlying raster is `uint8` (1 at surviving stream
+            cells, 0 elsewhere).
+
+        Raises:
+            TypeError: If `flow_direction` is not a `FlowDirection`.
+            ValueError: If `flow_direction` is multi-direction or shape
+                mismatches, or `min_length_m` is negative.
+        """
+        import numpy as np
+
+        from digitalrivers._streams.order import (
+            _DIR_DR,
+            _DIR_DC,
+            _build_topology,
+        )
+        from digitalrivers.flow_direction import FlowDirection
+
+        if not isinstance(flow_direction, FlowDirection):
+            raise TypeError(
+                f"flow_direction must be a FlowDirection; got "
+                f"{type(flow_direction).__name__}"
+            )
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"prune_short supports single-direction routing only; got "
+                f"{flow_direction.routing!r}"
+            )
+        if min_length_m < 0:
+            raise ValueError(
+                f"min_length_m must be non-negative; got {min_length_m!r}"
+            )
+
+        sm = self.read_array().astype(bool, copy=False).copy()
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        if sm.shape != fdir.shape:
+            raise ValueError(
+                f"flow_direction shape {fdir.shape} != stream raster shape "
+                f"{sm.shape}"
+            )
+
+        indeg, _ds_idx = _build_topology(sm, fdir)
+        rows, cols = sm.shape
+        cs = float(self.cell_size)
+        diag = cs * (2.0 ** 0.5)
+
+        # Trace every headwater link and remove its cells if too short.
+        head_locs = list(zip(*np.where(sm & (indeg == 0))))
+        for r0, c0 in head_locs:
+            path: list[tuple[int, int]] = [(int(r0), int(c0))]
+            length = 0.0
+            r, c = int(r0), int(c0)
+            while True:
+                d = int(fdir[r, c])
+                if d < 0 or d > 7:
+                    break
+                nr, nc = r + int(_DIR_DR[d]), c + int(_DIR_DC[d])
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    break
+                if not sm[nr, nc]:
+                    break
+                step = diag if int(_DIR_DR[d]) and int(_DIR_DC[d]) else cs
+                length += step
+                if indeg[nr, nc] >= 2:
+                    # (nr, nc) is the downstream confluence — link ends BEFORE
+                    # this cell so the confluence stays in the network.
+                    break
+                path.append((nr, nc))
+                r, c = nr, nc
+            if length < min_length_m:
+                for pr, pc in path:
+                    sm[pr, pc] = False
+
+        plain = Dataset.create_from_array(
+            sm.astype(np.uint8), geo=self.geotransform, epsg=self.epsg,
+            no_data_value=0,
+        )
+        return StreamRaster.from_dataset(
+            plain, threshold=self.threshold, routing=self.routing,
+        )
+
     def main_stem(
         self,
         flow_direction,
