@@ -376,23 +376,25 @@ class TestCurvature:
         interior = arr[1:-1, 1:-1]
         assert np.allclose(interior, 0.0, atol=1e-5)
 
-    def test_paraboloid_curvature_negative(self):
-        """Test a convex paraboloid yields negative profile curvature on the slope.
+    def test_paraboloid_total_curvature_negative(self):
+        """Test a downward-opening paraboloid has strictly negative total curvature.
 
         Test scenario:
-            `z = -(x² + y²)` is a downward-opening paraboloid (high in the
-            middle, lower at the edges). Profile curvature on its slopes
-            should report sign consistent with the surface curvature; the
-            sign convention is Zevenbergen-Thorne.
+            `z = -(x² + y²)` is a downward-opening paraboloid. Under the
+            Zevenbergen-Thorne sign convention, `D` and `E` are the
+            second-derivative coefficients in x and y; both are negative
+            for this surface, so `total = 2 * (D + E)` is strictly
+            negative across the interior.
         """
         x, y = np.meshgrid(np.arange(-3, 4), np.arange(-3, 4))
         z = (-(x * x + y * y)).astype(np.float32)
         dem = _make_dem(z)
         arr = dem.curvature(kind="total").read_array()
-        # Total curvature in the interior is `2 * (D + E)` and is non-zero
-        # because the surface has finite second derivatives.
         interior = arr[2:-2, 2:-2]
-        assert (interior != 0).any()
+        assert (interior < 0).all(), (
+            f"Total curvature on a downward paraboloid must be < 0 in the "
+            f"interior; got {interior}"
+        )
 
     def test_invalid_kind_raises(self):
         """Test `kind="bogus"` raises ValueError.
