@@ -1797,6 +1797,61 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
+    def _focal_window_stats(
+        self,
+        window: int,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Shared focal-window kernel for the terrain-index family.
+
+        Returns `(z, focal_mean, focal_sd)` where the focal stats are
+        rectangular `window×window` reductions computed by
+        `scipy.ndimage.uniform_filter`. No-data cells contribute zero to the
+        running sums; `valid` is recovered from `np.isnan(z)`.
+
+        Used by `tpi`, `deviation_from_mean`, `elev_std`, `ruggedness` —
+        every entry point applies the same NaN-handling and return-type
+        wrapping, so the shared helper centralises the messy parts.
+        """
+        from scipy.ndimage import uniform_filter
+        if window < 1:
+            raise ValueError(f"window must be >= 1; got {window!r}")
+        z = self.values.astype(np.float64, copy=False)
+        valid = ~np.isnan(z)
+        z_filled = np.where(valid, z, 0.0)
+        m = uniform_filter(z_filled, size=int(window), mode="reflect")
+        sq = uniform_filter(z_filled * z_filled, size=int(window), mode="reflect")
+        sd = np.sqrt(np.maximum(sq - m * m, 0.0))
+        return z, m, sd
+
+    def tpi(self, window: int = 3) -> Dataset:
+        """Topographic Position Index (Guisan 1999).
+
+        TPI = `z - focal_mean(z, window)`. Positive values mark ridges and
+        upland positions; negative values mark valleys and depressions.
+
+        Args:
+            window: Side length of the focal window in cells (must be ≥ 1).
+                Defaults to 3 (a 3×3 neighbourhood). Larger windows pick up
+                regional / catchment-scale topography; smaller windows pick
+                up local relief.
+
+        Returns:
+            `Dataset` of float32 TPI values. No-data cells use this DEM's
+            no-data sentinel.
+
+        References:
+            Guisan, A., Weiss, S. B., & Weiss, A. D. (1999). "GLM versus
+            CCA spatial modeling of plant species distribution." *Plant
+            Ecology* 143(1): 107-122.
+        """
+        z, m, _sd = self._focal_window_stats(window)
+        out = (z - m).astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(out), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def slope(self) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 
