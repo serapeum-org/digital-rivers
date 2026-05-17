@@ -241,6 +241,15 @@ def classify_ground(
     return out
 
 
+def _default_tree_radius(h: float) -> float:
+    """Default variable-window half-width for `detect_trees` (Popescu & Wynne 2004).
+
+    `0.5 + 0.05 * h` — ~5% of canopy height plus a small absolute floor
+    so dense low-canopy regions still get a meaningful search window.
+    """
+    return 0.5 + 0.05 * h
+
+
 def detect_trees(
     chm,
     *,
@@ -252,8 +261,8 @@ def detect_trees(
     Variable-window local-maxima search: for each candidate cell whose CHM
     value is `>= min_height_m`, scan a square window whose half-width
     scales with the cell's height (`radius_fn(h)` map units, default
-    `0.5 + 0.05 * h`, i.e. ~5% of canopy height). The cell is reported as
-    a tree top iff its CHM value is the maximum in the window.
+    `_default_tree_radius` — ~5% of canopy height). The cell is reported
+    as a tree top iff its CHM value is the maximum in the window.
 
     Args:
         chm: pyramids `Dataset` of the canopy height model (typically
@@ -261,8 +270,8 @@ def detect_trees(
         min_height_m: Minimum canopy height (m) for a cell to be a tree-top
             candidate. Defaults to 2.0.
         radius_fn: Callable mapping `height_m` -> window half-width in map
-            units. Defaults to `lambda h: 0.5 + 0.05 * h` (Popescu &
-            Wynne 2004 conifer rule of thumb).
+            units. Defaults to `_default_tree_radius` (Popescu & Wynne 2004
+            conifer rule of thumb: `0.5 + 0.05 * h`).
 
     Returns:
         `geopandas.GeoDataFrame` of tree-top Point geometries with columns
@@ -279,7 +288,7 @@ def detect_trees(
     from shapely.geometry import Point
 
     if radius_fn is None:
-        radius_fn = lambda h: 0.5 + 0.05 * h  # noqa: E731
+        radius_fn = _default_tree_radius
 
     z = chm.read_array().astype(np.float32, copy=False)
     no_val = chm.no_data_value[0] if chm.no_data_value else None
