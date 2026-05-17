@@ -49,15 +49,22 @@ jobs:
         deploy-token: ${{ secrets.ACTIONS_DEPLOY_TOKEN }}
 
   deploy-release:
+    # Security: when triggered via `workflow_run`, require that the upstream
+    # workflow ran from the base repository (not a fork) so we can never run
+    # untrusted code in a context that holds `ACTIONS_DEPLOY_TOKEN`.
     if: >-
       github.event_name == 'release' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'workflow_run'
+       && github.event.workflow_run.conclusion == 'success'
+       && github.event.workflow_run.head_repository.fork == false)
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       with:
         fetch-depth: 0
-        ref: ${{ github.event.workflow_run.head_branch || github.ref }}
+        # Pin to the immutable SHA recorded on the originating run, not the
+        # mutable `head_branch` label (CWE-829: actions/untrusted-checkout).
+        ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
     - name: Extract version from pyproject.toml
       id: version
