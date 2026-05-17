@@ -373,6 +373,110 @@ class StreamRaster(Dataset):
             plain, threshold=self.threshold, routing=self.routing
         )
 
+    def main_stem(
+        self,
+        flow_direction,
+        outlet: tuple[int, int] | None = None,
+    ) -> np.ndarray:
+        """Return a binary mask of cells along the catchment's main stem.
+
+        The main stem is the longest flow path from any outlet to any head.
+        Starting at an outlet, the walk picks the upstream stream neighbour
+        with the greatest upstream flow length at every junction; ties are
+        broken by lower row-major linear index for determinism.
+
+        When `outlet` is `None`, the catchment's main outlet is the stream
+        outlet carrying the longest upstream flow length (i.e. the basin
+        whose longest source-to-outlet path is largest).
+
+        Args:
+            flow_direction: Single-direction (`d8` / `rho8`) `FlowDirection`
+                aligned to this stream raster.
+            outlet: Optional `(row, col)` of a specific outlet cell. The cell
+                must be a stream cell — typically with `fdir = -1` or whose
+                D8 receiver is non-stream. If `None`, the longest outlet is
+                used.
+
+        Returns:
+            `(rows, cols)` bool array — True for cells on the main stem,
+            False elsewhere.
+
+        Raises:
+            TypeError: If `flow_direction` is not a `FlowDirection`.
+            ValueError: If `flow_direction` is multi-direction, shape
+                mismatches, or `outlet` is not a stream cell.
+        """
+        import numpy as np
+
+        from digitalrivers._streams.order import (
+            _DIR_DR,
+            _DIR_DC,
+            _INV_DIR,
+            _build_topology,
+            _stream_outlets,
+            _upstream_length_from_head,
+        )
+        from digitalrivers.flow_direction import FlowDirection
+
+        if not isinstance(flow_direction, FlowDirection):
+            raise TypeError(
+                f"flow_direction must be a FlowDirection; got "
+                f"{type(flow_direction).__name__}"
+            )
+        if flow_direction.routing not in ("d8", "rho8"):
+            raise ValueError(
+                f"main_stem supports single-direction routing only; got "
+                f"{flow_direction.routing!r}"
+            )
+
+        sm = self.read_array().astype(bool, copy=False)
+        fdir = flow_direction.read_array().astype(np.int32, copy=False)
+        if sm.shape != fdir.shape:
+            raise ValueError(
+                f"flow_direction shape {fdir.shape} != stream raster shape "
+                f"{sm.shape}"
+            )
+
+        indeg, _ds_idx = _build_topology(sm, fdir)
+        length = _upstream_length_from_head(sm, fdir, indeg)
+
+        if outlet is None:
+            outlets = _stream_outlets(sm, fdir)
+            if not outlets:
+                return np.zeros_like(sm)
+            outlet = max(outlets, key=lambda rc: int(length[rc]))
+        else:
+            r0, c0 = outlet
+            if not (0 <= r0 < sm.shape[0] and 0 <= c0 < sm.shape[1]):
+                raise ValueError(f"outlet {outlet!r} is outside the raster")
+            if not sm[r0, c0]:
+                raise ValueError(f"outlet {outlet!r} is not a stream cell")
+
+        rows, cols = sm.shape
+        mask = np.zeros_like(sm)
+        r, c = int(outlet[0]), int(outlet[1])
+        while True:
+            mask[r, c] = True
+            # Find inflow neighbours (cells whose D8 receiver is (r, c)).
+            best: tuple[int, int, int, int] | None = None  # (length, lin, r, c)
+            for k in range(8):
+                dr = int(_DIR_DR[k])
+                dc = int(_DIR_DC[k])
+                ur, uc = r + dr, c + dc
+                if not (0 <= ur < rows and 0 <= uc < cols):
+                    continue
+                if not sm[ur, uc]:
+                    continue
+                if int(fdir[ur, uc]) != int(_INV_DIR[k]):
+                    continue
+                cand = (int(length[ur, uc]), -(ur * cols + uc), ur, uc)
+                if best is None or cand > best:
+                    best = cand
+            if best is None:
+                break
+            r, c = best[2], best[3]
+        return mask
+
     def to_vector(
         self,
         flow_direction,
