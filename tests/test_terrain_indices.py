@@ -280,3 +280,58 @@ class TestNormalVectorDeviation:
         arr = dem.normal_vector_deviation(window=3).read_array()
         valid = arr != float(dem.no_data_value[0])
         assert (arr[valid] >= 0).all()
+
+
+class TestOpenness:
+    """Tests for `DEM.openness` (W-27)."""
+
+    def test_flat_terrain_openness_is_pi_over_two(self):
+        """Test openness on a flat DEM is π/2 (max zenith) at every cell.
+
+        Test scenario:
+            On a perfectly flat surface every horizon angle is 0, so
+            `π/2 - 0 = π/2` for each azimuth → output is `π/2` everywhere.
+        """
+        z = np.full((5, 5), 10.0, dtype=np.float32)
+        dem = _make_dem(z)
+        arr = dem.openness(search_radius=2).read_array()
+        assert np.allclose(arr, np.pi / 2.0, atol=1e-5)
+
+    def test_peak_has_higher_openness_than_pit(self):
+        """Test a high peak yields higher positive openness than a deep pit.
+
+        Test scenario:
+            A 5×5 flat DEM with one peak at (2, 2)=10 produces openness
+            larger at the peak than at any cell forced to look "up" toward
+            the peak.
+        """
+        z = np.zeros((5, 5), dtype=np.float32)
+        z[2, 2] = 10.0
+        dem = _make_dem(z)
+        arr = dem.openness(search_radius=3).read_array()
+        # The peak sees nothing higher than itself in any direction; its
+        # openness is π/2. Neighbour cells see the peak above them, so
+        # their openness is strictly less than π/2.
+        assert arr[2, 2] > arr[1, 2] + 1e-5
+
+    def test_invalid_kind_raises(self):
+        """Test unknown `kind` raises ValueError.
+
+        Test scenario:
+            Anything other than `"positive"` / `"negative"` is rejected.
+        """
+        z = np.zeros((3, 3), dtype=np.float32)
+        dem = _make_dem(z)
+        with pytest.raises(ValueError, match="kind"):
+            dem.openness(kind="bogus")
+
+    def test_invalid_radius_rejected(self):
+        """Test search_radius < 1 raises ValueError.
+
+        Test scenario:
+            Zero search radius is meaningless; reject it.
+        """
+        z = np.zeros((3, 3), dtype=np.float32)
+        dem = _make_dem(z)
+        with pytest.raises(ValueError, match="search_radius"):
+            dem.openness(search_radius=0)

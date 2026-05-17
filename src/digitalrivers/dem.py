@@ -2020,6 +2020,68 @@ class DEM(Dataset):
             out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
         )
 
+    def openness(
+        self,
+        *,
+        search_radius: int = 10,
+        kind: str = "positive",
+    ) -> Dataset:
+        """Topographic openness (Yokoyama 2002).
+
+        For each cell, walks outward along 8 azimuths up to `search_radius`
+        cells and records the maximum elevation angle (positive openness)
+        or the minimum (negative openness) along each walk. The per-cell
+        output is the mean of `(π/2 - horizon_angle)` across the 8
+        directions, in radians.
+
+        High positive openness marks exposed / high-relief locations; high
+        negative openness marks deep depressions / valley floors.
+
+        Args:
+            search_radius: Maximum walk distance in cells. Must be ≥ 1.
+                Defaults to 10.
+            kind: `"positive"` (default) or `"negative"`. Negative openness
+                flips the sign of the elevation difference internally —
+                effectively measuring the local pit / depression depth.
+
+        Returns:
+            `Dataset` of float32 openness values in radians. No-data cells
+            use this DEM's no-data sentinel.
+
+        Raises:
+            ValueError: If `kind` is not one of `"positive"` / `"negative"`
+                or `search_radius < 1`.
+
+        References:
+            Yokoyama, R., Shirasawa, M., & Pike, R. J. (2002). "Visualizing
+            topography by openness: A new application of image processing
+            to digital elevation models." *Photogrammetric Engineering and
+            Remote Sensing* 68(3): 257-265.
+        """
+        from digitalrivers._numba import horizon_walk_kernel
+        if kind not in ("positive", "negative"):
+            raise ValueError(
+                f"kind must be 'positive' or 'negative'; got {kind!r}"
+            )
+        if search_radius < 1:
+            raise ValueError(
+                f"search_radius must be >= 1; got {search_radius!r}"
+            )
+        z = self.values.astype(np.float64, copy=False)
+        # For negative openness, flip the elevation so the kernel's
+        # "maximum upward angle" becomes "maximum downward angle" relative
+        # to the original surface.
+        z_in = (-z if kind == "negative" else z).astype(np.float64, copy=False)
+        z_filled = np.where(np.isnan(z_in), 0.0, z_in)
+        out = horizon_walk_kernel(
+            z_filled, float(abs(self.geotransform[1])), int(search_radius), 0,
+        ).astype(np.float32)
+        no_val = float(self.no_data_value[0])
+        out = np.where(np.isnan(z), no_val, out)
+        return Dataset.create_from_array(
+            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+        )
+
     def ruggedness(self, window: int = 3) -> Dataset:
         """Terrain Ruggedness Index (Riley et al. 1999).
 
