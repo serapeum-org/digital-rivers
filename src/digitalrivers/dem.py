@@ -464,6 +464,53 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
+    def full_hydro_pipeline(
+        self,
+        *,
+        fill_method: str = "priority_flood",
+        flow_method: str = "d8",
+        stream_threshold_cells: int | None = None,
+    ) -> dict:
+        """Composite: fill → flow_direction → accumulate (→ optional streams).
+
+        Convenience entry point that chains the four most common steps of a
+        DEM-hydrology pre-processing pipeline. Equivalent to:
+
+        ```python
+        filled = dem.fill_depressions(method=fill_method)
+        fdir = filled.flow_direction(method=flow_method)
+        acc = fdir.accumulate()
+        streams = acc.streams(threshold=stream_threshold_cells)  # if provided
+        ```
+
+        Args:
+            fill_method: Argument forwarded to `fill_depressions`. Defaults
+                to `"priority_flood"`.
+            flow_method: Argument forwarded to `flow_direction`. Defaults to
+                `"d8"`.
+            stream_threshold_cells: Optional accumulation threshold (in
+                cells). When supplied, a `StreamRaster` is also returned in
+                the result dict under the `"streams"` key. When None, the
+                streams step is skipped.
+
+        Returns:
+            `dict` with keys `"filled_dem"` (DEM), `"flow_direction"`
+            (FlowDirection), and `"accumulation"` (Accumulation); plus an
+            optional `"streams"` (StreamRaster) when
+            `stream_threshold_cells` is supplied.
+        """
+        filled = self.fill_depressions(method=fill_method)
+        fdir = filled.flow_direction(method=flow_method)
+        acc = fdir.accumulate()
+        out: dict = {
+            "filled_dem": filled,
+            "flow_direction": fdir,
+            "accumulation": acc,
+        }
+        if stream_threshold_cells is not None:
+            out["streams"] = acc.streams(threshold=stream_threshold_cells)
+        return out
+
     def stochastic_depressions(
         self,
         sigma: float,
