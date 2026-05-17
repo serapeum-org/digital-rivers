@@ -42,7 +42,7 @@ def test_returns_geodataframe_with_expected_columns():
     gdf = sr.to_vector(fd, dem=dem)
     assert isinstance(gdf, gpd.GeoDataFrame)
     for col in ("link_id", "from_node", "to_node", "length_m", "drop_m",
-                "mean_slope", "geometry"):
+                "mean_slope", "sinuosity", "geometry"):
         assert col in gdf.columns
 
 
@@ -162,6 +162,50 @@ def test_without_dem_drop_and_slope_are_nan():
     gdf = sr.to_vector(fd)  # no dem
     assert gdf["drop_m"].isna().all()
     assert gdf["mean_slope"].isna().all()
+
+
+def test_straight_chain_has_sinuosity_one():
+    """Test a single east-flowing chain produces sinuosity exactly 1.0.
+
+    Test scenario:
+        Cells (1, 1) → (1, 5) form a single straight cardinal-step chain.
+        traced_length == straight_line_distance → sinuosity = 1.0.
+    """
+    z = np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+    dem, fd, sr = _build_pipeline(z, threshold=2)
+    gdf = sr.to_vector(fd, dem=dem)
+    assert (gdf["sinuosity"] == 1.0).all(), (
+        f"Straight chain must yield sinuosity 1.0, got {gdf['sinuosity'].tolist()}"
+    )
+
+
+def test_sinuosity_at_least_one_for_non_degenerate_links():
+    """Test sinuosity is ≥ 1.0 for every link (geometric invariant).
+
+    Test scenario:
+        Traced length cannot be less than straight-line distance — sinuosity
+        is bounded below by 1.0 for every non-degenerate link.
+    """
+    z = np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+    dem, fd, sr = _build_pipeline(z, threshold=1)
+    gdf = sr.to_vector(fd, dem=dem)
+    assert (gdf["sinuosity"] >= 1.0 - 1e-9).all(), (
+        f"sinuosity must be ≥ 1.0; got {gdf['sinuosity'].tolist()}"
+    )
 
 
 def test_links_are_linestrings():

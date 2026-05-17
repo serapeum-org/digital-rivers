@@ -411,6 +411,10 @@ class StreamRaster(Dataset):
                 None.
               - `mean_slope` (float64): `drop_m / length_m` (m/m). NaN if
                 `dem` is None or `length_m == 0`.
+              - `sinuosity` (float64): `length_m / straight_line_distance`
+                between the link's two endpoints (≥ 1.0 for non-degenerate
+                links; exactly 1.0 for straight links and single-cell
+                degenerate links).
               - `geometry`: shapely `LineString` in the dataset's CRS,
                 vertices at cell centres.
 
@@ -543,6 +547,14 @@ class StreamRaster(Dataset):
             ys = [gt[3] + (c + 0.5) * gt[4] + (r + 0.5) * gt[5] for r, c in path]
             geom = LineString(zip(xs, ys))
 
+            # Sinuosity = traced length / straight-line distance between endpoints.
+            # Degenerate (single-cell or zero-length) links default to 1.0 — straight.
+            straight_m = float(((xs[-1] - xs[0]) ** 2 + (ys[-1] - ys[0]) ** 2) ** 0.5)
+            if straight_m > 0.0:
+                sinuosity = length_m / straight_m
+            else:
+                sinuosity = 1.0
+
             if z is not None:
                 z_from = float(z[r0, c0])
                 z_to = float(z[r_end, c_end])
@@ -559,6 +571,7 @@ class StreamRaster(Dataset):
                 "length_m": length_m,
                 "drop_m": drop_m,
                 "mean_slope": mean_slope,
+                "sinuosity": sinuosity,
                 "geometry": geom,
             })
             link_id += 1
