@@ -106,14 +106,25 @@ def read_las(path: str) -> LasPoints:
     Raises:
         ImportError: If `laspy` is not installed.
     """
+    import warnings
     try:
         import laspy  # type: ignore
     except ImportError as exc:  # pragma: no cover — environment-specific
         raise ImportError(_LASPY_HINT) from exc
     f = laspy.read(path)
+    # CRS parsing can fail on older LAS headers that pre-date the WKT
+    # / VLR conventions laspy expects. Surface that to the caller as a
+    # `UserWarning` (not a silent `crs = None`) so a downstream gridding /
+    # reprojection step has something to act on.
     try:
         crs = f.header.parse_crs()
-    except Exception:  # pragma: no cover — older LAS headers lack a CRS
+    except (ValueError, KeyError, AttributeError) as exc:
+        warnings.warn(
+            f"Could not parse CRS from LAS header {path!r}: {exc!r}. "
+            f"Returning `crs=None`.",
+            UserWarning,
+            stacklevel=2,
+        )
         crs = None
     intensity = (
         np.asarray(f.intensity, dtype=np.uint16)
