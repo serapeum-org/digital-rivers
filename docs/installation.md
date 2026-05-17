@@ -1,134 +1,114 @@
 # Installation
 
-This page explains how to install pyramids-gis and its dependencies using Pixi/conda or pip. The instructions and versions below are aligned with the project’s pyproject.toml.
+This page covers installation of **digital-rivers** and its native dependencies.
 
-Package name: pyramids-gis
-Current version: 0.7.3
-Supported Python versions: 3.11 – 3.13 (requires Python >=3.11,<4)
+| Item | Value |
+|---|---|
+| Distribution name (PyPI / conda-forge) | `digital-rivers` *(not yet published)* |
+| Python import name | `digitalrivers` |
+| Current version | `0.1.0` (pre-release) |
+| Supported Python | **3.11 – 3.13** |
+| License | GPL v3 |
+
+> The package is not yet on PyPI or conda-forge. Install from source using the instructions below.
 
 ## Dependencies
 
-### Core runtime (PyPI)
-- numpy >=2.0.0
-- pandas >=2.0.0
-- geopandas >=1.0.0
-- Shapely >=2.0.0
-- pyproj >=3.7.0
-- PyYAML >=6.0.0
-- loguru >=0.7.2
-- hpc-utils >=0.1.5
-
-### GIS stack (recommended via conda-forge)
-- GDAL >=3.10,<4
-- libgdal-netcdf >=3.10,<4
-- libgdal-hdf4 >=3.10,<4
+### Runtime
+- `numpy >= 2.0.0`
+- `geopandas >= 1.0.0`
+- `pyramids-gis >= 0.18.0` (provides the `pyramids` import; pulled from PyPI)
+- `gdal >= 3.10, < 4` (best installed from conda-forge — pip wheels are platform-fragile)
 
 ### Optional extras
-- viz: cleopatra >=0.5.1
-- dev: nbval, pre-commit, pytest, coverage, build, twine, etc.
-- docs: mkdocs, mkdocs-material, mkdocstrings, mike, etc.
+| Extra | Purpose | Pulls |
+|---|---|---|
+| `viz` | plotting / color tables | `pyramids-gis[viz]` → `cleopatra` |
+| `dev` | tests, linting, build tooling | pytest, pre-commit, mypy, build, twine, … |
+| `docs` | documentation toolchain | mkdocs, mkdocs-material, mkdocstrings, mike, … |
+| `notebook` | Jupyter | jupyterlab, notebook, ipykernel |
 
-## Recommended: Pixi/Conda environment
-This repository includes a Pixi configuration to create fully-solvable environments with the right GDAL build from conda-forge.
+## Recommended: Pixi
 
-Prerequisites: Install Pixi (https://pixi.sh/) or have conda/mamba with the conda-forge channel available.
+This repository ships a [Pixi](https://pixi.sh/) configuration that resolves GDAL from conda-forge and `pyramids-gis` from PyPI, avoiding the usual GDAL-wheel headaches.
 
-### Using Pixi
-From the project root:
+Prerequisites: install [Pixi](https://pixi.sh/latest/#installation).
 
-```console
-pixi run main          # runs the main test suite to ensure the env is solvable
-pixi shell             # enter the Pixi environment
+```bash
+git clone https://github.com/serapeum-org/digital-rivers.git
+cd digital-rivers
+
+# Solve and install the dev environment
+pixi install -e dev
+
+# Drop into a shell with everything available
+pixi shell -e dev
+
+# Or run a task directly
+pixi run main          # main test suite
+pixi run plot          # plot/visualization tests
+pixi run notebooks     # validate example notebooks
 ```
 
-Pixi environments provided:
-- default: includes dev + viz extras
-- docs: documentation toolchain
-- py311 / py312 / py313: pinned Python versions
+### Available Pixi environments
 
-To install the package in editable mode inside the Pixi environment:
+| Environment | Features | Purpose |
+|---|---|---|
+| `default` | base runtime | minimal install |
+| `dev` | `dev` extra | tests, linting, build tooling |
+| `docs` | `docs` extra | docs site (`mkdocs serve`) |
+| `py311` | `py311` + `dev` | pinned Python 3.11 |
+| `py312` | `py312` + `dev` | pinned Python 3.12 |
 
-```console
-pip install -e .
+## Alternative: conda + pip
+
+If you'd rather use conda directly:
+
+```bash
+mamba create -n digital-rivers -c conda-forge \
+    python=3.12 "gdal>=3.10,<4" libgdal-netcdf libgdal-hdf4
+mamba activate digital-rivers
+pip install git+https://github.com/serapeum-org/digital-rivers.git
 ```
 
-### Using conda/mamba directly
-Create and activate an environment (example with Python 3.12):
+## pip-only (advanced)
 
-```console
-mamba create -n pyramids -c conda-forge python=3.12 gdal libgdal-netcdf libgdal-hdf4
-mamba activate pyramids-gis
+GDAL is hard to install via pip alone. If you must:
+
+1. Make sure `gdal` and `osgeo` are importable in your environment (system package, prebuilt wheel, etc.).
+2. Then:
+
+   ```bash
+   pip install git+https://github.com/serapeum-org/digital-rivers.git
+   ```
+
+With the `viz` extra:
+
+```bash
+pip install "digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git"
 ```
 
-Then install the package from PyPI (release):
+## Editable / development install
 
-```console
-pip install pyramids-gis==0.7.3
-```
-
-Optionally include extras (examples):
-
-```console
-pip install "pyramids-gis[viz]"        # installs cleopatra
-pip install "pyramids-gis[dev]"        # developer tools
-pip install "pyramids-gis[docs]"       # docs toolchain
-```
-
-## Installing with pip only (advanced)
-Installing GDAL wheels via pip can be platform-specific. We strongly recommend installing GDAL from conda-forge first, then using pip for pyramids-gis:
-
-```console
-conda install -c conda-forge gdal libgdal-netcdf libgdal-hdf4
-pip install pyramids-gis
-```
-
-If you insist on a pip-only approach, consult the GDAL wheel guidance for your platform and ensure gdal is available at runtime before installing pyramids-gis.
-
-## Install from source
-Clone the repository and install:
-
-```console
-git clone https://github.com/serapeum-org/pyramids.git
-cd pyramids
-python -m pip install .
-```
-
-Editable (development) install:
-
-```console
-git clone https://github.com/serapeum-org/pyramids.git
-cd pyramids
-pip install -e .[dev]
-```
-
-Install directly from GitHub (latest main):
-
-```console
-pip install "git+https://github.com/serapeum-org/pyramids.git"
-```
-
-Install a specific tagged release from GitHub:
-
-```console
-pip install "git+https://github.com/serapeum-org/pyramids.git@v0.7.3"
+```bash
+git clone https://github.com/serapeum-org/digital-rivers.git
+cd digital-rivers
+pixi install -e dev          # or: pip install -e ".[dev]"
+pre-commit install
 ```
 
 ## Quick check
-After installation, open Python and run:
 
 ```python
-import pyramids
-print(pyramids.__version__)
-```
-
-You can also run the test suite if you installed dev tools:
-
-```console
-pytest -m "not plot" -q
+>>> import digitalrivers
+>>> digitalrivers.__version__
+'0.1.0'
+>>> from digitalrivers import DEM, Terrain
 ```
 
 ## Notes
-- Supported Python versions are 3.11–3.13.
-- Prefer conda-forge for GDAL and related libraries.
-- Documentation: https://serapeum-org.github.io/pyramids/latest
-- Source repository: https://github.com/serapeum-org/pyramids
+
+- `pyramids` (conda-forge name) and `pyramids-gis` (PyPI name) are the **same package**. digital-rivers depends on the PyPI distribution name (`pyramids-gis`) so it works regardless of how pyramids itself was installed.
+- For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if `pixi update` reports "No candidates were found for pyramids", either wait for the mapping to refresh or temporarily comment out the conda `pyramids` pin in `[tool.pixi.dependencies]`.
+- Documentation: <https://serapeum-org.github.io/digital-rivers/latest>
+- Source repository: <https://github.com/serapeum-org/digital-rivers>

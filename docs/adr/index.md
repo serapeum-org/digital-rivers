@@ -1,6 +1,6 @@
 # Architecture Decision Records (ADRs)
 
-This section collects significant architectural decisions for the pyramids project, using the MADR format.
+This section collects significant architectural decisions for the digital-rivers project, using the MADR format.
 
 - ADR-0001: Docs stack
 - ADR-0002: Type checking approach

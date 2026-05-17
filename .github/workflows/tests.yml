@@ -16,15 +16,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        environment: [py311, py312]
+        environment: [py311, py312, py313, py314]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: serapeum-org/github-actions/actions/python-setup/pixi@pixi/v1
+        uses: serapeum-org/github-actions/actions/python-setup/pixi@0894988f30f270ee8e0d9369f1f62a0deb8d5233 # pixi/v1.1.1
         with:
           environments: ${{ matrix.environment }}
           activate-environment: ${{ matrix.environment }}
@@ -39,7 +39,7 @@ jobs:
           pixi run -e ${{ matrix.environment }} plot
 
       - name: Upload coverage reports to Codecov with GitHub Action
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@75cd11691c0faa626561e295848008c8a7dddffe # v5
 
       - name: test Jupyter notebooks
         shell: bash

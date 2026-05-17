@@ -1,4 +1,5 @@
-from pyramids.dataset import Dataset
+# from pyramids.dataset import Dataset
+from digitalrivers.terrain import Terrain
 from osgeo_utils import gdal_calc
 import pandas as pd
 # path = r"\\MYCLOUDEX2ULTRA\satellite-data\landsat\lake-taho"
@@ -6,11 +7,11 @@ path = r"examples\data\landsat\lake-taho"
 #%%
 color_palette = pd.read_csv(f"{path}/beige_green.txt")
 # %%
-b2 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B2.TIF")
-b3 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B3.TIF")
-b5 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B5.TIF")
-b6 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B6.TIF")
-b7 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B7.TIF")
+b2 = Terrain.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B2.TIF")
+b3 = Terrain.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B3.TIF")
+b5 = Terrain.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B5.TIF")
+b6 = Terrain.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B6.TIF")
+b7 = Terrain.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B7.TIF")
 #%%
 """
 gdal_calc.py 
@@ -32,7 +33,7 @@ aweish = gdal_calc.Calc(
     outfile="", type="Float32", creation_options=["COMPRESS=DEFLATE", "PREDICTOR=2"]
 )
 #%%
-aweish = Dataset(aweish)
+aweish = Terrain(aweish)
 print(aweish)
 aweish.stats()
 # color_scale="boundary-norm", bounds=[0, 0.2, 0.4, 0.6, 0.8, 1]
@@ -44,7 +45,7 @@ aweish.to_file(rf"{path}\tahoe_LC08_20210922_SR_NDVI.tif")
 color_relief = aweish.color_relief(band=0, color_table=color_palette)
 color_relief.to_file(f"{path}/tahoe_LC08_20210922_SR_NDVI_color_relief.tif")
 #%%
-# ndvi = Dataset.read_file(r"examples\data\landsat\lake-taho\tahoe_LC08_20210922_SR_NDVI.tif", read_only=False)
+# ndvi = Terrain.read_file(r"examples\data\landsat\lake-taho\tahoe_LC08_20210922_SR_NDVI.tif", read_only=False)
 
 color_relief.no_data_value = 0
 color_relief.plot(rgb=[0, 1, 2, 3])

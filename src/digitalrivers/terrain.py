@@ -1,8 +1,8 @@
 """Terrain analysis module.
 
-This module provides the ``Terrain`` class for raster-based terrain
+This module provides the `Terrain` class for raster-based terrain
 visualisation and analysis: color relief, hill shade, slope, and aspect.
-All heavy lifting is delegated to GDAL's ``DEMProcessing`` utility.
+All heavy lifting is delegated to GDAL's `DEMProcessing` utility.
 """
 from __future__ import annotations
 
@@ -18,14 +18,14 @@ CREATION_OPTIONS = ["COMPRESS=DEFLATE", "PREDICTOR=2"]
 
 
 class Terrain(Dataset):
-    """Terrain analysis tools built on GDAL ``DEMProcessing``.
+    """Terrain analysis tools built on GDAL `DEMProcessing`.
 
     Wraps a single- or multi-band raster and exposes convenience methods
     for color relief, hill shade, slope, and aspect computation.
 
     Args:
         raster: File path or GDAL dataset to open.
-        access: ``"read_only"`` (default) or ``"write"``.
+        access: `"read_only"` (default) or `"write"`.
     """
 
     def __init__(self, raster: str | gdal.Dataset, access: str = "read_only"):
@@ -120,7 +120,7 @@ class Terrain(Dataset):
             path = ""
         else:
             driver = "GTiff"
-        color_df = self._process_color_table(color_table)
+        color_df = self.analysis._process_color_table(color_table)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             color_table_path = os.path.join(temp_dir, f"{uuid.uuid1()}.txt")
@@ -332,18 +332,18 @@ class Terrain(Dataset):
         path: str = None,
         **kwargs,
     ) -> gdal.Dataset:
-        """Run a single GDAL ``DEMProcessing("hillshade")`` call.
+        """Run a single GDAL `DEMProcessing("hillshade")` call.
 
         Args:
             band: Zero-based band index.
-            driver: GDAL driver name (``"MEM"`` or ``"GTiff"``).
+            driver: GDAL driver name (`"MEM"` or `"GTiff"`).
             azimuth: Light-source azimuth in degrees clockwise from
                 north.
             altitude: Light-source elevation in degrees above horizon.
             vertical_exaggeration: Z-factor for vertical emphasis.
             scale: Ratio of vertical to horizontal units.
             path: Output file path (empty string for in-memory).
-            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
 
         Returns:
             gdal.Dataset: Raw GDAL dataset with the computed hill shade.
@@ -374,29 +374,29 @@ class Terrain(Dataset):
     ) -> "Dataset":
         """Compute the slope of the terrain surface.
 
-        Uses GDAL ``DEMProcessing`` to calculate the slope (rate of
+        Uses GDAL `DEMProcessing` to calculate the slope (rate of
         elevation change) for every cell.
 
         Args:
             band: Zero-based band index. Defaults to 0.
             scale: Ratio of vertical to horizontal units.  Use
-                ``111120`` when the horizontal CRS is in degrees and
+                `111120` when the horizontal CRS is in degrees and
                 vertical units are metres.  Defaults to 1.
-            slope_format: Output format — ``"degree"`` (default) or
-                ``"percent"``.
-            algorithm: Slope algorithm.  One of ``"Horn"``,
-                ``"ZevenbergenThorne"``, or ``None`` (GDAL default).
+            slope_format: Output format — `"degree"` (default) or
+                `"percent"`.
+            algorithm: Slope algorithm.  One of `"Horn"`,
+                `"ZevenbergenThorne"`, or `None` (GDAL default).
                 Zevenbergen-Thorne suits smooth landscapes; Horn
                 performs better on rough terrain.
             path: If given, write the result to this GeoTIFF path.
                 Otherwise the raster is created in memory.
             creation_options: GDAL creation options.  Defaults to
-                ``['COMPRESS=DEFLATE', 'PREDICTOR=2']``.
-            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
 
         Returns:
-            Dataset: Single-band ``float32`` raster with slope values.
-                No-data value is ``-9999.0``.
+            Dataset: Single-band `float32` raster with slope values.
+                No-data value is `-9999.0`.
 
         Examples:
             - First create a one band dataset, consisting of 10 columns
@@ -458,31 +458,31 @@ class Terrain(Dataset):
     ) -> "Dataset":
         """Compute the aspect (slope direction) of the terrain surface.
 
-        Uses GDAL ``DEMProcessing`` to calculate the compass direction
+        Uses GDAL `DEMProcessing` to calculate the compass direction
         of the steepest downhill slope for every cell.  Values range
         from 0° (north) clockwise to 360°.
 
         Args:
             band: Zero-based band index. Defaults to 0.
             scale: Ratio of vertical to horizontal units.  Use
-                ``111120`` when the horizontal CRS is in degrees and
+                `111120` when the horizontal CRS is in degrees and
                 vertical units are metres.  Defaults to 1.
             vertical_exaggeration: Z-factor used to emphasise vertical
                 features.  Defaults to 1.
-            zero_flat_surface: If ``True`` flat areas get an aspect of
-                0°.  If ``False`` (default) flat areas receive the
+            zero_flat_surface: If `True` flat areas get an aspect of
+                0°.  If `False` (default) flat areas receive the
                 no-data value.
-            algorithm: Aspect algorithm.  One of ``"Horn"``,
-                ``"ZevenbergenThorne"``, or ``None`` (GDAL default).
+            algorithm: Aspect algorithm.  One of `"Horn"`,
+                `"ZevenbergenThorne"`, or `None` (GDAL default).
             path: If given, write the result to this GeoTIFF path.
                 Otherwise the raster is created in memory.
             creation_options: GDAL creation options.  Defaults to
-                ``['COMPRESS=DEFLATE', 'PREDICTOR=2']``.
-            **kwargs: Forwarded to ``gdal.DEMProcessingOptions``.
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
 
         Returns:
-            Dataset: Single-band ``float32`` raster with aspect values
-                in degrees (0–360).  No-data value is ``-9999.0``.
+            Dataset: Single-band `float32` raster with aspect values
+                in degrees (0–360).  No-data value is `-9999.0`.
 
         Examples:
             - Create a small raster and compute its aspect.
