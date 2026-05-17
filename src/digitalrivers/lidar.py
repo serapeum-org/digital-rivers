@@ -278,19 +278,37 @@ def grid_lidar_points(
     bounds=None,
     aggregate: str = "min",
     epsg: int = 4326,
+    *,
+    idw_k: int = 8,
+    idw_power: float = 2.0,
+    rbf_kernel: str = "thin_plate_spline",
+    rbf_smoothing: float = 0.0,
 ):
     """Grid a LiDAR point cloud to a DEM.
 
-    Pragmatic LiDAR-to-DEM step that operates on raw `(x, y, z)` arrays
-    — useful when the caller has read LAS / LAZ externally (via `laspy`,
-    `pylas`, or PDAL) and wants a gridded surface. The full PDAL pipeline
-    (read + classify + ground-filter + grid + condition) remains deferred.
+    Pragmatic LiDAR-to-DEM step that operates on raw `(x, y, z)` arrays.
+    Useful when the caller has read LAS / LAZ externally (via `read_las`)
+    and wants a gridded surface.
 
-    For each cell, aggregates the z values of every point that lands in
-    it. `aggregate` controls the aggregation: `"min"` (default — the
-    canonical bare-earth choice for first-return LiDAR), `"max"`,
-    `"mean"`, or `"median"`. Cells with no points receive the dataset
-    no-data sentinel.
+    The `aggregate` parameter selects either a block-aggregation method or
+    a spatial-interpolation method:
+
+    **Block aggregation** (one value per cell, based on points that land
+    inside the cell):
+
+    * `"min"` (default) — canonical bare-earth choice for first-return LiDAR.
+    * `"max"` — canopy / DSM choice.
+    * `"mean"` / `"median"` — smoothed surfaces.
+    * `"count"` — point-density raster.
+
+    **Spatial interpolation** (one value per cell centre, computed from
+    nearby points regardless of cell membership):
+
+    * `"idw"` — inverse-distance-weighted mean of the K nearest points.
+    * `"nn"` — nearest-neighbour assignment.
+    * `"tin"` — barycentric interpolation on the Delaunay triangulation.
+    * `"rbf"` — radial-basis-function interpolation (`scipy.interpolate.
+      RBFInterpolator`).
 
     Args:
         xs / ys / zs: 1-D arrays of point coordinates.
@@ -298,8 +316,16 @@ def grid_lidar_points(
             CRS).
         bounds: `(x_min, y_min, x_max, y_max)` to clip the grid to. If
             `None`, the input points' bounding box is used.
-        aggregate: `"min"` (default), `"max"`, `"mean"`, `"median"`.
+        aggregate: One of `"min"`, `"max"`, `"mean"`, `"median"`,
+            `"count"`, `"idw"`, `"nn"`, `"tin"`, `"rbf"`.
         epsg: EPSG code of the input coordinates.
+        idw_k: Neighbour count for `aggregate="idw"`. Defaults to 8.
+        idw_power: Distance exponent for IDW weights `(1 / d**power)`.
+            Defaults to 2.0.
+        rbf_kernel: Kernel name passed to `scipy.interpolate.RBFInterpolator`
+            for `aggregate="rbf"`. Defaults to `"thin_plate_spline"`.
+        rbf_smoothing: Smoothing parameter for the RBF kernel. Defaults
+            to 0.0 (exact interpolation).
 
     Returns:
         A pyramids `Dataset` of the gridded surface.
@@ -361,9 +387,13 @@ def grid_lidar_points(
             f"xs, ys, zs must have the same length; got {len(xs)}, "
             f"{len(ys)}, {len(zs)}"
         )
-    if aggregate not in ("min", "max", "mean", "median"):
+    valid_aggregates = {
+        "min", "max", "mean", "median", "count",
+        "idw", "nn", "tin", "rbf",
+    }
+    if aggregate not in valid_aggregates:
         raise ValueError(
-            f"aggregate must be one of 'min','max','mean','median'; "
+            f"aggregate must be one of {sorted(valid_aggregates)}; "
             f"got {aggregate!r}"
         )
     if bounds is None:
@@ -374,16 +404,71 @@ def grid_lidar_points(
 
     cols = int(np.ceil((x_max - x_min) / cell_size))
     rows = int(np.ceil((y_max - y_min) / cell_size))
+
+    nodata = -9999.0
+
+    # Spatial-interpolation paths evaluate at cell centres and exit early —
+    # they don't use the per-cell binning of the block-aggregation paths.
+    if aggregate in ("idw", "nn", "tin", "rbf"):
+        # Cell-centre coordinates in the output grid.
+        cx = x_min + (np.arange(cols) + 0.5) * cell_size
+        cy = y_max - (np.arange(rows) + 0.5) * cell_size
+        grid_x, grid_y = np.meshgrid(cx, cy)
+        xy_pts = np.column_stack([xs, ys])
+        target = np.column_stack([grid_x.ravel(), grid_y.ravel()])
+        if aggregate == "idw":
+            from scipy.spatial import cKDTree
+            tree = cKDTree(xy_pts)
+            k = min(int(idw_k), len(xs))
+            dists, idxs = tree.query(target, k=k)
+            if k == 1:
+                dists = dists[:, None]
+                idxs = idxs[:, None]
+            with np.errstate(divide="ignore"):
+                # Exact-hit points pin the result; weight them as infinity
+                # so they dominate the weighted average. Replace 1/0 below.
+                weights = 1.0 / np.power(dists, idw_power)
+            # Cells with an exact hit (distance 0) take that point's z.
+            exact = (dists == 0).any(axis=1)
+            with np.errstate(invalid="ignore"):
+                z_interp = (weights * zs[idxs]).sum(axis=1) / weights.sum(axis=1)
+            if exact.any():
+                # For exact hits, take the z at the matching nearest point.
+                z_interp[exact] = zs[idxs[exact, 0]]
+            out = z_interp.reshape(rows, cols)
+        elif aggregate == "nn":
+            from scipy.spatial import cKDTree
+            tree = cKDTree(xy_pts)
+            _, idxs = tree.query(target, k=1)
+            out = zs[idxs].reshape(rows, cols)
+        elif aggregate == "tin":
+            from scipy.interpolate import LinearNDInterpolator
+            interp = LinearNDInterpolator(xy_pts, zs, fill_value=nodata)
+            out = interp(target).reshape(rows, cols)
+        else:  # rbf
+            from scipy.interpolate import RBFInterpolator
+            interp = RBFInterpolator(
+                xy_pts, zs, kernel=rbf_kernel, smoothing=rbf_smoothing,
+            )
+            out = interp(target).reshape(rows, cols)
+        out = np.where(np.isfinite(out), out, nodata).astype(
+            np.float32, copy=False,
+        )
+        geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
+        return Dataset.create_from_array(
+            out, geo=geo, epsg=epsg, no_data_value=nodata,
+        )
+
     col_idx = np.clip(((xs - x_min) / cell_size).astype(np.int64), 0, cols - 1)
     row_idx = np.clip(
         ((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1
     )
 
-    nodata = -9999.0
     # `min` / `max` use `np.minimum.at` / `np.maximum.at`;
     # `mean` uses `np.add.at` for an O(N_points) reduction;
-    # `median` still requires per-cell bucketing because there is no
-    # closed-form running median in NumPy.
+    # `count` uses `np.add.at` with weight 1 — same kernel as the mean
+    # denominator; `median` still requires per-cell bucketing because
+    # there is no closed-form running median in NumPy.
     if aggregate == "min":
         out = np.full((rows, cols), np.inf, dtype=np.float64)
         np.minimum.at(out, (row_idx, col_idx), zs)
@@ -399,6 +484,10 @@ def grid_lidar_points(
         np.add.at(counts, (row_idx, col_idx), 1)
         with np.errstate(invalid="ignore", divide="ignore"):
             out = np.where(counts > 0, sums / counts, nodata)
+    elif aggregate == "count":
+        counts = np.zeros((rows, cols), dtype=np.int64)
+        np.add.at(counts, (row_idx, col_idx), 1)
+        out = counts.astype(np.float64)
     else:  # median — per-cell bucketing
         buckets: dict[tuple[int, int], list[float]] = {}
         for r, c, z in zip(row_idx, col_idx, zs):

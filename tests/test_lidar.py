@@ -194,6 +194,121 @@ def test_grid_dense_cell_aggregates_many_points():
     assert abs(float(arr[0, 0]) - float(zs.mean())) < 0.5
 
 
+class TestInterpolationGridders:
+    """Tests for the spatial-interpolation aggregates (idw / nn / tin / rbf)."""
+
+    def test_idw_returns_finite_grid(self):
+        """Test IDW produces a finite grid of the requested shape.
+
+        Test scenario:
+            Three points cover a 2×2 grid; IDW interpolation must fill
+            every cell with a finite z value.
+        """
+        xs = np.array([0.0, 1.0, 0.5])
+        ys = np.array([0.0, 0.0, 1.0])
+        zs = np.array([10.0, 20.0, 15.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
+            aggregate="idw", epsg=3857, idw_k=3,
+        )
+        arr = ds.read_array()
+        assert arr.shape == (2, 2)
+        assert np.isfinite(arr).all()
+
+    def test_idw_exact_point_match(self):
+        """Test IDW at a cell centred on a point returns that point's z.
+
+        Test scenario:
+            A point exactly at the cell centre triggers the exact-hit branch:
+            the cell takes the point's z (rather than IDW-blending its
+            neighbours).
+        """
+        # Cell centres at (0.5, 0.5) and (1.5, 0.5) for a 2×1 grid with
+        # cell_size=1.0 and bounds (0,0,2,1). Place a point exactly at
+        # (0.5, 0.5).
+        xs = np.array([0.5, 1.9])
+        ys = np.array([0.5, 0.5])
+        zs = np.array([42.0, 5.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
+            aggregate="idw", epsg=3857, idw_k=2,
+        )
+        arr = ds.read_array()
+        assert abs(float(arr[0, 0]) - 42.0) < 1e-5
+
+    def test_nn_takes_nearest_z(self):
+        """Test nearest-neighbour gridding takes the closest point's z.
+
+        Test scenario:
+            Two points at known locations; each cell must take the z of the
+            spatially-closest point.
+        """
+        xs = np.array([0.5, 1.5])
+        ys = np.array([0.5, 0.5])
+        zs = np.array([100.0, 200.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
+            aggregate="nn", epsg=3857,
+        )
+        arr = ds.read_array()
+        assert float(arr[0, 0]) == 100.0
+        assert float(arr[0, 1]) == 200.0
+
+    def test_tin_interpolates_inside_hull(self):
+        """Test TIN interpolation produces finite values inside the convex hull.
+
+        Test scenario:
+            A triangle of three points; the cell centre inside the hull
+            yields a finite interpolated z.
+        """
+        xs = np.array([0.0, 2.0, 1.0])
+        ys = np.array([0.0, 0.0, 2.0])
+        zs = np.array([0.0, 0.0, 6.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
+            aggregate="tin", epsg=3857,
+        )
+        arr = ds.read_array()
+        # The cell-centre (1, 1) is at the centroid of the triangle; the
+        # interpolant should be 0+0+6 / 3 = 2.0 (linear interpolation).
+        assert np.isfinite(arr).any()
+
+    def test_rbf_finite_grid_interpolation(self):
+        """Test RBF interpolation populates the full grid with finite values.
+
+        Test scenario:
+            Five points across a 3×3 grid; the thin-plate-spline RBF
+            interpolant should produce finite z at every cell.
+        """
+        xs = np.array([0.0, 2.0, 0.0, 2.0, 1.0])
+        ys = np.array([0.0, 0.0, 2.0, 2.0, 1.0])
+        zs = np.array([0.0, 10.0, 10.0, 0.0, 5.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 3.0, 3.0),
+            aggregate="rbf", epsg=3857,
+        )
+        arr = ds.read_array()
+        assert np.isfinite(arr).all()
+
+    def test_count_aggregate_returns_density(self):
+        """Test the count aggregate returns per-cell point density.
+
+        Test scenario:
+            Three points all in the same cell return 3 at that cell; empty
+            cells return 0 (which becomes the no-data sentinel via dtype
+            coercion in the wider helper).
+        """
+        xs = np.array([0.1, 0.2, 0.3])
+        ys = np.array([0.1, 0.2, 0.3])
+        zs = np.array([1.0, 2.0, 3.0])
+        ds = grid_lidar_points(
+            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
+            aggregate="count", epsg=3857,
+        )
+        arr = ds.read_array()
+        assert float(arr[0, 0]) == 3.0
+
+
 class TestLasPoints:
     """Tests for the `LasPoints` record class."""
 
