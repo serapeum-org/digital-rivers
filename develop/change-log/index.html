@@ -83,7 +83,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#change-log" class="md-skip">
+        <a href="#010-2026-05-18" class="md-skip">
           Skip to content
         </a>
       
@@ -1430,8 +1430,6 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
-      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -1474,8 +1472,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1484,24 +1480,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased-featphase-4" class="md-nav__link">
+  <a href="#010-2026-05-18" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased (feat/phase-4)
+        0.1.0 (2026-05-18)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.1.0 (2026-05-18)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feat
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#010-2025-09-" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#refactor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        0.1.0 (2025-09-**)
+        Refactor
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1725,8 +1738,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -1735,24 +1746,41 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#unreleased-featphase-4" class="md-nav__link">
+  <a href="#010-2026-05-18" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unreleased (feat/phase-4)
+        0.1.0 (2026-05-18)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.1.0 (2026-05-18)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feat" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feat
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#010-2025-09-" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#refactor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        0.1.0 (2025-09-**)
+        Refactor
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1789,89 +1817,16 @@
   
 
 
-<h1 id="change-log"><a class="toclink" href="#change-log">Change log</a><a class="headerlink" href="#change-log" title="Permanent link">#</a></h1>
-<h2 id="unreleased-featphase-4"><a class="toclink" href="#unreleased-featphase-4">Unreleased (<code>feat/phase-4</code>)</a><a class="headerlink" href="#unreleased-featphase-4" title="Permanent link">#</a></h2>
-<p><strong>Hydrology — new stream-network surface (W-1 → W-5)</strong></p>
+  <h1>Change-log</h1>
+
+<h2 id="010-2026-05-18"><a class="toclink" href="#010-2026-05-18">0.1.0 (2026-05-18)</a><a class="headerlink" href="#010-2026-05-18" title="Permanent link">#</a></h2>
+<h3 id="feat"><a class="toclink" href="#feat">Feat</a><a class="headerlink" href="#feat" title="Permanent link">#</a></h3>
 <ul>
-<li><code>StreamRaster.order(method="hack")</code> — Hack 1957 main-stem-first ordering.</li>
-<li><code>StreamRaster.order(method="topological")</code> — Kahn-sort sequential numbering.</li>
-<li><code>StreamRaster.to_vector(...)</code> now carries a <code>sinuosity</code> column per link.</li>
-<li><code>StreamRaster.main_stem(flow_direction, outlet=None)</code> — public API for the longest source-to-outlet
-  trace.</li>
-<li><code>StreamRaster.prune_short(flow_direction, min_length_m)</code> — drop headwater links below a threshold.</li>
+<li>deliver Phase 1, 2, 3, and 4 of the digital-rivers roadmap (#13)</li>
 </ul>
-<p><strong>Hydrology — watershed metrics (W-7 → W-9)</strong></p>
+<h3 id="refactor"><a class="toclink" href="#refactor">Refactor</a><a class="headerlink" href="#refactor" title="Permanent link">#</a></h3>
 <ul>
-<li><code>FlowDirection.isobasins(streams, accumulation, target_area_km2)</code> — equal-area sub-basin
-  partition.</li>
-<li><code>WatershedRaster.statistics(...)</code> gained <code>longest_flow_path_m</code> (via the shared
-  <code>kahn_max_upslope_length</code> Kahn pass). Triggers on <code>flow_direction</code> alone after the M1 review fix.</li>
-<li><code>FlowDirection.upslope_flowpath_length()</code> — per-cell longest upslope flow path.</li>
-</ul>
-<p><strong>Hydrology — indices and Monte-Carlo (W-10 → W-14, W-20)</strong></p>
-<ul>
-<li><code>DEM.hand(..., method="euclidean")</code> — nearest-stream-by-2D-distance HAND variant; drops stream
-  cells on no-data DEM positions with a <code>UserWarning</code> (M2 / L2 review fixes).</li>
-<li><code>DEM.stochastic_depressions(sigma, n_runs, seed)</code> — Monte-Carlo per-cell depression-occurrence
-  probability (Lindsay &amp; Creed 2006).</li>
-<li><code>DEM.twi(accumulation, slope_deg=None)</code> — Beven &amp; Kirkby 1979 wetness index.</li>
-<li><code>DEM.spi(accumulation, slope_deg=None)</code> — stream power index.</li>
-<li><code>DEM.sti(accumulation, slope_deg=None)</code> — Moore &amp; Burch 1986 sediment transport index.</li>
-<li><code>DEM.full_hydro_pipeline(...)</code> — composite fill → flow_direction → accumulate (+ optional
-  streams) returning a typed-results dict.</li>
-</ul>
-<p><strong>LiDAR (W-15 → W-19)</strong></p>
-<ul>
-<li><code>LasPoints</code> dataclass + <code>read_las</code> / <code>write_las</code> via soft-imported <code>laspy</code>.</li>
-<li><code>classify_ground(method="zhang")</code> — Zhang 2003 morphological tophat ground filter.</li>
-<li><code>grid_lidar_points(aggregate=...)</code> extended with <code>idw</code> / <code>nn</code> / <code>tin</code> (linear barycentric) /
-  <code>rbf</code> interpolation plus a <code>count</code> density aggregator.</li>
-<li><code>clip</code> / <code>merge</code> / <code>filter_classes</code> — vector clip + concatenation + ASPRS-class subset on
-  <code>LasPoints</code>.</li>
-<li><code>detect_trees(chm, min_height_m, radius_fn)</code> — variable-window local-maxima tree detection on a
-  canopy height model.</li>
-</ul>
-<p><strong>Terrain attributes (W-21 → W-28)</strong></p>
-<ul>
-<li><code>DEM.tpi(window)</code> — Guisan 1999 Topographic Position Index.</li>
-<li><code>DEM.deviation_from_mean(window)</code> — standardised TPI.</li>
-<li><code>DEM.elev_std(window)</code> — focal-window standard deviation of elevation.</li>
-<li><code>DEM.ruggedness(window)</code> — Riley et al. 1999 terrain ruggedness index.</li>
-<li><code>DEM.curvature(kind="plan"/"profile"/"total"/"mean"/"gaussian")</code> — Zevenbergen-Thorne 1987
-  curvature family.</li>
-<li><code>DEM.normal_vector_deviation(window)</code> — surface-normal angular deviation roughness metric.</li>
-<li><code>DEM.openness(search_radius, kind="positive"/"negative")</code> — Yokoyama 2002 topographic openness.</li>
-<li><code>DEM.sky_view_factor(search_radius)</code> — Zakšek et al. 2011 sky-view factor.</li>
-</ul>
-<p>Shared private helpers: <code>_focal_window_stats</code> (no-data-aware focal mean / SD) and
-<code>_numba.horizon_walk_kernel</code> (numba-accelerated 8-azimuth horizon scan).</p>
-<p><strong>Phase-4 backfill (P29 – P34)</strong></p>
-<ul>
-<li><code>cloud_io.tile_windows</code> / <code>cloud_io.write_cog</code> — chunked-tile iteration and Cloud-Optimized
-  GeoTIFF writes.</li>
-<li><code>topobathy_fusion(method=...)</code> — 4-mode topobathy blend (<code>max</code> / <code>min</code> / <code>topo_above</code> /
-  <code>bathy_below</code>).</li>
-<li><code>Mesh</code> — triangle-mesh container with Laplacian smoothing and aspect-ratio quality metrics.</li>
-<li><code>grid_lidar_points</code> (foundation that W-17 extended).</li>
-<li><code>DEM.anudem_interpolate</code> — Hutchinson 1989 biharmonic ANUDEM.</li>
-<li><code>FlowDirection.subbasins_pfafstetter(accumulation, streams, level=N)</code> — multi-level Pfafstetter
-  coding (levels 1 and 2; deeper recursion deferred).</li>
-</ul>
-<p><strong>Dependencies</strong></p>
-<ul>
-<li><code>cleopatra</code> removed (now sourced transitively through <code>pyramids-gis[viz]</code>).</li>
-<li><code>pyramids-gis</code> bumped from <code>0.9.1</code> → <code>0.18.0</code>.</li>
-<li><code>gdal &gt;=3.10</code> and <code>numba &gt;=0.60,&lt;1</code> added as hard deps to keep PyPI and pixi installs in sync.</li>
-</ul>
-<p><strong>Documentation</strong></p>
-<ul>
-<li>New guides: hydrology pipeline, watershed analytics, terrain indices, LiDAR pipeline.</li>
-<li>New reference pages: <code>FlowDirection</code>, <code>Accumulation</code>, <code>StreamRaster</code>, <code>WatershedRaster</code>,
-  <code>LiDAR</code>, <code>Mesh</code>, <code>Cloud I/O</code>, <code>Topobathy fusion</code>.</li>
-</ul>
-<h2 id="010-2025-09-"><a class="toclink" href="#010-2025-09-">0.1.0 (2025-09-**)</a><a class="headerlink" href="#010-2025-09-" title="Permanent link">#</a></h2>
-<ul>
-<li>First release on PyPI.</li>
+<li><strong>dem,terrain</strong>: overhaul DEM/Terrain modules with bug fixes, tests, and CI (#2)</li>
 </ul>
 
 
