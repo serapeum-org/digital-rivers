@@ -5810,7 +5810,7 @@ packages:
 - pypi: ./
   name: digital-rivers
   version: 0.0.0
-  sha256: 88dbdb1c4450f80839e15e7d3216b97a30b3c705c698cb007d14a47687360459
+  sha256: fc7020b8b35000006a944e3768feb92df5a8bb8e3ea614d68f2dc8fb64f43465
   requires_dist:
   - gdal>=3.10.0,<4
   - geopandas>=1.0.0
