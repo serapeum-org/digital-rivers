@@ -29,7 +29,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Build and publish to PyPI
-        uses: serapeum-org/github-actions/actions/release/pypi@6823246a90df2963d1576ef6de875e10467c64aa # pypi-release/v1.3.5
+        uses: serapeum-org/github-actions/actions/release/pypi@aadd88f55aa024d5047447bb28adbd25c4e994b0 # pypi-release/v1.0.1
         with:
           pypi-username: __token__
           pypi-password: ${{ secrets.PYPI_PUBLISH }}
