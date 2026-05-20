@@ -15,6 +15,7 @@ No-data handling is consistent across the three: cells flagged no-data are treat
 true raster boundary). The returned array preserves the no-data positions as NaN; the input is
 not mutated.
 """
+
 from __future__ import annotations
 
 import heapq
@@ -25,12 +26,19 @@ import numpy as np
 
 # 8-connectivity neighbour offsets (dr, dc).
 _NEIGHBOURS_8: tuple[tuple[int, int], ...] = (
-    (-1, -1), (-1, 0), (-1, 1),
-    (0, -1),           (0, 1),
-    (1, -1),  (1, 0),  (1, 1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
 )
 
-VALID_METHODS: frozenset[str] = frozenset({"priority_flood", "wang_liu", "planchon_darboux"})
+VALID_METHODS: frozenset[str] = frozenset(
+    {"priority_flood", "wang_liu", "planchon_darboux"}
+)
 
 
 def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.ndarray:
@@ -111,11 +119,7 @@ def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.n
         shifted = padded[1 + dr : 1 + dr + rows, 1 + dc : 1 + dc + cols]
         neighbour_min = np.fmin(neighbour_min, shifted)
 
-    out = (
-        (~nan_mask)
-        & np.isfinite(neighbour_min)
-        & (z_clean < neighbour_min)
-    )
+    out = (~nan_mask) & np.isfinite(neighbour_min) & (z_clean < neighbour_min)
     # Boundary cells (first / last row and column) have fewer than 8 neighbours;
     # match the original behaviour by excluding them.
     out[0, :] = False
@@ -235,7 +239,9 @@ def _priority_flood(
                 else:
                     heapq.heappush(open_heap, (lifted, next(counter), nr, nc))
             else:
-                heapq.heappush(open_heap, (float(z_fill[nr, nc]), next(counter), nr, nc))
+                heapq.heappush(
+                    open_heap, (float(z_fill[nr, nc]), next(counter), nr, nc)
+                )
 
     return z_fill
 
@@ -333,8 +339,11 @@ def _priority_flood_with_numba(
 
     if is_numba_enabled():
         return priority_flood_numba(
-            z.astype(np.float64, copy=False), nodata_mask, float(epsilon),
-            _DIR_DR_I32, _DIR_DC_I32,
+            z.astype(np.float64, copy=False),
+            nodata_mask,
+            float(epsilon),
+            _DIR_DR_I32,
+            _DIR_DC_I32,
         )
     return _priority_flood(z, nodata_mask, epsilon=epsilon, use_pit_queue=True)
 

@@ -6,6 +6,7 @@ which routing scheme produced the upstream counts so that downstream
 compatibility. The accumulation surface itself (a scalar count or weighted
 sum per cell) does not depend on the routing scheme.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
@@ -13,6 +14,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from osgeo import gdal
 from pyramids.dataset import Dataset
+from shapely.geometry import Point
 
 from digitalrivers._metadata import (
     META_CLASS,
@@ -79,9 +81,7 @@ def _resolve_envelope(
     """
     if isinstance(envelope, Dataset):
         arr = envelope.read_array()
-        no_val = (
-            envelope.no_data_value[0] if envelope.no_data_value else None
-        )
+        no_val = envelope.no_data_value[0] if envelope.no_data_value else None
         if no_val is not None:
             mask = np.isfinite(arr) & (arr != no_val)
         else:
@@ -92,8 +92,7 @@ def _resolve_envelope(
             mask = mask.astype(bool, copy=False)
     if mask.shape != shape:
         raise ValueError(
-            f"envelope shape {mask.shape} does not match accumulation "
-            f"shape {shape}"
+            f"envelope shape {mask.shape} does not match accumulation " f"shape {shape}"
         )
     return mask
 
@@ -257,14 +256,10 @@ class Accumulation(Dataset):
                 >>> int(sr.read_array()[0, :].sum())
                 0
         """
-        import numpy as np
-
         from digitalrivers.stream_raster import StreamRaster
 
         if units not in ("cells", "km2", "m2"):
-            raise ValueError(
-                f"units must be 'cells', 'km2', or 'm2'; got {units!r}"
-            )
+            raise ValueError(f"units must be 'cells', 'km2', or 'm2'; got {units!r}")
         if (slope_dem is None) != (area_slope_exponent is None):
             raise ValueError(
                 "slope_dem and area_slope_exponent must both be supplied "
@@ -304,8 +299,9 @@ class Accumulation(Dataset):
                     f"slope_dem shape {slope_arr.shape} does not match "
                     f"accumulation shape {acc_arr.shape}"
                 )
-            support = acc_arr * np.power(np.maximum(slope_arr, 0.0),
-                                         area_slope_exponent)
+            support = acc_arr * np.power(
+                np.maximum(slope_arr, 0.0), area_slope_exponent
+            )
             mask = valid & (support >= cells_threshold)
         else:
             mask = valid & (acc_arr >= cells_threshold)
@@ -424,18 +420,12 @@ class Accumulation(Dataset):
                 >>> bool(np.isfinite(d) and d > 0)
                 True
         """
-        import geopandas as gpd
-        import numpy as np
-        from shapely.geometry import Point
-
         if method not in ("max_accumulation", "jenson"):
             raise ValueError(
                 f"method must be 'max_accumulation' or 'jenson'; got {method!r}"
             )
         if (radius_cells is None) == (radius_m is None):
-            raise ValueError(
-                "Exactly one of radius_cells / radius_m must be supplied"
-            )
+            raise ValueError("Exactly one of radius_cells / radius_m must be supplied")
         if method == "jenson" and streams is None:
             raise ValueError("method='jenson' requires the streams= argument")
 
@@ -535,7 +525,8 @@ class Accumulation(Dataset):
             moved = (best_r != row0) or (best_c != col0)
             distance = (
                 float(np.hypot(snapped_x - px, snapped_y - py))
-                if moved else float("nan")
+                if moved
+                else float("nan")
             )
             snapped_xs.append(snapped_x)
             snapped_ys.append(snapped_y)

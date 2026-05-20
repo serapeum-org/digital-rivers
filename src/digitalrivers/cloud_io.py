@@ -16,7 +16,10 @@ Deferred (umbrella raises `NotImplementedError` with a deferral note):
   `tile_windows`.
 * :func:`cloud_storage` — Zarr / S3 / GCS read & write factories.
 """
+
 from __future__ import annotations
+
+from osgeo import gdal
 
 
 def tile_windows(
@@ -138,8 +141,6 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
             ...     os.path.exists(result)
             True
     """
-    from osgeo import gdal
-
     src = dataset.raster
     driver = gdal.GetDriverByName("COG")
     if driver is None:
