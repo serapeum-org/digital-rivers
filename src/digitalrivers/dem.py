@@ -2408,22 +2408,35 @@ class DEM(Dataset):
         )
 
     def ruggedness(self, window: int = 3) -> Dataset:
-        """Terrain Ruggedness Index (Riley et al. 1999).
+        """Terrain Ruggedness Index — Wilson (2007) mean-absolute-difference form.
 
         Per-cell mean of absolute elevation differences to every other cell
         in a `window×window` neighbourhood. Output unit is the DEM elevation
         unit (metres). Higher values mark rougher terrain; flat terrain is
         zero.
 
+        Note:
+            This implements the **Wilson et al. (2007)** mean-absolute-
+            difference variant, *not* Riley's original root-sum-square TRI.
+            For the Riley form use `Terrain.tri(algorithm="Riley")` (the
+            GDAL default), which equals `sqrt(Σ(z_c − z_i)²)` over the 3x3
+            neighbourhood; `Terrain.tri(algorithm="Wilson")` reproduces
+            this method's formula on a fixed 3x3 window.
+
         Args:
             window: Side length of the focal window in cells (≥ 1).
-                Defaults to 3 (Riley's original 3×3 neighbourhood).
+                Defaults to 3 (the original 3×3 neighbourhood).
 
         Returns:
             `Dataset` of float32 ruggedness values. No-data cells use this
             DEM's no-data sentinel.
 
         References:
+            Wilson, M. F. J., O'Connell, B., Brown, C., Guinan, J. C., &
+            Grehan, A. J. (2007). "Multiscale terrain analysis of
+            multibeam bathymetry data for habitat mapping on the
+            continental slope." *Marine Geodesy* 30(1-2): 3-35.
+
             Riley, S. J., DeGloria, S. D., & Elliot, R. (1999). "A terrain
             ruggedness index that quantifies topographic heterogeneity."
             *Intermountain Journal of Sciences* 5(1-4): 23-27.
