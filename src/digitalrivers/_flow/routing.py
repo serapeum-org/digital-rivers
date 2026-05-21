@@ -18,6 +18,7 @@ Output direction codes follow the `DIR_OFFSETS` convention from `dem.py`:
 `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`. All multi-band outputs index axis 0
 (bands) in that order for MFD, and `(angle, magnitude)` for D∞.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -200,10 +201,12 @@ def mfd_flow_direction(
 
     if weighting == "quinn":
         # Cardinal contour length = 0.5; diagonal ≈ 1/(2√2) ≈ 0.3535.
-        contour = np.where(_IS_CARDINAL[np.newaxis, np.newaxis, :], 0.5, 1.0 / (2.0 * np.sqrt(2.0)))
-        weights = (pos ** exponent) * contour
+        contour = np.where(
+            _IS_CARDINAL[np.newaxis, np.newaxis, :], 0.5, 1.0 / (2.0 * np.sqrt(2.0))
+        )
+        weights = (pos**exponent) * contour
     elif weighting == "holmgren":
-        weights = pos ** exponent
+        weights = pos**exponent
     else:
         raise ValueError(f"weighting must be 'quinn' or 'holmgren'; got {weighting!r}")
 

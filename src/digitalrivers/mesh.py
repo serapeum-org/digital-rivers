@@ -17,6 +17,7 @@ handing them to HEC-RAS / TUFLOW / SFINCS. The full P33 quality
 optimisation also covers edge flips and refinement around breaklines;
 those remain deferred.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -82,9 +83,7 @@ class Mesh:
                 f"vertices must be (N, 2) or (N, 3); got {self.vertices.shape}"
             )
         if self.triangles.ndim != 2 or self.triangles.shape[1] != 3:
-            raise ValueError(
-                f"triangles must be (M, 3); got {self.triangles.shape}"
-            )
+            raise ValueError(f"triangles must be (M, 3); got {self.triangles.shape}")
         self.n_vertices = int(self.vertices.shape[0])
         self.n_triangles = int(self.triangles.shape[0])
 
@@ -226,9 +225,7 @@ class Mesh:
                 [0.0, 0.0]
         """
         if not (0.0 <= relaxation <= 1.0):
-            raise ValueError(
-                f"relaxation must be in [0, 1]; got {relaxation}"
-            )
+            raise ValueError(f"relaxation must be in [0, 1]; got {relaxation}")
         v = self.vertices.copy()
         adj = self.neighbour_lists()
         if hold_boundary:
@@ -299,10 +296,14 @@ class Mesh:
             lb = np.linalg.norm(a - c)
             lc = np.linalg.norm(a - b)
             s = (la + lb + lc) / 2.0
-            area = float(np.abs(
-                (b[0] - a[0]) * (c[1] - a[1])
-                - (c[0] - a[0]) * (b[1] - a[1])
-            )) / 2.0
+            area = (
+                float(
+                    np.abs(
+                        (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
+                    )
+                )
+                / 2.0
+            )
             if area == 0.0:
                 out[i] = np.inf
                 continue
@@ -312,7 +313,4 @@ class Mesh:
         return out
 
     def __repr__(self) -> str:
-        return (
-            f"<Mesh vertices={self.n_vertices} "
-            f"triangles={self.n_triangles}>"
-        )
+        return f"<Mesh vertices={self.n_vertices} " f"triangles={self.n_triangles}>"

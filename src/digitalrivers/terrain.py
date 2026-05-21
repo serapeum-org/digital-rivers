@@ -4,6 +4,7 @@ This module provides the `Terrain` class for raster-based terrain
 visualisation and analysis: color relief, hill shade, slope, and aspect.
 All heavy lifting is delegated to GDAL's `DEMProcessing` utility.
 """
+
 from __future__ import annotations
 
 import os
@@ -287,15 +288,20 @@ class Terrain(Dataset):
 
         wrap = lambda v: v if isinstance(v, list) else [v]
         azimuth, altitude, vertical_exaggeration, scale = (
-            wrap(azimuth), wrap(altitude), wrap(vertical_exaggeration), wrap(scale),
+            wrap(azimuth),
+            wrap(altitude),
+            wrap(vertical_exaggeration),
+            wrap(scale),
         )
-        if not (len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)):
+        if not (
+            len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)
+        ):
             raise ValueError("All list parameters must have the same length.")
 
         # get the hill shade for all the parameters
         hill_shades: list[gdal.Dataset] = []
         for az, alt, ver_ex, scale_1 in zip(
-                azimuth, altitude, vertical_exaggeration, scale
+            azimuth, altitude, vertical_exaggeration, scale
         ):
             dst = self._create_hill_shade(
                 band, driver, az, alt, ver_ex, scale_1, path, **kwargs

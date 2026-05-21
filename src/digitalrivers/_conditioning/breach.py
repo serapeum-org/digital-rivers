@@ -25,6 +25,7 @@ Three methods are exposed via :func:`breach_depressions`:
 No-data handling: cells flagged no-data are treated as free outlets (a Dijkstra path that
 reaches a no-data cell terminates the search). Input is not mutated.
 """
+
 from __future__ import annotations
 
 import heapq
@@ -38,7 +39,9 @@ from digitalrivers._conditioning.pitremoval import (
     local_minima_8,
 )
 
-VALID_BREACH_METHODS: frozenset[str] = frozenset({"least_cost", "hybrid", "single_cell"})
+VALID_BREACH_METHODS: frozenset[str] = frozenset(
+    {"least_cost", "hybrid", "single_cell"}
+)
 
 
 def _small_num(z: np.ndarray, nodata_mask: np.ndarray) -> float:
@@ -141,7 +144,9 @@ def _breach_single_cell_pits(
                 continue
             if nodata_mask[r2, c2]:
                 # A second-order no-data cell is a free outlet through any intermediate.
-                z_target = pit_z  # lower intermediate to pit elevation; nodata is the sink
+                z_target = (
+                    pit_z  # lower intermediate to pit elevation; nodata is the sink
+                )
             elif z[r2, c2] < pit_z:
                 z_target = (pit_z + float(z[r2, c2])) / 2.0
             else:
@@ -357,10 +362,17 @@ def breach_depressions(
         if not _is_local_minimum(z_work, pit_r, pit_c, nodata_mask):
             continue
         ok = _breach_least_cost_one_pit(
-            z_work, nodata_mask, pit_r, pit_c,
-            max_depth=max_depth, max_length=max_length,
+            z_work,
+            nodata_mask,
+            pit_r,
+            pit_c,
+            max_depth=max_depth,
+            max_length=max_length,
             small_num=small_num,
-            cost=cost, backlink=backlink, pathlen=pathlen, visited=visited,
+            cost=cost,
+            backlink=backlink,
+            pathlen=pathlen,
+            visited=visited,
         )
         if not ok:
             unresolved.append((pit_r, pit_c))
@@ -369,14 +381,13 @@ def breach_depressions(
         # Fall back to Priority-Flood on the (already breach-modified) surface. We fill the
         # whole DEM; the breach phase has lowered enough cells that this is cheaper than
         # fill-only on the original surface.
-        z_work = fill_depressions(z_work, nodata_mask=nodata_mask,
-                                  method="priority_flood", epsilon=0.0)
+        z_work = fill_depressions(
+            z_work, nodata_mask=nodata_mask, method="priority_flood", epsilon=0.0
+        )
     return z_work
 
 
-def _is_local_minimum(
-    z: np.ndarray, r: int, c: int, nodata_mask: np.ndarray
-) -> bool:
+def _is_local_minimum(z: np.ndarray, r: int, c: int, nodata_mask: np.ndarray) -> bool:
     """Cheap point-wise local-minimum check used by the per-pit re-validation loop.
 
     Vectorised via a 3×3 window slice + masked comparison: pulls the 3-row × 3-col

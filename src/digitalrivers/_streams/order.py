@@ -23,6 +23,7 @@ All operate on a stream-cell mask plus a D8 flow-direction raster. Output is a 2
   advances downstream. Heads are enumerated in row-major order for
   determinism; the value strictly increases along every flow path.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -87,7 +88,9 @@ def _build_topology(
 
 
 def _upstream_length_from_head(
-    stream_mask: np.ndarray, fdir: np.ndarray, indeg: np.ndarray,
+    stream_mask: np.ndarray,
+    fdir: np.ndarray,
+    indeg: np.ndarray,
 ) -> np.ndarray:
     """Per-stream-cell longest path from any head, measured in cell steps.
 
@@ -123,7 +126,8 @@ def _upstream_length_from_head(
 
 
 def _stream_outlets(
-    stream_mask: np.ndarray, fdir: np.ndarray,
+    stream_mask: np.ndarray,
+    fdir: np.ndarray,
 ) -> list[tuple[int, int]]:
     """Stream cells whose D8 receiver is off-grid, undefined, or non-stream."""
     rows, cols = stream_mask.shape
@@ -205,11 +209,7 @@ def strahler(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
             cnt_max[nr, nc] += 1
         indeg[nr, nc] -= 1
         if indeg[nr, nc] == 0:
-            out[nr, nc] = (
-                max_in[nr, nc] + 1
-                if cnt_max[nr, nc] >= 2
-                else max_in[nr, nc]
-            )
+            out[nr, nc] = max_in[nr, nc] + 1 if cnt_max[nr, nc] >= 2 else max_in[nr, nc]
             queue.append((nr, nc))
     return out
 
@@ -315,8 +315,9 @@ def horton(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
                     continue
                 if int(fdir[ur, uc]) != int(_INV_DIR[k]):
                     continue
-                inflow_cells.append((int(length_from_head[ur, uc]),
-                                     ur * cols + uc, ur, uc))
+                inflow_cells.append(
+                    (int(length_from_head[ur, uc]), ur * cols + uc, ur, uc)
+                )
             if not inflow_cells:
                 continue
             # Main stem = longest length; tie-break by lower linear index.
