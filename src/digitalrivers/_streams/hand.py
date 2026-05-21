@@ -15,6 +15,7 @@ remembering the target drain cell, accumulate `dz` along the flow path. By
 the fundamental theorem of summation, `Σ dz = elev[cell] - elev[drain]`.
 Memoised iteratively so each cell is visited at most twice.
 """
+
 from __future__ import annotations
 
 import numpy as np

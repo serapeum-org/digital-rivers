@@ -7,8 +7,8 @@ features:
   GDAL-compatible `(row_off, col_off, n_rows, n_cols)` windows for
   streaming a continental DEM through any per-tile algorithm without
   materialising the full raster in memory.
-* :func:`write_cog` — Cloud-Optimised GeoTIFF writer wrapping GDAL's
-  built-in COG driver.
+* :func:`write_cog` — Cloud-Optimised GeoTIFF writer; a thin convenience
+  wrapper that delegates to pyramids' `Dataset.to_cog`.
 
 Deferred (umbrella raises `NotImplementedError` with a deferral note):
 
@@ -16,6 +16,7 @@ Deferred (umbrella raises `NotImplementedError` with a deferral note):
   `tile_windows`.
 * :func:`cloud_storage` — Zarr / S3 / GCS read & write factories.
 """
+
 from __future__ import annotations
 
 
@@ -102,24 +103,27 @@ def dask_backend(*args, **kwargs):
 def write_cog(dataset, path: str, compress: str = "deflate") -> str:
     """Cloud-Optimised GeoTIFF writer.
 
-    Writes a pyramids `Dataset` to a COG file using GDAL's built-in COG
-    driver. COG is the standard cloud-native format for raster data:
-    internally tiled, internally overviewed, and indexable by HTTP range
-    requests — the foundation of every modern STAC-based pipeline.
+    Thin convenience wrapper that delegates to pyramids' `Dataset.to_cog`,
+    the canonical COG writer. COG is the standard cloud-native format for
+    raster data: internally tiled, internally overviewed, and indexable by
+    HTTP range requests — the foundation of every modern STAC-based pipeline.
+    Reach for `dataset.to_cog(...)` directly when you need the full option
+    matrix (overviews, blocksize, tiling scheme, reprojection, etc.).
 
     Args:
         dataset: Any `pyramids.Dataset` (or subclass — DEM,
             FlowDirection, Accumulation, etc.).
         path: Output `.tif` path.
         compress: GDAL compression option (`"deflate"` default,
-            `"lzw"`, `"zstd"`, `"none"`).
+            `"lzw"`, `"zstd"`, `"none"`). Case-insensitive.
 
     Returns:
         The output path on success.
 
     Raises:
-        RuntimeError: If GDAL's COG driver fails (older GDAL builds may
-            need `"GTIFF"` with manual COG options instead).
+        DriverNotExistError: If the GDAL build lacks the COG driver.
+        FileNotFoundError: If the parent directory does not exist.
+        FailedToSaveError: If GDAL's COG `CreateCopy` fails.
 
     Examples:
         - Write a 5x5 DEM as a COG:
@@ -138,21 +142,7 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
             ...     os.path.exists(result)
             True
     """
-    from osgeo import gdal
-
-    src = dataset.raster
-    driver = gdal.GetDriverByName("COG")
-    if driver is None:
-        raise RuntimeError(
-            "GDAL COG driver not available; upgrade GDAL >= 3.1 or write "
-            "via GTIFF with TILED=YES + COPY_SRC_OVERVIEWS=YES manually."
-        )
-    options = [f"COMPRESS={compress.upper()}"]
-    out = driver.CreateCopy(path, src, 0, options)
-    if out is None:
-        raise RuntimeError(f"GDAL COG driver failed to write {path}")
-    out = None  # flush / close
-    return path
+    return str(dataset.to_cog(path, compress=compress.upper()))
 
 
 def cloud_storage(*args, **kwargs):

@@ -34,7 +34,10 @@ Python; Numba acceleration is a follow-up. Works on small/medium DEMs
 (thousands of cells) within seconds; for continental DEMs use the pyflwdir
 vendor path until a Numba IHU lands.
 """
+
 from __future__ import annotations
+
+from collections import deque
 
 import numpy as np
 
@@ -82,7 +85,9 @@ def _precompute_exit_info(fdir: np.ndarray, scale_factor: int) -> tuple:
 
 
 def _coarse_accumulation_from_outlets(
-    outlets: dict, out_rows: int, out_cols: int,
+    outlets: dict,
+    out_rows: int,
+    out_cols: int,
 ) -> np.ndarray:
     """Coarse-grid Kahn topological-sort accumulation. Unit weights.
 
@@ -109,7 +114,6 @@ def _coarse_accumulation_from_outlets(
             nc = bc + int(_DIR_DC[d])
             if 0 <= nr < out_rows and 0 <= nc < out_cols:
                 indeg[nr, nc] += 1
-    from collections import deque
     queue: deque[tuple[int, int]] = deque()
     for br in range(out_rows):
         for bc in range(out_cols):
@@ -134,7 +138,10 @@ def _coarse_accumulation_from_outlets(
 
 
 def _global_error(
-    outlets: dict, fine_acc: np.ndarray, out_rows: int, out_cols: int,
+    outlets: dict,
+    fine_acc: np.ndarray,
+    out_rows: int,
+    out_cols: int,
     scale_factor: int,
 ) -> float:
     """Sum over coarse cells of `|fine_outlet_acc - coarse_acc * sf^2|`.
@@ -159,7 +166,7 @@ def _global_error(
     follow-up referenced by the docstring note in :func:`ihu_upscale`.
     """
     coarse = _coarse_accumulation_from_outlets(outlets, out_rows, out_cols)
-    sf2 = float(scale_factor ** 2)
+    sf2 = float(scale_factor**2)
     total = 0.0
     for (br, bc), out in outlets.items():
         a = float(out[0])  # fine accumulation at the outlet
@@ -241,8 +248,13 @@ def ihu_upscale(
             br = fr // scale_factor
             bc = fc // scale_factor
             candidates.setdefault((br, bc), []).append(
-                (float(acc[fr, fc]), int(fr), int(fc),
-                 int(exit_dr[fr, fc]), int(exit_dc[fr, fc]))
+                (
+                    float(acc[fr, fc]),
+                    int(fr),
+                    int(fc),
+                    int(exit_dr[fr, fc]),
+                    int(exit_dc[fr, fc]),
+                )
             )
     for k in candidates:
         candidates[k].sort(reverse=True)

@@ -20,6 +20,7 @@ this module's decorators degrade to no-ops, producing identical bit-for-bit
 output from the pure-Python branch. Used for debugging (step-through in an IDE)
 and for CI on platforms without Numba wheels.
 """
+
 from __future__ import annotations
 
 import os
@@ -35,6 +36,7 @@ if _USE_NUMBA:
         _USE_NUMBA = False
 
 if not _USE_NUMBA:
+
     def njit(*args, **kwargs):  # type: ignore[no-redef]
         """No-op decorator used when Numba is unavailable / disabled."""
         if args and callable(args[0]) and not kwargs:
@@ -69,6 +71,7 @@ def neighbour_offsets() -> tuple[np.ndarray, np.ndarray]:
 
 
 # ----- D8 flow direction --------------------------------------------------------------------
+
 
 @njit(cache=True)
 def d8_flow_direction_numba(
@@ -130,6 +133,7 @@ def d8_flow_direction_numba(
 
 
 # ----- D8 / Rho8 accumulation (Kahn topo sort) ----------------------------------------------
+
 
 @njit(cache=True)
 def kahn_accumulate_d8_numba(
@@ -207,9 +211,11 @@ def kahn_accumulate_d8_numba(
 
 # ----- Priority-flood fill (binary-heap) ----------------------------------------------------
 
+
 @njit(cache=True, inline="always")
-def _heap_push(prio: np.ndarray, idx: np.ndarray, size: int,
-               new_prio: float, new_idx: int) -> int:
+def _heap_push(
+    prio: np.ndarray, idx: np.ndarray, size: int, new_prio: float, new_idx: int
+) -> int:
     """Push `(new_prio, new_idx)` onto a min-heap stored in
     `prio[:size]` / `idx[:size]`. Returns the new size. Tie-breaks via
     `idx` so the order is deterministic across runs."""
@@ -219,9 +225,7 @@ def _heap_push(prio: np.ndarray, idx: np.ndarray, size: int,
     size += 1
     while i > 0:
         parent = (i - 1) >> 1
-        if prio[parent] > prio[i] or (
-            prio[parent] == prio[i] and idx[parent] > idx[i]
-        ):
+        if prio[parent] > prio[i] or (prio[parent] == prio[i] and idx[parent] > idx[i]):
             tmp_p = prio[parent]
             prio[parent] = prio[i]
             prio[i] = tmp_p
@@ -395,7 +399,7 @@ def priority_flood_numba(
         for c in range(cols):
             if closed[r, c]:
                 continue
-            is_seed = (r == 0 or r == rows - 1 or c == 0 or c == cols - 1)
+            is_seed = r == 0 or r == rows - 1 or c == 0 or c == cols - 1
             if not is_seed:
                 for k in range(8):
                     nr = r + d_row[k]
@@ -445,6 +449,7 @@ def priority_flood_numba(
 
 # ----- horizon-walk (Yokoyama 2002 openness / sky-view factor) -------------------------------
 
+
 @njit(parallel=True, cache=True)
 def horizon_walk_kernel(
     z: np.ndarray,
@@ -492,9 +497,11 @@ def horizon_walk_kernel(
                     nc = c + int(dc[k]) * s
                     if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
                         break
-                    d_step = float(cell_size) * np.sqrt(
-                        float(dr[k] * dr[k] + dc[k] * dc[k])
-                    ) * float(s)
+                    d_step = (
+                        float(cell_size)
+                        * np.sqrt(float(dr[k] * dr[k] + dc[k] * dc[k]))
+                        * float(s)
+                    )
                     a = np.arctan2(z[nr, nc] - z0, d_step)
                     if a > max_angle:
                         max_angle = a

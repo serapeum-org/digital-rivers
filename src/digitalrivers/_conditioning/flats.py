@@ -27,6 +27,7 @@ No-data is honoured throughout — no-data cells are skipped as both plateau mem
 gradient seeds. Plateaus with no LEC (closed depressions that should not survive a fill)
 are left unmodified.
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -35,14 +36,22 @@ import numpy as np
 
 # 8-connectivity neighbour offsets (dr, dc).
 _NEIGHBOURS_8: tuple[tuple[int, int], ...] = (
-    (-1, -1), (-1, 0), (-1, 1),
-    (0, -1),           (0, 1),
-    (1, -1),  (1, 0),  (1, 1),
+    (-1, -1),
+    (-1, 0),
+    (-1, 1),
+    (0, -1),
+    (0, 1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
 )
 
 # 4-connectivity neighbour offsets (dr, dc) — cardinal directions only.
 _NEIGHBOURS_4: tuple[tuple[int, int], ...] = (
-    (-1, 0), (0, -1), (0, 1), (1, 0),
+    (-1, 0),
+    (0, -1),
+    (0, 1),
+    (1, 0),
 )
 
 
@@ -296,8 +305,6 @@ def resolve_flats(
         # flow direction toward the outlet, and lifting them would shrink the gradient
         # between the LEC and the cell it drains to.
         true_flat = final_lift_mask & ~is_lec
-        z_out[true_flat] += (
-            (2 * g_high[true_flat] + g_low[true_flat]) * epsilon
-        )
+        z_out[true_flat] += (2 * g_high[true_flat] + g_low[true_flat]) * epsilon
 
     return z_out

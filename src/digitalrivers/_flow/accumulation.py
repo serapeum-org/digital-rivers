@@ -14,6 +14,7 @@ Output semantics: `out[cell] = sum of weights[upstream_cells]` — i.e. the cell
 own weight does **not** contribute to its own accumulation. This matches the legacy
 `DEM.flow_accumulation` behaviour (count of upstream cells when `weights=1`).
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -148,9 +149,7 @@ def kahn_accumulate(
             continue
         nr = rr + _DIR_DR[d.clip(min=0)]
         nc = cc + _DIR_DC[d.clip(min=0)]
-        in_bounds = (
-            live & (nr >= 0) & (nr < rows) & (nc >= 0) & (nc < cols)
-        )
+        in_bounds = live & (nr >= 0) & (nr < rows) & (nc >= 0) & (nc < cols)
         # Mask non-live before lookup to keep indices in range.
         nr_safe = np.where(in_bounds, nr, 0)
         nc_safe = np.where(in_bounds, nc, 0)
@@ -219,7 +218,8 @@ def accumulate(
                 f"{flow_direction_array.shape}"
             )
         # Numba fast path for single-direction routings — bit-for-bit identical to
-        # the pure-Python Kahn sweep, ≥ 30× faster warm.
+        # the pure-Python Kahn sweep, ≥ 30× faster warm. Imported lazily so that
+        # `import digitalrivers` does not eagerly pull in Numba.
         from digitalrivers._numba import (
             _DIR_DR_I32,
             _DIR_DC_I32,
@@ -231,10 +231,14 @@ def accumulate(
             if weights is None:
                 w_arr = np.ones(valid_mask.shape, dtype=np.float64)
             else:
-                w_arr = np.where(valid_mask, weights.astype(np.float64, copy=False), 0.0)
+                w_arr = np.where(
+                    valid_mask, weights.astype(np.float64, copy=False), 0.0
+                )
             return kahn_accumulate_d8_numba(
                 flow_direction_array.astype(np.int32, copy=False),
-                w_arr, _DIR_DR_I32, _DIR_DC_I32,
+                w_arr,
+                _DIR_DR_I32,
+                _DIR_DC_I32,
             )
         receivers, proportions = _receivers_d8(flow_direction_array, valid_mask)
     elif routing == "dinf":
@@ -270,7 +274,8 @@ def accumulate(
 
 
 def kahn_max_upslope_length(
-    fdir: np.ndarray, cell_size: float,
+    fdir: np.ndarray,
+    cell_size: float,
 ) -> np.ndarray:
     """Per-cell longest upslope flow path (planimetric) under D8 / Rho8 routing.
 
@@ -291,7 +296,7 @@ def kahn_max_upslope_length(
         in map units.
     """
     rows, cols = fdir.shape
-    diag = float(cell_size) * (2.0 ** 0.5)
+    diag = float(cell_size) * (2.0**0.5)
     cs = float(cell_size)
     # In-degree count for Kahn ordering.
     inv = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)

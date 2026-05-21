@@ -27,15 +27,14 @@ classifiers = [
 requires-python = ">= 3.11, <4"
 
 dependencies = [
-    "gdal >=3.10.0,<4",
+    "pyramids-gis >=0.20.0",
     "geopandas >=1.0.0",
     "numba >=0.60.0,<1",
     "numpy >=2.0.0",
-    "pyramids-gis >=0.18.0",
 ]
 
 [project.optional-dependencies]
-viz = ["pyramids-gis[viz] >=0.18.0"]
+viz = ["pyramids-gis[viz] >=0.20.0"]
 dev = [
     "nbval >=0.11.0",
     "pre-commit >=3.7.1",
@@ -160,9 +159,9 @@ build-dist = { cmd = "python -m build", description = "Build sdist and wheel for
 publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*", depends-on = ["build-dist"], description = "Build and upload package to PyPI" }
 
 [tool.pixi.environments]
-default = { solve-group = "default" }
-dev = { features = ["dev", "viz"], solve-group = "default" }
-docs = { features = ["docs"], solve-group = "default" }
+default = { features = ["gil"], solve-group = "default" }
+dev = { features = ["dev", "viz", "gil"], solve-group = "default" }
+docs = { features = ["docs", "gil"], solve-group = "default" }
 py311 = { features = ["py311", "dev", "viz"], solve-group = "py311" }
 py312 = { features = ["py312", "dev", "viz"], solve-group = "py312" }
 py313 = { features = ["py313", "dev", "viz"], solve-group = "py313" }
@@ -179,8 +178,16 @@ python = "3.13.*"
 python = "3.14.*"
 
 [tool.pixi.dependencies]
-# pyramids pinned via PyPI (pyramids-gis) until parselmouth indexes the
-# conda-forge 0.18.0 hash; restore once `pixi update` stops failing.
-# pyramids = ">=0.18.0"
-gdal = ">=3.10.0,<4"
 numba = ">=0.60.0,<1"
+
+# Force the standard (GIL) CPython build for the unpinned `default`
+# solve-group (default / dev / docs). Without this, conda-forge's solver
+# selects the free-threaded 3.14 variant (build string `*_cp314t`), for
+# which pyramids-gis ships NO wheel (its cibuildwheel `skip` excludes
+# `cp314t`) — pixi then falls back to the GDAL-less sdist and `import
+# digitalrivers` breaks. The `*cp314` build glob matches the regular ABI
+# wheel (`pyramids_gis-…-cp314-cp314-…`) and excludes the `cp314t` one.
+# Scoped to its own feature (not [tool.pixi.dependencies]) so it doesn't
+# collide with the `py311` / `py312` / `py313` env python pins.
+[tool.pixi.feature.gil.dependencies]
+python = { version = "3.14.*"}
