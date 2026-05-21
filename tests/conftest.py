@@ -1,3 +1,4 @@
+from pyramids import __version__
 from typing import Dict
 import pytest
 import numpy as np
