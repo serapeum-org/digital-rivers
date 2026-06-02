@@ -450,7 +450,7 @@ def priority_flood_numba(
 # ----- horizon-walk (Yokoyama 2002 openness / sky-view factor) -------------------------------
 
 
-@njit(parallel=True, cache=True)
+@njit(cache=True)
 def horizon_walk_kernel(
     z: np.ndarray,
     cell_size: float,
@@ -486,7 +486,10 @@ def horizon_walk_kernel(
     dr = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
     dc = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
     n_dirs = 8
-    for r in prange(rows):
+    # Serial outer loop (no `prange`/`parallel=True`): the numba parallel
+    # threading layer segfaults on macOS-arm64 for this kernel, and the per-cell
+    # work is cheap enough that single-threaded JIT is fine.
+    for r in range(rows):
         for c in range(cols):
             z0 = z[r, c]
             total = 0.0
