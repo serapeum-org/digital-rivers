@@ -154,6 +154,18 @@ markers = [
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-arm64"]
 
+# Raise the resolution baseline so pixi picks the pre-built wheels instead of
+# falling back to sdists (which then fail / lack bundled GDAL):
+#  * pyramids-gis ships its Linux wheel as `manylinux_2_39` (glibc >= 2.39);
+#    pixi defaults to glibc 2.17 at lock time and would otherwise reject it and
+#    lock the GDAL-less sdist. See
+#    https://serapeum-org.github.io/pyramids/main/installation/
+#  * pyproj's osx-arm64 wheel is tagged `macosx_14_0_arm64`, above pixi's
+#    default macOS baseline, so raise that too (macos-latest runners are >= 14).
+[tool.pixi.system-requirements]
+libc = "2.39"
+macos = "14.0"
+
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
 
