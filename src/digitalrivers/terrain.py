@@ -76,18 +76,21 @@ class Terrain(Dataset):
                 >>> import numpy as np
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
                 >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+
                 ```
             - Now let's create the color table using hex colors.
                 ```python
+                >>> import pandas as pd
                 >>> color_hex = ["#709959", "#F2EEA2", "#F2CE85", "#C28C7C", "#D6C19C"]
                 >>> values = [1, 3, 5, 7, 9]
                 >>> df = pd.DataFrame(columns=["values", "color"])
                 >>> df.loc[:, "values"] = values
                 >>> df.loc[:, "color"] = color_hex
+
                 ```
             - Now let's create the color relief for the dataset using the color table `DataFrame`.
                 ```python
-                >>> color_relief = dataset.color_relief(band=0, color_table=df)
+                >>> color_relief = Terrain(dataset.raster).color_relief(band=0, color_table=df)
                 >>> print(color_relief) # doctest: +SKIP
                 <BLANKLINE>
                             Cell size: 0.05
@@ -103,12 +106,13 @@ class Terrain(Dataset):
                 <BLANKLINE>
                 >>> print(color_relief.band_color)
                 {0: 'red', 1: 'green', 2: 'blue', 3: 'alpha'}
+
                 ```
             - The result color relief dataset will have 4 bands red, green, blue, and alpha. with values from 0 to 255.
             - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices
                 with the alpha index as the fourth index, otherwise the alpha band will be missing.
                 ```python
-                >>> fig, ax = color_relief.plot(rgb=[0, 1, 2, 3])
+                >>> fig, ax = color_relief.plot(rgb=[0, 1, 2, 3]) # doctest: +SKIP
 
                 ```
             ![color-relief](./../_images/dataset/color-relief.png)
@@ -220,24 +224,26 @@ class Terrain(Dataset):
                 >>> arr = np.random.randint(0, 15, size=(100, 100))
                 >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
 
-                >>> hill_shade = dataset.hill_shade(
+                >>> hill_shade = Terrain(dataset.raster).hill_shade(
                 ...     band=0, altitude=45, azimuth=315, vertical_exaggeration=1, scale=1
                 ... )
 
                 >>> print(hill_shade.dtype) # doctest: +SKIP
                 ['byte']
                 >>> hill_shade.plot() # doctest: +SKIP
+
                 ```
                 ![hill-shade](./../_images/dataset/hill-shade.png)
                 ```python
                 >>> hill_shade.stats() # doctest: +SKIP
                         min    max       mean        std
                 Band_1  1.0  223.0  58.880951  71.079056
+
                 ```
             - You can also provide the function with a list os values for each parameter, then the functions will
                 calculate the hill shade for each set of parameters and then the average will be returned.
                 ```python
-                >>> hill_shade = dataset.hill_shade(
+                >>> hill_shade = Terrain(dataset.raster).hill_shade(
                 ...     band=0, azimuth=[315, 45], altitude=[45, 45], vertical_exaggeration=[1, 1], scale=[1, 1]
                 ... )
 
@@ -413,11 +419,12 @@ class Terrain(Dataset):
                 >>> dataset = Dataset.create_from_array(
                 ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
                 ... )
+
                 ```
             - Now let's create the slope for the dataset.
                 ```python
-                >>> slope = dataset.slope()
-                >>> fig, ax = slope.plot()
+                >>> slope = Terrain(dataset.raster).slope()
+                >>> fig, ax = slope.plot() # doctest: +SKIP
 
                 ```
                 ![slope](./../_images/dataset/slope.png)
@@ -498,11 +505,12 @@ class Terrain(Dataset):
                 >>> dataset = Dataset.create_from_array(
                 ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
                 ... )
+
                 ```
             - Compute the aspect raster.
                 ```python
-                >>> aspect = dataset.aspect()
-                >>> fig, ax = aspect.plot()
+                >>> aspect = Terrain(dataset.raster).aspect()
+                >>> fig, ax = aspect.plot() # doctest: +SKIP
 
                 ```
                 ![aspect](./../_images/dataset/aspect.png)
