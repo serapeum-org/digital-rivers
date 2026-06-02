@@ -910,6 +910,9 @@ class Terrain(Dataset):
             creation_options = CREATION_OPTIONS.copy()
 
         src_band = self.raster.GetRasterBand(band + 1)
+        # `gdal.ViewshedGenerate` + the `GVM_*` enums require a recent GDAL; that
+        # floor is supplied transitively by the `pyramids-gis >=0.29.0` pin (see
+        # the dependency note in pyproject.toml), not a direct GDAL dependency.
         dst = gdal.ViewshedGenerate(
             src_band,
             driver,
