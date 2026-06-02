@@ -263,20 +263,13 @@ class TestAspect:
         assert vals.max() <= 360
         assert vals.min() >= 0
 
-    @pytest.mark.xfail(
-        reason="the vendored GDAL build rejects DEMProcessingOptions(zeroForFlat=True): "
-        "'Argument(s) are not valid with any processing mode'",
-        strict=False,
-        raises=RuntimeError,
-    )
     def test_zero_flat_surface_flags_flats_as_zero(self):
         """Test zero_flat_surface=True gives flat cells an aspect of 0.
 
         Test scenario:
             On a perfectly flat surface every cell is flat; with
-            ``zero_flat_surface=True`` interior aspect values should be 0
-            rather than the no-data sentinel. Currently xfails because the
-            vendored GDAL rejects the ``zeroForFlat=True`` option.
+            ``zero_flat_surface=True`` interior aspect values are 0 rather
+            than the no-data sentinel.
         """
         dem = _terrain(np.full((10, 10), 5.0, dtype=np.float32))
         out = dem.aspect(zero_flat_surface=True).read_array()

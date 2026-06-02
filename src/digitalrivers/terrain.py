@@ -548,11 +548,12 @@ class Terrain(Dataset):
 
         Args:
             band: Zero-based band index. Defaults to 0.
-            scale: Ratio of vertical to horizontal units.  Use
-                `111120` when the horizontal CRS is in degrees and
-                vertical units are metres.  Defaults to 1.
-            vertical_exaggeration: Z-factor used to emphasise vertical
-                features.  Defaults to 1.
+            scale: Accepted for signature symmetry with `slope` but **not
+                used** — GDAL's aspect mode is scale-invariant (it reports a
+                direction) and rejects the `-s` option. Defaults to 1.
+            vertical_exaggeration: Accepted for signature symmetry but **not
+                used** for the same reason (aspect rejects the `-z` option).
+                Defaults to 1.
             zero_flat_surface: If `True` flat areas get an aspect of
                 0°.  If `False` (default) flat areas receive the
                 no-data value.
@@ -600,12 +601,16 @@ class Terrain(Dataset):
         if creation_options is None:
             creation_options = CREATION_OPTIONS.copy()
 
+        # `scale` / `vertical_exaggeration` are NOT forwarded: GDAL's aspect mode
+        # does not accept the slope/hillshade `-s` / `-z` options (aspect is a
+        # scale-invariant direction). Passing them is silently tolerated only
+        # when `zeroForFlat` is unset, and otherwise raises "Argument(s) are not
+        # valid with any processing mode" — so they are dropped here.
+        del scale, vertical_exaggeration
         options = gdal.DEMProcessingOptions(
             band=band + 1,
             format=driver,
             alg=algorithm,
-            scale=scale,
-            zFactor=vertical_exaggeration,
             zeroForFlat=zero_flat_surface,
             creationOptions=creation_options,
             **kwargs,
