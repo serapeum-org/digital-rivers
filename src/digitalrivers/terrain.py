@@ -21,15 +21,82 @@ CREATION_OPTIONS = ["COMPRESS=DEFLATE", "PREDICTOR=2"]
 class Terrain(Dataset):
     """Terrain analysis tools built on GDAL `DEMProcessing`.
 
-    Wraps a single- or multi-band raster and exposes convenience methods
-    for color relief, hill shade, slope, and aspect computation.
+    Wraps a single- or multi-band raster and exposes convenience methods for
+    visualisation (`color_relief`, `hill_shade`) and analysis: `slope`,
+    `aspect`, the ruggedness derivatives (`roughness`, `tpi`, `tri`), and
+    line-of-sight `viewshed`. Every method returns a `pyramids.dataset.Dataset`
+    so results compose with the rest of the stack.
 
     Args:
-        raster: File path or GDAL dataset to open.
+        raster: A `gdal.Dataset` to wrap. To open a terrain raster from a file
+            path, use the inherited `Terrain.read_file(path)` classmethod.
         access: `"read_only"` (default) or `"write"`.
+
+    Examples:
+        - Wrap an in-memory DEM and compute a ruggedness derivative:
+            ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers import Terrain
+            >>> arr = np.array(
+            ...     [[10, 11, 12], [10, 9, 8], [5, 6, 30]], dtype=np.float32
+            ... )
+            >>> ds = Dataset.create_from_array(
+            ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            ...     no_data_value=-9999.0,
+            ... )
+            >>> terrain = Terrain(ds.raster)
+            >>> terrain.roughness().read_array().shape
+            (3, 3)
+
+            ```
+        - Derive slope and read back its single float32 band:
+            ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers import Terrain
+            >>> ramp = np.arange(9, dtype=np.float32).reshape(3, 3)
+            >>> ds = Dataset.create_from_array(
+            ...     ramp, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            ...     no_data_value=-9999.0,
+            ... )
+            >>> slope = Terrain(ds.raster).slope()
+            >>> slope.dtype
+            ['float32']
+
+            ```
+
+    See Also:
+        digitalrivers.dem.DEM: Hydrological DEM processing (fill, flow direction,
+            accumulation) with native window-configurable `tpi` / `ruggedness`.
     """
 
-    def __init__(self, raster: str | gdal.Dataset, access: str = "read_only"):
+    def __init__(self, raster: gdal.Dataset, access: str = "read_only"):
+        """Wrap a GDAL dataset for terrain analysis.
+
+        Args:
+            raster: A `gdal.Dataset` to wrap. To open a terrain raster from a
+                file path use the inherited `Terrain.read_file(path)`
+                classmethod; the bare constructor accepts a `gdal.Dataset`
+                only.
+            access: `"read_only"` (default) or `"write"`.
+
+        Examples:
+            - Wrap an in-memory raster and read its grid dimensions:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.ones((4, 5), dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+                ... )
+                >>> terrain = Terrain(ds.raster)
+                >>> terrain.shape[-2:]
+                (4, 5)
+
+                ```
+        """
         super().__init__(raster, access)
 
     def color_relief(
