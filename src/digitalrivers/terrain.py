@@ -33,7 +33,11 @@ class Terrain(Dataset):
         super().__init__(raster, access)
 
     def color_relief(
-        self, band: int = 0, path: str = None, color_table: DataFrame = None, **kwargs
+        self,
+        band: int = 0,
+        path: str | None = None,
+        color_table: DataFrame | None = None,
+        **kwargs,
     ) -> "Dataset":
         """Create a color relief for a band in the Dataset.
 
@@ -152,8 +156,8 @@ class Terrain(Dataset):
         altitude: int | float | list[int] = 45,
         vertical_exaggeration: int | float | list[int] = 1,
         scale: int | float | list[int] = 1,
-        path: str = None,
-        weights: list[int] = None,
+        path: str | None = None,
+        weights: list[int] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Create hill-shade.
@@ -341,7 +345,7 @@ class Terrain(Dataset):
         altitude: int | float = 45,
         vertical_exaggeration: int | float = 1,
         scale: int | float = 1,
-        path: str = None,
+        path: str | None = None,
         **kwargs,
     ) -> gdal.Dataset:
         """Run a single GDAL `DEMProcessing("hillshade")` call.
@@ -379,9 +383,9 @@ class Terrain(Dataset):
         band: int = 0,
         scale: int | float | list[int] = 1,
         slope_format: str = "degree",
-        path: str = None,
-        algorithm: str = None,
-        creation_options: list[str] = None,
+        path: str | None = None,
+        algorithm: str | None = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the slope of the terrain surface.
@@ -464,9 +468,9 @@ class Terrain(Dataset):
         scale: int | float | list[int] = 1,
         vertical_exaggeration: int | float | list[int] = 1,
         zero_flat_surface: bool = False,
-        algorithm: str = None,
-        path: str = None,
-        creation_options: list[str] = None,
+        algorithm: str | None = None,
+        path: str | None = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the aspect (slope direction) of the terrain surface.
@@ -598,9 +602,9 @@ class Terrain(Dataset):
     def roughness(
         self,
         band: int = 0,
-        path: str = None,
+        path: str | None = None,
         compute_edges: bool = False,
-        creation_options: list[str] = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute terrain roughness — the largest elevation difference in a 3x3 window.
@@ -657,9 +661,9 @@ class Terrain(Dataset):
     def tpi(
         self,
         band: int = 0,
-        path: str = None,
+        path: str | None = None,
         compute_edges: bool = False,
-        creation_options: list[str] = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the Topographic Position Index (TPI).
@@ -726,10 +730,10 @@ class Terrain(Dataset):
     def tri(
         self,
         band: int = 0,
-        algorithm: str = None,
-        path: str = None,
+        algorithm: str | None = None,
+        path: str | None = None,
         compute_edges: bool = False,
-        creation_options: list[str] = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the Terrain Ruggedness Index (TRI).
@@ -812,8 +816,8 @@ class Terrain(Dataset):
         out_of_range_value: float = 0.0,
         no_data_value: float = -1.0,
         curvature_coefficient: float = 0.85714,
-        path: str = None,
-        creation_options: list[str] = None,
+        path: str | None = None,
+        creation_options: list[str] | None = None,
     ) -> "Dataset":
         """Compute the viewshed (line-of-sight visibility) from an observer point.
 
