@@ -26,6 +26,12 @@ classifiers = [
 
 requires-python = ">= 3.11, <4"
 
+# GDAL is intentionally NOT a direct dependency: pyramids-gis bundles GDAL's
+# osgeo bindings in its platform wheel and activates them on `import pyramids`.
+# The >=0.29.0 floor is the first pyramids-gis whose bundled GDAL exposes the
+# APIs digital-rivers now calls (gdal.ViewshedGenerate + the GVM_* viewshed
+# enums used by Terrain.viewshed) and which ships cp314 wheels. Bumping the floor
+# below 0.29 will break Terrain.viewshed at runtime.
 dependencies = [
     "pyramids-gis >=0.29.0",
     "geopandas >=1.0.0",
