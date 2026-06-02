@@ -66,7 +66,7 @@ You can pin the basin outfall direction via `flow_direction(forced_direction=gdf
 import pandas as pd
 from digitalrivers.terrain import Terrain
 
-terrain = Terrain("path/to/dem.tif")
+terrain = Terrain.read_file("path/to/dem.tif")
 
 # Hill shade
 hs = terrain.hill_shade(azimuth=315, altitude=45)
