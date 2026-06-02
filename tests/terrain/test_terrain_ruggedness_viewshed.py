@@ -181,6 +181,22 @@ class TestRoughness:
             5.0
         ), "Reloaded peak roughness should be 5"
 
+    def test_explicit_creation_options(self, peak_dem, tmp_path):
+        """Test the ruggedness backend honours caller-supplied creation_options.
+
+        Args:
+            peak_dem: Terrain fixture with a central peak.
+            tmp_path: pytest temporary directory.
+
+        Test scenario:
+            Passing explicit ``creation_options`` takes the non-default branch
+            in the shared ``_ruggedness`` backend and writes a readable GeoTIFF.
+        """
+        out_path = str(tmp_path / "roughness_co.tif")
+        peak_dem.roughness(path=out_path, creation_options=["COMPRESS=LZW"])
+        reopened = Dataset.read_file(out_path).read_array()
+        assert reopened.shape == (7, 7), f"Unexpected shape on reload: {reopened.shape}"
+
 
 class TestTPI:
     """Tests for `Terrain.tpi` (GDAL `TPI` — z minus 8-neighbour mean)."""
@@ -426,4 +442,24 @@ class TestViewshed:
         """
         out_path = str(tmp_path / "viewshed.tif")
         flat_dem.viewshed(observer_x=2.5, observer_y=-2.5, path=out_path)
+        assert Dataset.read_file(out_path).read_array().shape == (5, 5)
+
+    def test_explicit_creation_options(self, flat_dem, tmp_path):
+        """Test viewshed honours caller-supplied creation_options.
+
+        Args:
+            flat_dem: Flat Terrain fixture.
+            tmp_path: pytest temporary directory.
+
+        Test scenario:
+            Passing explicit ``creation_options`` takes the non-default branch
+            and writes a readable 5x5 GeoTIFF viewshed.
+        """
+        out_path = str(tmp_path / "viewshed_co.tif")
+        flat_dem.viewshed(
+            observer_x=2.5,
+            observer_y=-2.5,
+            path=out_path,
+            creation_options=["COMPRESS=LZW"],
+        )
         assert Dataset.read_file(out_path).read_array().shape == (5, 5)

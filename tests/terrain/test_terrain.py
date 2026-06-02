@@ -190,6 +190,51 @@ class TestHillShade:
         assert out_path.exists(), f"Hill-shade GeoTIFF not written to {out_path}"
         assert out.shape == dem.shape, "Round-trip shape mismatch"
 
+    def test_multi_directional_false_is_single(self):
+        """Test multi_directional=False produces a normal single hill shade.
+
+        Test scenario:
+            Passing ``multi_directional=False`` takes the non-blended branch
+            and returns a single uint8 band of the input shape.
+        """
+        dem = _terrain(rng.integers(0, 15, size=(20, 20)))
+        out = dem.hill_shade(azimuth=315, altitude=45, multi_directional=False)
+        assert out.shape == dem.shape, f"Shape changed: {out.shape} vs {dem.shape}"
+        assert out.read_array().dtype == np.uint8, "Hill shade must be uint8"
+
+    def test_multi_directional_non_bool_raises(self):
+        """Test multi_directional must be a boolean.
+
+        Test scenario:
+            A non-boolean ``multi_directional`` value raises ``ValueError``.
+        """
+        dem = _terrain(rng.integers(0, 15, size=(20, 20)))
+        with pytest.raises(ValueError, match="multi_directional") as exc:
+            dem.hill_shade(azimuth=315, altitude=45, multi_directional="yes")
+        assert "boolean" in str(exc.value), f"Unexpected message: {exc.value}"
+
+    def test_igor_false_runs(self):
+        """Test igor=False leaves altitude unchanged and still runs.
+
+        Test scenario:
+            ``igor=False`` takes the branch that does not blank out altitude;
+            the call returns a single uint8 hill-shade band.
+        """
+        dem = _terrain(rng.integers(0, 15, size=(20, 20)))
+        out = dem.hill_shade(azimuth=315, altitude=45, igor=False)
+        assert out.read_array().dtype == np.uint8, "Hill shade must be uint8"
+
+    def test_igor_non_bool_raises(self):
+        """Test igor must be a boolean.
+
+        Test scenario:
+            A non-boolean ``igor`` value raises ``ValueError``.
+        """
+        dem = _terrain(rng.integers(0, 15, size=(20, 20)))
+        with pytest.raises(ValueError, match="igor") as exc:
+            dem.hill_shade(azimuth=315, altitude=45, igor="yes")
+        assert "boolean" in str(exc.value), f"Unexpected message: {exc.value}"
+
 
 class TestSlope:
 
@@ -262,6 +307,19 @@ class TestSlope:
         assert out_path.exists(), f"Slope GeoTIFF not written to {out_path}"
         assert out.shape == dem.shape, "Round-trip shape mismatch"
 
+    def test_explicit_creation_options(self, tmp_path):
+        """Test slope honours caller-supplied creation_options.
+
+        Test scenario:
+            Passing explicit ``creation_options`` takes the non-default branch
+            and writes a readable GeoTIFF of the input shape.
+        """
+        dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
+        out_path = tmp_path / "slope_co.tif"
+        out = dem.slope(path=str(out_path), creation_options=["COMPRESS=LZW"])
+        assert out_path.exists(), f"Slope GeoTIFF not written to {out_path}"
+        assert out.shape == dem.shape, "Round-trip shape mismatch"
+
 
 class TestAspect:
 
@@ -306,6 +364,19 @@ class TestAspect:
         dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
         out_path = tmp_path / "aspect.tif"
         out = dem.aspect(path=str(out_path))
+        assert out_path.exists(), f"Aspect GeoTIFF not written to {out_path}"
+        assert out.shape == dem.shape, "Round-trip shape mismatch"
+
+    def test_explicit_creation_options(self, tmp_path):
+        """Test aspect honours caller-supplied creation_options.
+
+        Test scenario:
+            Passing explicit ``creation_options`` takes the non-default branch
+            and writes a readable GeoTIFF of the input shape.
+        """
+        dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
+        out_path = tmp_path / "aspect_co.tif"
+        out = dem.aspect(path=str(out_path), creation_options=["COMPRESS=LZW"])
         assert out_path.exists(), f"Aspect GeoTIFF not written to {out_path}"
         assert out.shape == dem.shape, "Round-trip shape mismatch"
 
