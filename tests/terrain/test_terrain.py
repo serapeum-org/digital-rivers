@@ -150,24 +150,32 @@ class TestHillShade:
             )
         assert "same length" in str(exc.value), f"Unexpected message: {exc.value}"
 
-    def test_explicit_weights_for_multi_directional(self):
-        """Test hill_shade accepts explicit per-direction weights when blending.
+    def test_explicit_weights_change_the_blend(self):
+        """Test explicit weights actually alter the multi-directional blend.
 
         Test scenario:
-            Two azimuths with explicit ``weights=[3, 1]`` exercise the
-            weighted-average blend branch; output is a single uint8 band
-            of the input shape.
+            The same two-direction hill shade blended with ``weights=[3, 1]``
+            differs from the uniform ``weights=[1, 1]`` blend, confirming the
+            weights are applied (not silently ignored). Output is uint8 of the
+            input shape.
         """
         dem = _terrain(rng.integers(0, 15, size=(40, 40)))
-        out = dem.hill_shade(
+        kw = dict(
             azimuth=[315, 45],
             altitude=[45, 45],
             vertical_exaggeration=[1, 1],
             scale=[1, 1],
-            weights=[3, 1],
         )
-        assert out.shape == dem.shape, f"Shape changed: {out.shape} vs {dem.shape}"
-        assert out.read_array().dtype == np.uint8, "Blended hill shade must be uint8"
+        weighted = dem.hill_shade(weights=[3, 1], **kw)
+        uniform = dem.hill_shade(weights=[1, 1], **kw)
+        assert (
+            weighted.shape == dem.shape
+        ), f"Shape changed: {weighted.shape} vs {dem.shape}"
+        weighted_arr = weighted.read_array()
+        assert weighted_arr.dtype == np.uint8, "Blended hill shade must be uint8"
+        assert not np.array_equal(
+            weighted_arr, uniform.read_array()
+        ), "weights=[3, 1] must produce a different blend than uniform [1, 1]"
 
     def test_path_writes_geotiff(self, tmp_path):
         """Test hill_shade writes a GeoTIFF when ``path`` is given.
@@ -201,19 +209,29 @@ class TestSlope:
         assert vals.max() <= 90
         assert vals.min() >= 0
 
-    def test_percent_format_exceeds_90(self):
-        """Test slope_format='percent' can exceed the 90 degree-domain ceiling.
+    def test_percent_format_exceeds_degree_ceiling(self):
+        """Test slope_format='percent' exceeds the 90 ceiling of degree format.
 
         Test scenario:
-            A steep ramp in percent-rise units yields values that are not
-            bounded by 90 (the degree ceiling), confirming the
-            ``slope_format`` argument is honoured.
+            On a steep ramp, degree slope is bounded by 90 while percent-rise
+            slope is unbounded and exceeds it — proving ``slope_format`` actually
+            changes the computation rather than being ignored.
         """
         ramp = (np.arange(100).reshape(10, 10) * 5).astype(np.float32)
         dem = _terrain(ramp, cell_size=1.0, epsg=32636)
-        out = dem.slope(slope_format="percent").read_array()
-        vals = out[~np.isclose(out, -9999.0)]
-        assert vals.min() >= 0, f"Percent slope must be non-negative, got {vals.min()}"
+        deg = dem.slope(slope_format="degree").read_array()
+        pct = dem.slope(slope_format="percent").read_array()
+        deg_vals = deg[~np.isclose(deg, -9999.0)]
+        pct_vals = pct[~np.isclose(pct, -9999.0)]
+        assert (
+            deg_vals.max() <= 90.0
+        ), f"Degree slope must be <= 90, got {deg_vals.max()}"
+        assert (
+            pct_vals.max() > 90.0
+        ), f"Percent slope should exceed 90 here, got {pct_vals.max()}"
+        assert (
+            pct_vals.max() > deg_vals.max()
+        ), "percent format must differ from degree format on a steep ramp"
 
     @pytest.mark.parametrize("algorithm", ["Horn", "ZevenbergenThorne"])
     def test_algorithm_choice(self, algorithm):
