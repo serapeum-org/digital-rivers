@@ -4,7 +4,11 @@
   bathymetric DEM into a single surface. Four blend modes:
   `"max"`, `"min"`, `"topo_above"`, `"bathy_below"`.
 """
+
 from __future__ import annotations
+
+import numpy as np
+from pyramids.dataset import Dataset
 
 
 def topobathy_fusion(
@@ -71,9 +75,6 @@ def topobathy_fusion(
         Eakins B. W., Grothe P. R. (2014). "Challenges in building coastal
         digital elevation models." Journal of Coastal Research 30(5).
     """
-    import numpy as np
-    from pyramids.dataset import Dataset
-
     if blend not in ("max", "min", "topo_above", "bathy_below"):
         raise ValueError(
             f"blend must be one of 'max', 'min', 'topo_above', "
@@ -107,6 +108,7 @@ def topobathy_fusion(
     fused = np.where(np.isnan(fused), out_no_val, fused)
     return Dataset.create_from_array(
         fused.astype(np.float32, copy=False),
-        geo=topo.geotransform, epsg=topo.epsg,
+        geo=topo.geotransform,
+        epsg=topo.epsg,
         no_data_value=out_no_val,
     )

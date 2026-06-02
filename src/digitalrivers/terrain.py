@@ -4,6 +4,7 @@ This module provides the `Terrain` class for raster-based terrain
 visualisation and analysis: color relief, hill shade, slope, and aspect.
 All heavy lifting is delegated to GDAL's `DEMProcessing` utility.
 """
+
 from __future__ import annotations
 
 import os
@@ -20,19 +21,90 @@ CREATION_OPTIONS = ["COMPRESS=DEFLATE", "PREDICTOR=2"]
 class Terrain(Dataset):
     """Terrain analysis tools built on GDAL `DEMProcessing`.
 
-    Wraps a single- or multi-band raster and exposes convenience methods
-    for color relief, hill shade, slope, and aspect computation.
+    Wraps a single- or multi-band raster and exposes convenience methods for
+    visualisation (`color_relief`, `hill_shade`) and analysis: `slope`,
+    `aspect`, the ruggedness derivatives (`roughness`, `tpi`, `tri`), and
+    line-of-sight `viewshed`. Every method returns a `pyramids.dataset.Dataset`
+    so results compose with the rest of the stack.
 
     Args:
-        raster: File path or GDAL dataset to open.
+        raster: A `gdal.Dataset` to wrap. To open a terrain raster from a file
+            path, use the inherited `Terrain.read_file(path)` classmethod.
         access: `"read_only"` (default) or `"write"`.
+
+    Examples:
+        - Wrap an in-memory DEM and compute a ruggedness derivative:
+            ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers import Terrain
+            >>> arr = np.array(
+            ...     [[10, 11, 12], [10, 9, 8], [5, 6, 30]], dtype=np.float32
+            ... )
+            >>> ds = Dataset.create_from_array(
+            ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            ...     no_data_value=-9999.0,
+            ... )
+            >>> terrain = Terrain(ds.raster)
+            >>> terrain.roughness().read_array().shape
+            (3, 3)
+
+            ```
+        - Derive slope and read back its single float32 band:
+            ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset
+            >>> from digitalrivers import Terrain
+            >>> ramp = np.arange(9, dtype=np.float32).reshape(3, 3)
+            >>> ds = Dataset.create_from_array(
+            ...     ramp, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            ...     no_data_value=-9999.0,
+            ... )
+            >>> slope = Terrain(ds.raster).slope()
+            >>> slope.dtype
+            ['float32']
+
+            ```
+
+    See Also:
+        digitalrivers.dem.DEM: Hydrological DEM processing (fill, flow direction,
+            accumulation) with native window-configurable `tpi` / `ruggedness`.
     """
 
-    def __init__(self, raster: str | gdal.Dataset, access: str = "read_only"):
+    def __init__(self, raster: gdal.Dataset, access: str = "read_only"):
+        """Wrap a GDAL dataset for terrain analysis.
+
+        Args:
+            raster: A `gdal.Dataset` to wrap. To open a terrain raster from a
+                file path use the inherited `Terrain.read_file(path)`
+                classmethod; the bare constructor accepts a `gdal.Dataset`
+                only.
+            access: `"read_only"` (default) or `"write"`.
+
+        Examples:
+            - Wrap an in-memory raster and read its grid dimensions:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.ones((4, 5), dtype=np.float32)
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+                ... )
+                >>> terrain = Terrain(ds.raster)
+                >>> terrain.shape[-2:]
+                (4, 5)
+
+                ```
+        """
         super().__init__(raster, access)
 
     def color_relief(
-        self, band: int = 0, path: str = None, color_table: DataFrame = None, **kwargs
+        self,
+        band: int = 0,
+        path: str | None = None,
+        color_table: DataFrame | None = None,
+        **kwargs,
     ) -> "Dataset":
         """Create a color relief for a band in the Dataset.
 
@@ -75,18 +147,21 @@ class Terrain(Dataset):
                 >>> import numpy as np
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
                 >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+
                 ```
             - Now let's create the color table using hex colors.
                 ```python
+                >>> import pandas as pd
                 >>> color_hex = ["#709959", "#F2EEA2", "#F2CE85", "#C28C7C", "#D6C19C"]
                 >>> values = [1, 3, 5, 7, 9]
                 >>> df = pd.DataFrame(columns=["values", "color"])
                 >>> df.loc[:, "values"] = values
                 >>> df.loc[:, "color"] = color_hex
+
                 ```
             - Now let's create the color relief for the dataset using the color table `DataFrame`.
                 ```python
-                >>> color_relief = dataset.color_relief(band=0, color_table=df)
+                >>> color_relief = Terrain(dataset.raster).color_relief(band=0, color_table=df)
                 >>> print(color_relief) # doctest: +SKIP
                 <BLANKLINE>
                             Cell size: 0.05
@@ -102,12 +177,13 @@ class Terrain(Dataset):
                 <BLANKLINE>
                 >>> print(color_relief.band_color)
                 {0: 'red', 1: 'green', 2: 'blue', 3: 'alpha'}
+
                 ```
             - The result color relief dataset will have 4 bands red, green, blue, and alpha. with values from 0 to 255.
             - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices
                 with the alpha index as the fourth index, otherwise the alpha band will be missing.
                 ```python
-                >>> fig, ax = color_relief.plot(rgb=[0, 1, 2, 3])
+                >>> fig, ax = color_relief.plot(rgb=[0, 1, 2, 3]) # doctest: +SKIP
 
                 ```
             ![color-relief](./../_images/dataset/color-relief.png)
@@ -147,8 +223,8 @@ class Terrain(Dataset):
         altitude: int | float | list[int] = 45,
         vertical_exaggeration: int | float | list[int] = 1,
         scale: int | float | list[int] = 1,
-        path: str = None,
-        weights: list[int] = None,
+        path: str | None = None,
+        weights: list[int] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Create hill-shade.
@@ -219,24 +295,26 @@ class Terrain(Dataset):
                 >>> arr = np.random.randint(0, 15, size=(100, 100))
                 >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
 
-                >>> hill_shade = dataset.hill_shade(
+                >>> hill_shade = Terrain(dataset.raster).hill_shade(
                 ...     band=0, altitude=45, azimuth=315, vertical_exaggeration=1, scale=1
                 ... )
 
                 >>> print(hill_shade.dtype) # doctest: +SKIP
                 ['byte']
                 >>> hill_shade.plot() # doctest: +SKIP
+
                 ```
                 ![hill-shade](./../_images/dataset/hill-shade.png)
                 ```python
                 >>> hill_shade.stats() # doctest: +SKIP
                         min    max       mean        std
                 Band_1  1.0  223.0  58.880951  71.079056
+
                 ```
             - You can also provide the function with a list os values for each parameter, then the functions will
                 calculate the hill shade for each set of parameters and then the average will be returned.
                 ```python
-                >>> hill_shade = dataset.hill_shade(
+                >>> hill_shade = Terrain(dataset.raster).hill_shade(
                 ...     band=0, azimuth=[315, 45], altitude=[45, 45], vertical_exaggeration=[1, 1], scale=[1, 1]
                 ... )
 
@@ -287,15 +365,20 @@ class Terrain(Dataset):
 
         wrap = lambda v: v if isinstance(v, list) else [v]
         azimuth, altitude, vertical_exaggeration, scale = (
-            wrap(azimuth), wrap(altitude), wrap(vertical_exaggeration), wrap(scale),
+            wrap(azimuth),
+            wrap(altitude),
+            wrap(vertical_exaggeration),
+            wrap(scale),
         )
-        if not (len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)):
+        if not (
+            len(azimuth) == len(altitude) == len(vertical_exaggeration) == len(scale)
+        ):
             raise ValueError("All list parameters must have the same length.")
 
         # get the hill shade for all the parameters
         hill_shades: list[gdal.Dataset] = []
         for az, alt, ver_ex, scale_1 in zip(
-                azimuth, altitude, vertical_exaggeration, scale
+            azimuth, altitude, vertical_exaggeration, scale
         ):
             dst = self._create_hill_shade(
                 band, driver, az, alt, ver_ex, scale_1, path, **kwargs
@@ -329,7 +412,7 @@ class Terrain(Dataset):
         altitude: int | float = 45,
         vertical_exaggeration: int | float = 1,
         scale: int | float = 1,
-        path: str = None,
+        path: str | None = None,
         **kwargs,
     ) -> gdal.Dataset:
         """Run a single GDAL `DEMProcessing("hillshade")` call.
@@ -367,9 +450,9 @@ class Terrain(Dataset):
         band: int = 0,
         scale: int | float | list[int] = 1,
         slope_format: str = "degree",
-        path: str = None,
-        algorithm: str = None,
-        creation_options: list[str] = None,
+        path: str | None = None,
+        algorithm: str | None = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the slope of the terrain surface.
@@ -407,11 +490,12 @@ class Terrain(Dataset):
                 >>> dataset = Dataset.create_from_array(
                 ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
                 ... )
+
                 ```
             - Now let's create the slope for the dataset.
                 ```python
-                >>> slope = dataset.slope()
-                >>> fig, ax = slope.plot()
+                >>> slope = Terrain(dataset.raster).slope()
+                >>> fig, ax = slope.plot() # doctest: +SKIP
 
                 ```
                 ![slope](./../_images/dataset/slope.png)
@@ -451,9 +535,9 @@ class Terrain(Dataset):
         scale: int | float | list[int] = 1,
         vertical_exaggeration: int | float | list[int] = 1,
         zero_flat_surface: bool = False,
-        algorithm: str = None,
-        path: str = None,
-        creation_options: list[str] = None,
+        algorithm: str | None = None,
+        path: str | None = None,
+        creation_options: list[str] | None = None,
         **kwargs,
     ) -> "Dataset":
         """Compute the aspect (slope direction) of the terrain surface.
@@ -464,11 +548,12 @@ class Terrain(Dataset):
 
         Args:
             band: Zero-based band index. Defaults to 0.
-            scale: Ratio of vertical to horizontal units.  Use
-                `111120` when the horizontal CRS is in degrees and
-                vertical units are metres.  Defaults to 1.
-            vertical_exaggeration: Z-factor used to emphasise vertical
-                features.  Defaults to 1.
+            scale: Accepted for signature symmetry with `slope` but **not
+                used** — GDAL's aspect mode is scale-invariant (it reports a
+                direction) and rejects the `-s` option. Defaults to 1.
+            vertical_exaggeration: Accepted for signature symmetry but **not
+                used** for the same reason (aspect rejects the `-z` option).
+                Defaults to 1.
             zero_flat_surface: If `True` flat areas get an aspect of
                 0°.  If `False` (default) flat areas receive the
                 no-data value.
@@ -492,11 +577,12 @@ class Terrain(Dataset):
                 >>> dataset = Dataset.create_from_array(
                 ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
                 ... )
+
                 ```
             - Compute the aspect raster.
                 ```python
-                >>> aspect = dataset.aspect()
-                >>> fig, ax = aspect.plot()
+                >>> aspect = Terrain(dataset.raster).aspect()
+                >>> fig, ax = aspect.plot() # doctest: +SKIP
 
                 ```
                 ![aspect](./../_images/dataset/aspect.png)
@@ -515,12 +601,16 @@ class Terrain(Dataset):
         if creation_options is None:
             creation_options = CREATION_OPTIONS.copy()
 
+        # `scale` / `vertical_exaggeration` are NOT forwarded: GDAL's aspect mode
+        # does not accept the slope/hillshade `-s` / `-z` options (aspect is a
+        # scale-invariant direction). Passing them is silently tolerated only
+        # when `zeroForFlat` is unset, and otherwise raises "Argument(s) are not
+        # valid with any processing mode" — so they are dropped here.
+        del scale, vertical_exaggeration
         options = gdal.DEMProcessingOptions(
             band=band + 1,
             format=driver,
             alg=algorithm,
-            scale=scale,
-            zFactor=vertical_exaggeration,
             zeroForFlat=zero_flat_surface,
             creationOptions=creation_options,
             **kwargs,
@@ -529,3 +619,388 @@ class Terrain(Dataset):
         src = Dataset(dst, access="write")
 
         return src
+
+    def _ruggedness(
+        self,
+        mode: str,
+        band: int,
+        path: str | None,
+        compute_edges: bool,
+        creation_options: list[str] | None,
+        **kwargs,
+    ) -> "Dataset":
+        """Run a single GDAL `DEMProcessing` ruggedness mode.
+
+        Shared backend for `roughness`, `tpi`, and `tri` — the three
+        `gdaldem` ruggedness derivatives differ only by their GDAL mode
+        string, so the driver / options plumbing lives here once.
+
+        Args:
+            mode: GDAL `DEMProcessing` mode — `"Roughness"`, `"TPI"`, or
+                `"TRI"`.
+            band: Zero-based band index.
+            path: Output GeoTIFF path, or `None` for an in-memory raster.
+            compute_edges: When `True` GDAL also computes values for the
+                raster's edge cells (using the available partial window)
+                instead of leaving them as no-data.
+            creation_options: GDAL creation options. `None` falls back to
+                `CREATION_OPTIONS`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions` (e.g.
+                `alg` for `TRI`).
+
+        Returns:
+            Dataset: Single-band `float32` raster. No-data value is
+                `-9999.0`.
+        """
+        if path is None:
+            driver = "MEM"
+            path = ""
+        else:
+            driver = "GTiff"
+
+        if creation_options is None:
+            creation_options = CREATION_OPTIONS.copy()
+
+        options = gdal.DEMProcessingOptions(
+            band=band + 1,
+            format=driver,
+            computeEdges=compute_edges,
+            creationOptions=creation_options,
+            **kwargs,
+        )
+        dst = gdal.DEMProcessing(path, self.raster, mode, options=options)
+        return Dataset(dst, access="write")
+
+    def roughness(
+        self,
+        band: int = 0,
+        path: str | None = None,
+        compute_edges: bool = False,
+        creation_options: list[str] | None = None,
+        **kwargs,
+    ) -> "Dataset":
+        """Compute terrain roughness — the largest elevation difference in a 3x3 window.
+
+        Roughness (Wilson et al., 2007) is the maximum absolute difference
+        between a cell and its eight neighbours. It is the simplest
+        ruggedness measure and reacts strongly to local relief: flat
+        surfaces score `0`, cliffs and noisy LiDAR returns score high.
+
+        Args:
+            band: Zero-based band index. Defaults to 0.
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            compute_edges: If `True`, compute values for the edge cells
+                from the available partial window instead of leaving them
+                no-data. Defaults to `False`.
+            creation_options: GDAL creation options. Defaults to
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
+
+        Returns:
+            Dataset: Single-band `float32` raster of roughness values in
+                the DEM's vertical units. No-data value is `-9999.0`.
+
+        Examples:
+            - Compute roughness for a small elevation raster.
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.array(
+                ...     [[10, 11, 12, 40], [10, 9, 8, 7],
+                ...      [5, 6, 30, 6], [4, 3, 2, 1]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
+                ...     epsg=32636, no_data_value=-9999.0,
+                ... )
+                >>> roughness = Terrain(ds.raster).roughness()
+                >>> roughness.read_array().shape
+                (4, 4)
+
+                ```
+
+        See Also:
+            Terrain.tpi: Topographic Position Index.
+            Terrain.tri: Terrain Ruggedness Index.
+        """
+        return self._ruggedness(
+            "Roughness", band, path, compute_edges, creation_options, **kwargs
+        )
+
+    def tpi(
+        self,
+        band: int = 0,
+        path: str | None = None,
+        compute_edges: bool = False,
+        creation_options: list[str] | None = None,
+        **kwargs,
+    ) -> "Dataset":
+        """Compute the Topographic Position Index (TPI).
+
+        TPI (Weiss, 2001) is each cell's elevation minus the mean
+        elevation of its eight neighbours. Positive values mark local
+        highs (ridges, peaks), negative values mark local lows (valleys,
+        channels), and values near zero mark flat areas or constant
+        slopes. It is widely used for landform classification.
+
+        Note:
+            This is the GDAL formulation — the focal mean is taken over
+            the eight neighbours **excluding** the centre cell, on a fixed
+            3x3 window. `DEM.tpi` is a native alternative whose focal mean
+            **includes** the centre cell and accepts an arbitrary
+            `window` size, so the two return slightly different values.
+
+        Args:
+            band: Zero-based band index. Defaults to 0.
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            compute_edges: If `True`, compute values for the edge cells
+                from the available partial window instead of leaving them
+                no-data. Defaults to `False`.
+            creation_options: GDAL creation options. Defaults to
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
+
+        Returns:
+            Dataset: Single-band `float32` raster of TPI values (signed,
+                in the DEM's vertical units). No-data value is `-9999.0`.
+
+        Examples:
+            - Compute TPI for a small elevation raster.
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.array(
+                ...     [[10, 11, 12, 40], [10, 9, 8, 7],
+                ...      [5, 6, 30, 6], [4, 3, 2, 1]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
+                ...     epsg=32636, no_data_value=-9999.0,
+                ... )
+                >>> tpi = Terrain(ds.raster).tpi()
+                >>> tpi.read_array().shape
+                (4, 4)
+
+                ```
+
+        See Also:
+            Terrain.roughness: Maximum 3x3 elevation difference.
+            Terrain.tri: Terrain Ruggedness Index.
+            DEM.tpi: Native, window-configurable TPI (includes the centre
+                cell in the focal mean).
+        """
+        return self._ruggedness(
+            "TPI", band, path, compute_edges, creation_options, **kwargs
+        )
+
+    def tri(
+        self,
+        band: int = 0,
+        algorithm: str | None = None,
+        path: str | None = None,
+        compute_edges: bool = False,
+        creation_options: list[str] | None = None,
+        **kwargs,
+    ) -> "Dataset":
+        """Compute the Terrain Ruggedness Index (TRI).
+
+        TRI is the mean absolute difference between a cell and its eight
+        neighbours. Two formulations are available via `algorithm`:
+
+        * `"Riley"` (Riley et al., 1999) — square-root of the summed
+          squared differences; the original TRI.
+        * `"Wilson"` (Wilson et al., 2007) — the mean absolute
+          difference; better suited to bathymetric / continuous data.
+
+        Note:
+            With `algorithm=None` GDAL uses the Riley root-sum-square
+            form. The native `DEM.ruggedness` computes the Wilson
+            mean-absolute-difference form, so it corresponds to
+            `tri(algorithm="Wilson")` (on a 3x3 window) rather than the
+            default here.
+
+        Args:
+            band: Zero-based band index. Defaults to 0.
+            algorithm: TRI formulation — `"Riley"`, `"Wilson"`, or
+                `None` (GDAL default). Defaults to `None`.
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            compute_edges: If `True`, compute values for the edge cells
+                from the available partial window instead of leaving them
+                no-data. Defaults to `False`.
+            creation_options: GDAL creation options. Defaults to
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+            **kwargs: Forwarded to `gdal.DEMProcessingOptions`.
+
+        Returns:
+            Dataset: Single-band `float32` raster of TRI values in the
+                DEM's vertical units. No-data value is `-9999.0`.
+
+        Examples:
+            - Compute TRI for a small elevation raster.
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.array(
+                ...     [[10, 11, 12, 40], [10, 9, 8, 7],
+                ...      [5, 6, 30, 6], [4, 3, 2, 1]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
+                ...     epsg=32636, no_data_value=-9999.0,
+                ... )
+                >>> tri = Terrain(ds.raster).tri()
+                >>> tri.read_array().shape
+                (4, 4)
+
+                ```
+
+        See Also:
+            Terrain.roughness: Maximum 3x3 elevation difference.
+            Terrain.tpi: Topographic Position Index.
+            DEM.ruggedness: Native, window-configurable Wilson-form TRI.
+        """
+        if algorithm is not None:
+            kwargs["alg"] = algorithm
+        return self._ruggedness(
+            "TRI", band, path, compute_edges, creation_options, **kwargs
+        )
+
+    def viewshed(
+        self,
+        observer_x: float,
+        observer_y: float,
+        band: int = 0,
+        observer_height: float = 1.75,
+        target_height: float = 0.0,
+        max_distance: float = 0.0,
+        mode: str = "max",
+        visible_value: float = 255.0,
+        invisible_value: float = 0.0,
+        out_of_range_value: float = 0.0,
+        no_data_value: float = -1.0,
+        curvature_coefficient: float = 0.85714,
+        path: str | None = None,
+        creation_options: list[str] | None = None,
+    ) -> "Dataset":
+        """Compute the viewshed (line-of-sight visibility) from an observer point.
+
+        Wraps GDAL `ViewshedGenerate` to flag, for every cell, whether it
+        is visible from an observer standing at `(observer_x, observer_y)`,
+        accounting for the intervening terrain. The observer and target
+        heights are added above the DEM surface, and Earth curvature /
+        atmospheric refraction can be modelled via `curvature_coefficient`.
+
+        Args:
+            observer_x: Observer X coordinate, in the DEM's CRS.
+            observer_y: Observer Y coordinate, in the DEM's CRS.
+            band: Zero-based band index of the elevation band. Defaults
+                to 0.
+            observer_height: Observer height above the DEM surface, in the
+                DEM's vertical units. Defaults to 1.75 (roughly eye level).
+            target_height: Target height above the DEM surface that must be
+                visible. Defaults to 0.0 (ground level).
+            max_distance: Maximum line-of-sight distance in CRS units.
+                `0.0` (default) means unlimited.
+            mode: Cell-evaluation method — `"max"` (default), `"min"`,
+                `"edge"`, or `"diagonal"` — mapping to the GDAL
+                `GVM_Max` / `GVM_Min` / `GVM_Edge` / `GVM_Diagonal`
+                viewshed modes.
+            visible_value: Output value written to visible cells. Defaults
+                to 255.0.
+            invisible_value: Output value written to hidden cells. Defaults
+                to 0.0.
+            out_of_range_value: Output value for cells beyond
+                `max_distance`. Defaults to 0.0.
+            no_data_value: Output no-data value. Defaults to -1.0.
+            curvature_coefficient: Earth-curvature / refraction
+                coefficient. Defaults to 0.85714 (GDAL's standard
+                atmospheric value); use 1.0 to ignore curvature.
+            path: If given, write the result to this GeoTIFF path.
+                Otherwise the raster is created in memory.
+            creation_options: GDAL creation options. Defaults to
+                `['COMPRESS=DEFLATE', 'PREDICTOR=2']`.
+
+        Returns:
+            Dataset: Single-band raster encoding visibility (`visible_value`
+                for visible cells, `invisible_value` otherwise).
+
+        Raises:
+            ValueError: If `mode` is not one of `"max"`, `"min"`,
+                `"edge"`, `"diagonal"`.
+
+        Examples:
+            - Compute the viewshed from the top-left corner of a small DEM.
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset
+                >>> from digitalrivers import Terrain
+                >>> arr = np.array(
+                ...     [[10, 11, 12, 40], [10, 9, 8, 7],
+                ...      [5, 6, 30, 6], [4, 3, 2, 1]],
+                ...     dtype=np.float32,
+                ... )
+                >>> ds = Dataset.create_from_array(
+                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
+                ...     epsg=32636, no_data_value=-9999.0,
+                ... )
+                >>> vs = Terrain(ds.raster).viewshed(
+                ...     observer_x=0.5, observer_y=-0.5,
+                ... )
+                >>> vs.read_array().shape
+                (4, 4)
+
+                ```
+
+        See Also:
+            Terrain.hill_shade: Shaded-relief visualisation of the surface.
+        """
+        modes = {
+            "diagonal": gdal.GVM_Diagonal,
+            "edge": gdal.GVM_Edge,
+            "max": gdal.GVM_Max,
+            "min": gdal.GVM_Min,
+        }
+        if mode not in modes:
+            raise ValueError(f"mode must be one of {sorted(modes)}; got {mode!r}")
+
+        if path is None:
+            driver = "MEM"
+            path = ""
+        else:
+            driver = "GTiff"
+
+        if creation_options is None:
+            creation_options = CREATION_OPTIONS.copy()
+
+        src_band = self.raster.GetRasterBand(band + 1)
+        # `gdal.ViewshedGenerate` + the `GVM_*` enums require a recent GDAL; that
+        # floor is supplied transitively by the `pyramids-gis >=0.29.0` pin (see
+        # the dependency note in pyproject.toml), not a direct GDAL dependency.
+        dst = gdal.ViewshedGenerate(
+            src_band,
+            driver,
+            path,
+            creation_options,
+            observer_x,
+            observer_y,
+            observer_height,
+            target_height,
+            visible_value,
+            invisible_value,
+            out_of_range_value,
+            no_data_value,
+            curvature_coefficient,
+            modes[mode],
+            max_distance,
+            heightMode=gdal.GVOT_NORMAL,
+        )
+        return Dataset(dst, access="write")

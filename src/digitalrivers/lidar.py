@@ -10,16 +10,21 @@ Reading / writing LAS files requires `laspy`. Install with
 `pip install laspy[lazrs]` to also handle LAZ compression. The
 gridding helper does not require laspy and operates on raw arrays.
 """
+
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 
+import geopandas as gpd
 import numpy as np
+import shapely
+from pyramids.dataset import Dataset
+from shapely.geometry import Point
 
 
 _LASPY_HINT = (
-    "laspy is required for LAS / LAZ I/O. Install with "
-    "`pip install laspy[lazrs]`."
+    "laspy is required for LAS / LAZ I/O. Install with " "`pip install laspy[lazrs]`."
 )
 
 
@@ -80,9 +85,7 @@ class LasPoints:
         """
         mask = np.asarray(mask, dtype=bool)
         if mask.shape != self.x.shape:
-            raise ValueError(
-                f"mask shape {mask.shape} != points shape {self.x.shape}"
-            )
+            raise ValueError(f"mask shape {mask.shape} != points shape {self.x.shape}")
         kw = {"x": self.x[mask], "y": self.y[mask], "z": self.z[mask]}
         if self.intensity.size:
             kw["intensity"] = self.intensity[mask]
@@ -106,7 +109,6 @@ def read_las(path: str) -> LasPoints:
     Raises:
         ImportError: If `laspy` is not installed.
     """
-    import warnings
     try:
         import laspy  # type: ignore
     except ImportError as exc:  # pragma: no cover — environment-specific
@@ -193,9 +195,7 @@ def classify_ground(
         NotImplementedError: If `method="axelsson"` is requested.
     """
     if method not in ("zhang", "axelsson"):
-        raise ValueError(
-            f"method must be 'zhang' or 'axelsson'; got {method!r}"
-        )
+        raise ValueError(f"method must be 'zhang' or 'axelsson'; got {method!r}")
     if method == "axelsson":
         raise NotImplementedError(
             "Axelsson 2000 TIN-progressive ground filter is not yet "
@@ -209,9 +209,7 @@ def classify_ground(
     if cell_size <= 0:
         raise ValueError(f"cell_size must be positive; got {cell_size!r}")
     if window_cells < 1:
-        raise ValueError(
-            f"window_cells must be >= 1; got {window_cells!r}"
-        )
+        raise ValueError(f"window_cells must be >= 1; got {window_cells!r}")
     if slope_threshold < 0:
         raise ValueError(
             f"slope_threshold must be non-negative; got {slope_threshold!r}"
@@ -224,12 +222,8 @@ def classify_ground(
     y_min, y_max = float(ys.min()), float(ys.max())
     cols = max(1, int(np.ceil((x_max - x_min) / cell_size)))
     rows = max(1, int(np.ceil((y_max - y_min) / cell_size)))
-    col_idx = np.clip(
-        ((xs - x_min) / cell_size).astype(np.int64), 0, cols - 1
-    )
-    row_idx = np.clip(
-        ((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1
-    )
+    col_idx = np.clip(((xs - x_min) / cell_size).astype(np.int64), 0, cols - 1)
+    row_idx = np.clip(((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1)
 
     # Min-grid: lowest z per cell. Empty cells inherit the sentinel +inf so
     # the opening "spreads" the lowest neighbouring elevation across them.
@@ -295,9 +289,6 @@ def detect_trees(
         filtering and variable window size for estimating tree height."
         *Photogrammetric Engineering & Remote Sensing* 70(5): 589–604.
     """
-    import geopandas as gpd
-    from shapely.geometry import Point
-
     if radius_fn is None:
         radius_fn = _default_tree_radius
 
@@ -361,7 +352,6 @@ def clip(
     Returns:
         A new `LasPoints` containing the surviving subset.
     """
-    import shapely
     inside = shapely.contains_xy(polygon, points.x, points.y)
     keep = inside if not inverse else ~inside
     return points.subset(keep)
@@ -393,13 +383,9 @@ def merge(*pointclouds: LasPoints) -> LasPoints:
     if all(p.intensity.size for p in pointclouds):
         kw["intensity"] = np.concatenate([p.intensity for p in pointclouds])
     if all(p.classification.size for p in pointclouds):
-        kw["classification"] = np.concatenate(
-            [p.classification for p in pointclouds]
-        )
+        kw["classification"] = np.concatenate([p.classification for p in pointclouds])
     if all(p.return_number.size for p in pointclouds):
-        kw["return_number"] = np.concatenate(
-            [p.return_number for p in pointclouds]
-        )
+        kw["return_number"] = np.concatenate([p.return_number for p in pointclouds])
     return LasPoints(x=x, y=y, z=z, crs=pointclouds[0].crs, **kw)
 
 
@@ -425,9 +411,7 @@ def filter_classes(
             no class codes).
     """
     if not points.classification.size:
-        raise ValueError(
-            "points carries no classification data; nothing to filter"
-        )
+        raise ValueError("points carries no classification data; nothing to filter")
     keep = np.isin(points.classification, list(classes))
     return points.subset(keep)
 
@@ -578,9 +562,6 @@ def grid_lidar_points(
             >>> int((ds.read_array() == -9999.0).sum())
             3
     """
-    import numpy as np
-    from pyramids.dataset import Dataset
-
     xs = np.asarray(xs, dtype=np.float64)
     ys = np.asarray(ys, dtype=np.float64)
     zs = np.asarray(zs, dtype=np.float64)
@@ -590,8 +571,15 @@ def grid_lidar_points(
             f"{len(ys)}, {len(zs)}"
         )
     valid_aggregates = {
-        "min", "max", "mean", "median", "count",
-        "idw", "nn", "tin", "rbf",
+        "min",
+        "max",
+        "mean",
+        "median",
+        "count",
+        "idw",
+        "nn",
+        "tin",
+        "rbf",
     }
     if aggregate not in valid_aggregates:
         raise ValueError(
@@ -620,6 +608,7 @@ def grid_lidar_points(
         target = np.column_stack([grid_x.ravel(), grid_y.ravel()])
         if aggregate == "idw":
             from scipy.spatial import cKDTree
+
             tree = cKDTree(xy_pts)
             k = min(int(idw_k), len(xs))
             dists, idxs = tree.query(target, k=k)
@@ -640,31 +629,39 @@ def grid_lidar_points(
             out = z_interp.reshape(rows, cols)
         elif aggregate == "nn":
             from scipy.spatial import cKDTree
+
             tree = cKDTree(xy_pts)
             _, idxs = tree.query(target, k=1)
             out = zs[idxs].reshape(rows, cols)
         elif aggregate == "tin":
             from scipy.interpolate import LinearNDInterpolator
+
             interp = LinearNDInterpolator(xy_pts, zs, fill_value=nodata)
             out = interp(target).reshape(rows, cols)
         else:  # rbf
             from scipy.interpolate import RBFInterpolator
+
             interp = RBFInterpolator(
-                xy_pts, zs, kernel=rbf_kernel, smoothing=rbf_smoothing,
+                xy_pts,
+                zs,
+                kernel=rbf_kernel,
+                smoothing=rbf_smoothing,
             )
             out = interp(target).reshape(rows, cols)
         out = np.where(np.isfinite(out), out, nodata).astype(
-            np.float32, copy=False,
+            np.float32,
+            copy=False,
         )
         geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
         return Dataset.create_from_array(
-            out, geo=geo, epsg=epsg, no_data_value=nodata,
+            out,
+            geo=geo,
+            epsg=epsg,
+            no_data_value=nodata,
         )
 
     col_idx = np.clip(((xs - x_min) / cell_size).astype(np.int64), 0, cols - 1)
-    row_idx = np.clip(
-        ((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1
-    )
+    row_idx = np.clip(((y_max - ys) / cell_size).astype(np.int64), 0, rows - 1)
 
     # `min` / `max` use `np.minimum.at` / `np.maximum.at`;
     # `mean` uses `np.add.at` for an O(N_points) reduction;
@@ -701,7 +698,7 @@ def grid_lidar_points(
     geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
     return Dataset.create_from_array(
         out.astype(np.float32, copy=False),
-        geo=geo, epsg=epsg, no_data_value=nodata,
+        geo=geo,
+        epsg=epsg,
+        no_data_value=nodata,
     )
-
-

@@ -4,23 +4,34 @@ This module provides the `DEM` class for digital elevation model analysis,
 including depression filling, slope calculation, D8 flow direction, and flow
 accumulation.
 """
+
 from __future__ import annotations
 
 import warnings
+from collections import deque
 
 import numpy as np
+import pandas as pd
+import shapely
 from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset
 
-from digitalrivers._conditioning.breach import breach_depressions as _breach_depressions_array
+from digitalrivers._conditioning.breach import (
+    breach_depressions as _breach_depressions_array,
+)
 from digitalrivers._conditioning.flats import resolve_flats as _resolve_flats_array
+from digitalrivers._conditioning.pitremoval import (
+    fill_depressions as _fill_depressions_array,
+    fill_depressions as _fill_depressions_kernel,
+    local_minima_8,
+)
 from digitalrivers._flow.routing import (
     dinf_flow_direction as _dinf_flow_direction,
     mfd_flow_direction as _mfd_flow_direction,
     rho8_flow_direction as _rho8_flow_direction,
 )
-from digitalrivers._conditioning.pitremoval import fill_depressions as _fill_depressions_array
+from digitalrivers._streams.hand import hand_d8
 from digitalrivers.flow_direction import FlowDirection
 
 #: D8 direction offsets mapping direction index to (column_offset, row_offset).
@@ -390,9 +401,7 @@ class DEM(Dataset):
         from digitalrivers.stream_raster import StreamRaster
 
         if method not in ("d8", "euclidean"):
-            raise ValueError(
-                f"method must be 'd8' or 'euclidean'; got {method!r}"
-            )
+            raise ValueError(f"method must be 'd8' or 'euclidean'; got {method!r}")
         if not isinstance(streams, StreamRaster):
             raise ValueError("streams must be a StreamRaster instance")
 
@@ -402,9 +411,6 @@ class DEM(Dataset):
 
     def _hand_d8(self, streams, flow_direction) -> Dataset:
         """D8-traced HAND — original Rennó-style implementation."""
-        from digitalrivers._streams.hand import hand_d8
-        from digitalrivers.flow_direction import FlowDirection
-
         if not isinstance(flow_direction, FlowDirection):
             raise ValueError(
                 "flow_direction must be a FlowDirection instance for method='d8'"
@@ -436,7 +442,6 @@ class DEM(Dataset):
 
     def _hand_euclidean(self, streams) -> Dataset:
         """Euclidean-nearest-stream HAND — no flow direction required."""
-        import warnings
         from scipy.ndimage import distance_transform_edt
 
         elev = self.values
@@ -567,10 +572,6 @@ class DEM(Dataset):
         if n_runs <= 0:
             raise ValueError(f"n_runs must be positive; got {n_runs!r}")
 
-        from digitalrivers._conditioning.pitremoval import (
-            fill_depressions as _fill_depressions_kernel,
-        )
-
         rng = np.random.default_rng(seed)
         elev = self.values
         # Pre-compute the no-data mask once — it doesn't change between
@@ -586,7 +587,9 @@ class DEM(Dataset):
             # Monte-Carlo loop. The kernel accepts a plain ndarray and an
             # optional nodata_mask.
             filled = _fill_depressions_kernel(
-                noisy, nodata_mask=nodata_mask, method=method,
+                noisy,
+                nodata_mask=nodata_mask,
+                method=method,
             )
             depr = (filled - noisy) > 0
             prob += depr.astype(np.float32)
@@ -684,7 +687,6 @@ class DEM(Dataset):
             # Distance-from-stream within the buffer (cell-step BFS).
             dist = np.full((rows, cols), np.inf, dtype=np.float64)
             dist[stream_mask] = 0.0
-            from collections import deque
             frontier: deque[tuple[int, int, int]] = deque(
                 (int(r), int(c), 0) for r, c in zip(*np.where(stream_mask))
             )
@@ -714,9 +716,7 @@ class DEM(Dataset):
             z = z - drop
             no_val = self.no_data_value[0]
             z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(
-                self, z.astype(elev.dtype, copy=False)
-            )
+            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
             if inplace:
                 self._update_inplace(plain_ds.raster)
                 return None
@@ -747,16 +747,16 @@ class DEM(Dataset):
             z[stream_mask] = z[stream_mask] - constant_drop
             nodata_mask = np.isnan(z)
             z = _breach_depressions_array(
-                z, nodata_mask=nodata_mask, method="hybrid",
+                z,
+                nodata_mask=nodata_mask,
+                method="hybrid",
                 max_depth=max_breach_depth,
                 max_length=max_breach_length,
                 fill_remaining=True,
             )
             no_val = self.no_data_value[0]
             z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(
-                self, z.astype(elev.dtype, copy=False)
-            )
+            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
             if inplace:
                 self._update_inplace(plain_ds.raster)
                 return None
@@ -792,7 +792,10 @@ class DEM(Dataset):
         z[stream_mask] = z[stream_mask] - constant_drop
         nodata_mask = np.isnan(z)
         z = _fill_depressions_array(
-            z, nodata_mask=nodata_mask, method="priority_flood", epsilon=0.0,
+            z,
+            nodata_mask=nodata_mask,
+            method="priority_flood",
+            epsilon=0.0,
         )
         no_val = self.no_data_value[0]
         z[np.isnan(z)] = no_val
@@ -953,9 +956,6 @@ class DEM(Dataset):
                 >>> np.issubdtype(rs.dtype, np.integer)
                 True
         """
-        import numpy as np
-        import shapely
-
         x0, dx, _, y0, _, dy = gt
         minx, miny, maxx, maxy = geom.bounds
         c_lo = max(0, int((minx - x0) / dx))
@@ -965,7 +965,9 @@ class DEM(Dataset):
         if c_lo >= c_hi or r_lo >= r_hi:
             return np.empty(0, dtype=np.int64), np.empty(0, dtype=np.int64)
         rs_idx, cs_idx = np.meshgrid(
-            np.arange(r_lo, r_hi), np.arange(c_lo, c_hi), indexing="ij",
+            np.arange(r_lo, r_hi),
+            np.arange(c_lo, c_hi),
+            indexing="ij",
         )
         xs = x0 + (cs_idx + 0.5) * dx
         ys = y0 + (rs_idx + 0.5) * dy
@@ -1163,13 +1165,8 @@ class DEM(Dataset):
                 >>> float(df["frac_below_1"].iloc[0])
                 1.0
         """
-        import numpy as np
-        import pandas as pd
-
         if scale_factor < 2:
-            raise ValueError(
-                f"scale_factor must be >= 2; got {scale_factor}"
-            )
+            raise ValueError(f"scale_factor must be >= 2; got {scale_factor}")
         if n_bins < 1:
             raise ValueError(f"n_bins must be >= 1; got {n_bins}")
 
@@ -1255,7 +1252,12 @@ class DEM(Dataset):
                 and the DEM has internal sinks.
         """
         valid_targets = {
-            "hec_ras", "tuflow", "sfincs", "lisflood_fp", "iber", "gmsh",
+            "hec_ras",
+            "tuflow",
+            "sfincs",
+            "lisflood_fp",
+            "iber",
+            "gmsh",
         }
         if target not in valid_targets:
             raise ValueError(
@@ -1267,7 +1269,6 @@ class DEM(Dataset):
         # NotImplementedError further down and would otherwise pay the full
         # validation cost for nothing.
         if validate and target == "lisflood_fp":
-            from digitalrivers._conditioning.pitremoval import local_minima_8
             sinks = local_minima_8(self.values)
             if int(sinks.sum()) > 0:
                 raise RuntimeError(
@@ -1303,9 +1304,11 @@ class DEM(Dataset):
             # Dataset.create_from_array(driver_type="GTiff", path=...) writes.
             Dataset.create_from_array(
                 out.astype(np.float32, copy=False),
-                geo=gt, epsg=self.epsg,
+                geo=gt,
+                epsg=self.epsg,
                 no_data_value=nodata,
-                driver_type="GTiff", path=path,
+                driver_type="GTiff",
+                path=path,
             )
             return {"dem_tif": path}
 
@@ -1530,9 +1533,7 @@ class DEM(Dataset):
         if mask is not None:
             fixed = fixed | mask.astype(bool, copy=False)
         if not fixed.any():
-            raise ValueError(
-                "anudem_interpolate needs at least one finite anchor cell"
-            )
+            raise ValueError("anudem_interpolate needs at least one finite anchor cell")
         # Seed unknown cells to the mean of known values to speed convergence.
         z = np.where(fixed, z, z[fixed].mean())
 
@@ -1618,7 +1619,9 @@ class DEM(Dataset):
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.fill_depressions(method="priority_flood", epsilon=0.1, inplace=inplace)
+        return self.fill_depressions(
+            method="priority_flood", epsilon=0.1, inplace=inplace
+        )
 
     def _get_8_direction_slopes(self) -> np.ndarray:
         """Compute slopes to all eight neighbours for every cell.
@@ -1761,18 +1764,14 @@ class DEM(Dataset):
         """
         if slope_deg is None:
             slope_ratio = self.slope().read_array().astype(np.float64, copy=False)
-            slope_deg_arr = np.degrees(np.arctan(np.where(
-                np.isfinite(slope_ratio), slope_ratio, 0.0
-            )))
+            slope_deg_arr = np.degrees(
+                np.arctan(np.where(np.isfinite(slope_ratio), slope_ratio, 0.0))
+            )
         else:
             slope_deg_arr = slope_deg.read_array().astype(np.float64, copy=False)
-            no_val = (
-                slope_deg.no_data_value[0] if slope_deg.no_data_value else None
-            )
+            no_val = slope_deg.no_data_value[0] if slope_deg.no_data_value else None
             if no_val is not None:
-                slope_deg_arr = np.where(
-                    slope_deg_arr == no_val, np.nan, slope_deg_arr
-                )
+                slope_deg_arr = np.where(slope_deg_arr == no_val, np.nan, slope_deg_arr)
 
         acc = accumulation.read_array().astype(np.float64, copy=False)
         if slope_deg_arr.shape != acc.shape:
@@ -1785,7 +1784,9 @@ class DEM(Dataset):
         # Floor at ~0.001 rad (≈ 0.06°) to keep tan() / sin() bounded away
         # from zero on flats.
         slope_rad = np.where(
-            np.isfinite(slope_rad), np.maximum(slope_rad, 1.0e-3), np.nan,
+            np.isfinite(slope_rad),
+            np.maximum(slope_rad, 1.0e-3),
+            np.nan,
         )
 
         cs = float(abs(self.geotransform[1]))
@@ -1797,9 +1798,7 @@ class DEM(Dataset):
             elif kind == "spi":
                 arr = sca * np.tan(slope_rad)
             elif kind == "sti":
-                arr = ((sca / 22.13) ** 0.6) * (
-                    (np.sin(slope_rad) / 0.0896) ** 1.3
-                )
+                arr = ((sca / 22.13) ** 0.6) * ((np.sin(slope_rad) / 0.0896) ** 1.3)
             else:  # pragma: no cover — defensive
                 raise ValueError(f"unknown kind {kind!r}")
 
@@ -1829,6 +1828,7 @@ class DEM(Dataset):
         has its own per-shift kernel and does not call this helper.
         """
         from scipy.ndimage import uniform_filter
+
         if window < 1:
             raise ValueError(f"window must be >= 1; got {window!r}")
         z = self.values.astype(np.float64, copy=False)
@@ -1910,7 +1910,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def deviation_from_mean(self, window: int = 3) -> Dataset:
@@ -1965,7 +1968,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def elev_std(self, window: int = 3) -> Dataset:
@@ -2017,7 +2023,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def curvature(self, kind: str = "profile") -> Dataset:
@@ -2122,7 +2131,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z) | ~np.isfinite(out), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def normal_vector_deviation(self, window: int = 3) -> Dataset:
@@ -2176,6 +2188,7 @@ class DEM(Dataset):
                 True
         """
         from scipy.ndimage import uniform_filter
+
         if window < 1:
             raise ValueError(f"window must be >= 1; got {window!r}")
         z = self.values.astype(np.float64, copy=False)
@@ -2206,7 +2219,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def openness(
@@ -2280,14 +2296,11 @@ class DEM(Dataset):
                 True
         """
         from digitalrivers._numba import horizon_walk_kernel
+
         if kind not in ("positive", "negative"):
-            raise ValueError(
-                f"kind must be 'positive' or 'negative'; got {kind!r}"
-            )
+            raise ValueError(f"kind must be 'positive' or 'negative'; got {kind!r}")
         if search_radius < 1:
-            raise ValueError(
-                f"search_radius must be >= 1; got {search_radius!r}"
-            )
+            raise ValueError(f"search_radius must be >= 1; got {search_radius!r}")
         z = self.values.astype(np.float64, copy=False)
         # For negative openness, flip the elevation so the kernel's
         # "maximum upward angle" becomes "maximum downward angle" relative
@@ -2295,12 +2308,18 @@ class DEM(Dataset):
         z_in = (-z if kind == "negative" else z).astype(np.float64, copy=False)
         z_filled = np.where(np.isnan(z_in), 0.0, z_in)
         out = horizon_walk_kernel(
-            z_filled, float(abs(self.geotransform[1])), int(search_radius), 0,
+            z_filled,
+            float(abs(self.geotransform[1])),
+            int(search_radius),
+            0,
         ).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def sky_view_factor(
@@ -2368,38 +2387,56 @@ class DEM(Dataset):
                 True
         """
         from digitalrivers._numba import horizon_walk_kernel
+
         if search_radius < 1:
-            raise ValueError(
-                f"search_radius must be >= 1; got {search_radius!r}"
-            )
+            raise ValueError(f"search_radius must be >= 1; got {search_radius!r}")
         z = self.values.astype(np.float64, copy=False)
         z_filled = np.where(np.isnan(z), 0.0, z)
         out = horizon_walk_kernel(
-            z_filled, float(abs(self.geotransform[1])), int(search_radius), 1,
+            z_filled,
+            float(abs(self.geotransform[1])),
+            int(search_radius),
+            1,
         ).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def ruggedness(self, window: int = 3) -> Dataset:
-        """Terrain Ruggedness Index (Riley et al. 1999).
+        """Terrain Ruggedness Index — Wilson (2007) mean-absolute-difference form.
 
         Per-cell mean of absolute elevation differences to every other cell
         in a `window×window` neighbourhood. Output unit is the DEM elevation
         unit (metres). Higher values mark rougher terrain; flat terrain is
         zero.
 
+        Note:
+            This implements the **Wilson et al. (2007)** mean-absolute-
+            difference variant, *not* Riley's original root-sum-square TRI.
+            For the Riley form use `Terrain.tri(algorithm="Riley")` (the
+            GDAL default), which equals `sqrt(Σ(z_c − z_i)²)` over the 3x3
+            neighbourhood; `Terrain.tri(algorithm="Wilson")` reproduces
+            this method's formula on a fixed 3x3 window.
+
         Args:
             window: Side length of the focal window in cells (≥ 1).
-                Defaults to 3 (Riley's original 3×3 neighbourhood).
+                Defaults to 3 (the original 3×3 neighbourhood).
 
         Returns:
             `Dataset` of float32 ruggedness values. No-data cells use this
             DEM's no-data sentinel.
 
         References:
+            Wilson, M. F. J., O'Connell, B., Brown, C., Guinan, J. C., &
+            Grehan, A. J. (2007). "Multiscale terrain analysis of
+            multibeam bathymetry data for habitat mapping on the
+            continental slope." *Marine Geodesy* 30(1-2): 3-35.
+
             Riley, S. J., DeGloria, S. D., & Elliot, R. (1999). "A terrain
             ruggedness index that quantifies topographic heterogeneity."
             *Intermountain Journal of Sciences* 5(1-4): 23-27.
@@ -2454,7 +2491,10 @@ class DEM(Dataset):
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
         return Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=no_val,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=no_val,
         )
 
     def slope(self) -> Dataset:
@@ -2577,7 +2617,9 @@ class DEM(Dataset):
                 for i, ind in enumerate(indices):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
             plain_ds = Dataset.create_from_array(
-                arr, geo=self.geotransform, epsg=self.epsg,
+                arr,
+                geo=self.geotransform,
+                epsg=self.epsg,
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="d8")
@@ -2594,16 +2636,21 @@ class DEM(Dataset):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
             plain_ds = Dataset.create_from_array(
                 arr.astype(np.int32, copy=False),
-                geo=self.geotransform, epsg=self.epsg,
+                geo=self.geotransform,
+                epsg=self.epsg,
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="rho8")
 
         if method == "dinf":
             angle, magnitude = _dinf_flow_direction(elev, self.cell_size)
-            stacked = np.stack([angle, magnitude], axis=0).astype(np.float32, copy=False)
+            stacked = np.stack([angle, magnitude], axis=0).astype(
+                np.float32, copy=False
+            )
             plain_ds = Dataset.create_from_array(
-                stacked, geo=self.geotransform, epsg=self.epsg,
+                stacked,
+                geo=self.geotransform,
+                epsg=self.epsg,
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="dinf")
@@ -2612,12 +2659,17 @@ class DEM(Dataset):
         slopes = self._get_8_direction_slopes()
         weighting = "quinn" if method == "mfd_quinn" else "holmgren"
         fractions = _mfd_flow_direction(
-            slopes, valid_mask, weighting=weighting, exponent=exponent,
+            slopes,
+            valid_mask,
+            weighting=weighting,
+            exponent=exponent,
         )
         # Transpose (rows, cols, 8) -> (8, rows, cols) for pyramids's band-first layout.
         bands = np.transpose(fractions, (2, 0, 1)).astype(np.float32, copy=False)
         plain_ds = Dataset.create_from_array(
-            bands, geo=self.geotransform, epsg=self.epsg,
+            bands,
+            geo=self.geotransform,
+            epsg=self.epsg,
             no_data_value=self.default_no_data_value,
         )
         return FlowDirection.from_dataset(plain_ds, routing=method)
@@ -2796,8 +2848,6 @@ class DEM(Dataset):
                 True
         """
         del dir_offsets  # legacy positional kwarg, no longer used
-        import warnings
-
         if not isinstance(flow_direction, FlowDirection):
             # Wrap a bare Dataset as D8 for back-compat callers.
             flow_direction = FlowDirection.from_dataset(flow_direction, routing="d8")
@@ -2860,7 +2910,6 @@ class DEM(Dataset):
         flow_direction_cell[valid, 1] = col_idx + offset_1[dir_idx]
 
         return flow_direction_cell
-
 
     @staticmethod
     def delete_basins(basins: Dataset, path: str):

@@ -5,6 +5,7 @@ every contributing cell with the basin ID of its downstream seed. Used by
 :class:`FlowDirection.watershed` for pour-point delineation (P13) and by the
 no-pour-points variant in P14 (each terminal outlet becomes its own basin).
 """
+
 from __future__ import annotations
 
 from collections import deque

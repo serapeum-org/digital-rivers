@@ -13,6 +13,15 @@ Public surface exposed at the package root:
   aspect-ratio quality metrics (Phase 4 P33).
 """
 
+# Import pyramids FIRST — before anything else. pyramids-gis >=0.20.0
+# bundles GDAL's osgeo SWIG bindings + native libs inside its platform
+# wheel and activates them (puts `_vendor/osgeo` on sys.path, sets
+# GDAL_DATA / PROJ_DATA, registers the Windows DLL dir) on import. Every
+# digitalrivers submodule does `from osgeo import gdal` at module load,
+# so this import must run before them or those imports fail when no
+# separately installed GDAL is present.
+import pyramids  # noqa: F401
+
 try:
     from importlib.metadata import PackageNotFoundError  # type: ignore
     from importlib.metadata import version

@@ -5,6 +5,7 @@ written by `FlowDirection.persist_metadata` (and equivalent methods on
 `Accumulation`/`StreamRaster`). Keeping them in one module avoids
 string-typo bugs across the typed-class files.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING

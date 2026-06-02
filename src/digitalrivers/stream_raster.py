@@ -5,18 +5,35 @@ MATLAB `@STREAMobj/STREAMobj.m:36` — stream extraction from a
 multi-direction flow scheme is not well-defined, so the constructor rejects
 any `routing` outside the supported single-direction set up front.
 """
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import geopandas as gpd
+import numpy as np
 from osgeo import gdal
 from pyramids.dataset import Dataset
+from shapely.geometry import LineString
 
 from digitalrivers._metadata import (
     META_CLASS,
     META_ROUTING,
     META_THRESHOLD,
     VALID_ROUTING,
+)
+from digitalrivers._streams.order import (
+    _DIR_DC,
+    _DIR_DR,
+    _INV_DIR,
+    _build_topology,
+    _stream_outlets,
+    _upstream_length_from_head,
+    hack,
+    horton,
+    shreve,
+    strahler,
+    topological,
 )
 
 if TYPE_CHECKING:
@@ -156,8 +173,6 @@ class StreamRaster(Dataset):
             ValueError: If `method` is not `"link"` or
                 `flow_direction` is multi-direction.
         """
-        import numpy as np
-
         from digitalrivers.flow_direction import FlowDirection
         from digitalrivers.watershed_raster import WatershedRaster
 
@@ -258,10 +273,12 @@ class StreamRaster(Dataset):
                         out[pr, pc] = tail_id
 
         plain = Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=0,
         )
 
-        import geopandas as gpd
         unique_ids = sorted({int(v) for v in np.unique(out) if v != 0})
         # For each link, the outlet is the cell whose D8 successor either
         # belongs to a different basin or falls off the grid — i.e., the
@@ -290,13 +307,17 @@ class StreamRaster(Dataset):
             outlet_xs.append(float(x0 + (chosen_c + 0.5) * dx))
             outlet_ys.append(float(y0 + (chosen_r + 0.5) * dy))
         outlets_gdf = gpd.GeoDataFrame(
-            {"basin_id": unique_ids,
-             "cell_count": [int((out == bid).sum()) for bid in unique_ids]},
+            {
+                "basin_id": unique_ids,
+                "cell_count": [int((out == bid).sum()) for bid in unique_ids],
+            },
             geometry=gpd.points_from_xy(outlet_xs, outlet_ys),
             crs=self.epsg,
         )
         return WatershedRaster.from_dataset(
-            plain, routing=flow_direction.routing, outlets=outlets_gdf,
+            plain,
+            routing=flow_direction.routing,
+            outlets=outlets_gdf,
         )
 
     def order(
@@ -324,15 +345,6 @@ class StreamRaster(Dataset):
             ValueError: If `method` is unknown or `flow_direction` is
                 missing / multi-direction.
         """
-        import numpy as np
-
-        from digitalrivers._streams.order import (
-            hack,
-            horton,
-            shreve,
-            strahler,
-            topological,
-        )
         from digitalrivers.flow_direction import FlowDirection
 
         if method not in ("strahler", "shreve", "horton", "hack", "topological"):
@@ -341,9 +353,7 @@ class StreamRaster(Dataset):
                 f"'hack', 'topological'; got {method!r}"
             )
         if not isinstance(flow_direction, FlowDirection):
-            raise ValueError(
-                "flow_direction is required and must be a FlowDirection"
-            )
+            raise ValueError("flow_direction is required and must be a FlowDirection")
         if flow_direction.routing not in ("d8", "rho8"):
             raise ValueError(
                 f"order currently supports single-direction routing only; got "
@@ -367,7 +377,10 @@ class StreamRaster(Dataset):
         else:
             arr = topological(stream_mask, fdir)
         plain = Dataset.create_from_array(
-            arr, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+            arr,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=0,
         )
         return StreamRaster.from_dataset(
             plain, threshold=self.threshold, routing=self.routing
@@ -406,13 +419,6 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction or shape
                 mismatches, or `min_length_m` is negative.
         """
-        import numpy as np
-
-        from digitalrivers._streams.order import (
-            _DIR_DR,
-            _DIR_DC,
-            _build_topology,
-        )
         from digitalrivers.flow_direction import FlowDirection
 
         if not isinstance(flow_direction, FlowDirection):
@@ -426,9 +432,7 @@ class StreamRaster(Dataset):
                 f"{flow_direction.routing!r}"
             )
         if min_length_m < 0:
-            raise ValueError(
-                f"min_length_m must be non-negative; got {min_length_m!r}"
-            )
+            raise ValueError(f"min_length_m must be non-negative; got {min_length_m!r}")
 
         sm = self.read_array().astype(bool, copy=False).copy()
         fdir = flow_direction.read_array().astype(np.int32, copy=False)
@@ -441,7 +445,7 @@ class StreamRaster(Dataset):
         indeg, _ds_idx = _build_topology(sm, fdir)
         rows, cols = sm.shape
         cs = float(self.cell_size)
-        diag = cs * (2.0 ** 0.5)
+        diag = cs * (2.0**0.5)
 
         # Trace every headwater link and remove its cells if too short.
         head_locs = list(zip(*np.where(sm & (indeg == 0))))
@@ -471,11 +475,15 @@ class StreamRaster(Dataset):
                     sm[pr, pc] = False
 
         plain = Dataset.create_from_array(
-            sm.astype(np.uint8), geo=self.geotransform, epsg=self.epsg,
+            sm.astype(np.uint8),
+            geo=self.geotransform,
+            epsg=self.epsg,
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
-            plain, threshold=self.threshold, routing=self.routing,
+            plain,
+            threshold=self.threshold,
+            routing=self.routing,
         )
 
     def main_stem(
@@ -511,16 +519,6 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction, shape
                 mismatches, or `outlet` is not a stream cell.
         """
-        import numpy as np
-
-        from digitalrivers._streams.order import (
-            _DIR_DR,
-            _DIR_DC,
-            _INV_DIR,
-            _build_topology,
-            _stream_outlets,
-            _upstream_length_from_head,
-        )
         from digitalrivers.flow_direction import FlowDirection
 
         if not isinstance(flow_direction, FlowDirection):
@@ -631,10 +629,6 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction.
             ValueError: If shapes do not match.
         """
-        import geopandas as gpd
-        import numpy as np
-        from shapely.geometry import LineString
-
         from digitalrivers.flow_direction import FlowDirection  # for type-narrow
 
         if not isinstance(flow_direction, FlowDirection):
@@ -675,8 +669,16 @@ class StreamRaster(Dataset):
         # it is flowing INTO us.
         inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
         grid_lengths = np.array(
-            [1.0, np.sqrt(2.0), 1.0, np.sqrt(2.0),
-             1.0, np.sqrt(2.0), 1.0, np.sqrt(2.0)],
+            [
+                1.0,
+                np.sqrt(2.0),
+                1.0,
+                np.sqrt(2.0),
+                1.0,
+                np.sqrt(2.0),
+                1.0,
+                np.sqrt(2.0),
+            ],
             dtype=np.float64,
         ) * float(self.cell_size)
 
@@ -773,16 +775,18 @@ class StreamRaster(Dataset):
                 drop_m = np.nan
                 mean_slope = np.nan
 
-            records.append({
-                "link_id": link_id,
-                "from_node": from_node,
-                "to_node": to_node,
-                "length_m": length_m,
-                "drop_m": drop_m,
-                "mean_slope": mean_slope,
-                "sinuosity": sinuosity,
-                "geometry": geom,
-            })
+            records.append(
+                {
+                    "link_id": link_id,
+                    "from_node": from_node,
+                    "to_node": to_node,
+                    "length_m": length_m,
+                    "drop_m": drop_m,
+                    "mean_slope": mean_slope,
+                    "sinuosity": sinuosity,
+                    "geometry": geom,
+                }
+            )
             link_id += 1
 
         crs = self.epsg

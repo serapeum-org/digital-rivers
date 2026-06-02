@@ -4,11 +4,18 @@ Subclass of :class:`pyramids.dataset.Dataset` that tags a watershed-label raster
 with its basin count and the GeoDataFrame of outlet points. Carries the
 producing FlowDirection's routing tag for provenance.
 """
+
 from __future__ import annotations
 
+import geopandas as gpd
+import numpy as np
+import pandas as pd
 from osgeo import gdal
 from pyramids.dataset import Dataset
+from shapely.geometry import MultiPolygon, Polygon
+from shapely.ops import unary_union
 
+from digitalrivers._flow.accumulation import kahn_max_upslope_length
 from digitalrivers._metadata import (
     META_CLASS,
     META_ROUTING,
@@ -87,8 +94,6 @@ class WatershedRaster(Dataset):
                 True
         """
         if self._basin_count is None:
-            import numpy as np
-
             unique = np.unique(self.read_array())
             self._basin_count = int((unique != 0).sum())
         return self._basin_count
@@ -196,9 +201,6 @@ class WatershedRaster(Dataset):
                 >>> "drainage_density_km_per_km2" in df.columns
                 True
         """
-        import numpy as np
-        import pandas as pd
-
         gt = self.geotransform
         cell_area_m2 = abs(gt[1] * gt[5])
         labels = self.read_array().astype(np.int32, copy=False)
@@ -229,8 +231,13 @@ class WatershedRaster(Dataset):
             no_val = dem.no_data_value[0] if dem.no_data_value else None
             if no_val is not None:
                 elev = np.where(elev == no_val, np.nan, elev)
-            for col in ("min_elev", "max_elev", "mean_elev", "std_elev",
-                        "hypsometric_integral"):
+            for col in (
+                "min_elev",
+                "max_elev",
+                "mean_elev",
+                "std_elev",
+                "hypsometric_integral",
+            ):
                 available[col] = []
             for bid in unique_ids:
                 mask = labels == bid
@@ -275,7 +282,6 @@ class WatershedRaster(Dataset):
             # outlet. Only `flow_direction` and the cell size drive the
             # computation; pass `accumulation` if you want the matching
             # routing checked against this WatershedRaster's routing tag.
-            from digitalrivers._flow.accumulation import kahn_max_upslope_length
             fdir_arr = flow_direction.read_array().astype(np.int32, copy=False)
             lengths = kahn_max_upslope_length(fdir_arr, abs(gt[1]))
 
@@ -315,9 +321,7 @@ class WatershedRaster(Dataset):
                 if diag_mask is not None:
                     diag = int((stream_mask & diag_mask).sum())
                     card = stream_count - diag
-                    length_km = (
-                        (card + diag * np.sqrt(2.0)) * cell_size / 1000.0
-                    )
+                    length_km = (card + diag * np.sqrt(2.0)) * cell_size / 1000.0
                 else:
                     length_km = stream_count * cell_size / 1000.0
                 area_km2 = int(mask.sum()) * cell_area_m2 / 1.0e6
@@ -345,11 +349,6 @@ class WatershedRaster(Dataset):
             `geopandas.GeoDataFrame` with columns `basin_id` (int) and
             `geometry` (Polygon / MultiPolygon).
         """
-        import geopandas as gpd
-        import numpy as np
-        from shapely.geometry import Polygon, MultiPolygon
-        from shapely.ops import unary_union
-
         arr = self.read_array().astype(np.int32, copy=False)
         gt = self.geotransform
         x0, dx, _, y0, _, dy = gt

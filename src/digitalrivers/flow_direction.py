@@ -8,13 +8,24 @@ default. That is the safety property: it prevents a flow-direction raster of
 unknown provenance from being silently reinterpreted as D8 by a downstream
 consumer.
 """
+
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING
 
+import geopandas as gpd
+import numpy as np
 from osgeo import gdal
 from pyramids.dataset import Dataset
+from shapely.geometry import Point
 
+from digitalrivers._flow.accumulation import (
+    accumulate as _accumulate_array,
+    kahn_max_upslope_length,
+)
+from digitalrivers._flow.ihu import ihu_upscale
+from digitalrivers._flow.watershed import watershed_d8
 from digitalrivers._metadata import (
     META_CLASS,
     META_ENCODING,
@@ -22,10 +33,14 @@ from digitalrivers._metadata import (
     VALID_ENCODING,
     VALID_ROUTING,
 )
+from digitalrivers._streams.order import (
+    _DIR_DC,
+    _DIR_DR,
+    _INV_DIR,
+    _stream_outlets,
+)
 
 if TYPE_CHECKING:
-    import numpy as np
-
     from digitalrivers.accumulation import Accumulation
     from digitalrivers.watershed_raster import WatershedRaster
 
@@ -38,8 +53,6 @@ def _pick_coarse_elev(z_fine, fr: int, fc: int) -> float:
     finite. Used by every upscaler (COTAT, EAM/DMM, IHU) to project the
     chosen-outlet fine elevation into the coarse DEM raster.
     """
-    import math
-
     zv = z_fine[fr, fc]
     return float(zv) if math.isfinite(float(zv)) else Dataset.default_no_data_value
 
@@ -187,9 +200,6 @@ class FlowDirection(Dataset):
         Returns:
             Accumulation carrying this object's `routing` for provenance.
         """
-        import numpy as np
-
-        from digitalrivers._flow.accumulation import accumulate as _accumulate_array
         from digitalrivers.accumulation import Accumulation
 
         fd_arr = self.read_array()
@@ -228,8 +238,6 @@ class FlowDirection(Dataset):
         Multi-band MFD/D∞ rasters use band 0 as the routing-specific validity
         indicator (angle `>= 0` for D∞, any non-zero fraction for MFD).
         """
-        import numpy as np
-
         if arr.ndim == 2:
             # D8 / Rho8: treat every in-bounds cell as a valid receiver. Sinks
             # (direction == no_data) are kept in the graph so they accumulate.
@@ -282,19 +290,15 @@ class FlowDirection(Dataset):
                 core is deferred.
         """
         if scale_factor < 1:
-            raise ValueError(
-                f"scale_factor must be >= 1; got {scale_factor}"
-            )
+            raise ValueError(f"scale_factor must be >= 1; got {scale_factor}")
         if scale_factor == 1:
             up_dem, up_fdir = self.upscale(
-                scale_factor=1, method="cotat",
-                accumulation=accumulation, dem=dem,
+                scale_factor=1,
+                method="cotat",
+                accumulation=accumulation,
+                dem=dem,
             )
             return up_dem, up_fdir, {}
-
-        import numpy as np
-
-        from digitalrivers._flow.ihu import ihu_upscale
 
         fdir_arr = self.read_array().astype(np.int32, copy=False)
         acc_arr = accumulation.read_array().astype(np.float64, copy=False)
@@ -305,7 +309,10 @@ class FlowDirection(Dataset):
             )
 
         coarse_fdir, metrics, outlets = ihu_upscale(
-            fdir_arr, acc_arr, scale_factor, max_iter=max_iter,
+            fdir_arr,
+            acc_arr,
+            scale_factor,
+            max_iter=max_iter,
         )
         # Replace -1 with the dataset no-data sentinel for on-disk consistency.
         coarse_fdir = np.where(
@@ -316,24 +323,34 @@ class FlowDirection(Dataset):
 
         gt = self.geotransform
         coarse_gt = (
-            gt[0], gt[1] * scale_factor, gt[2],
-            gt[3], gt[4], gt[5] * scale_factor,
+            gt[0],
+            gt[1] * scale_factor,
+            gt[2],
+            gt[3],
+            gt[4],
+            gt[5] * scale_factor,
         )
         plain_fdir = Dataset.create_from_array(
-            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            coarse_fdir,
+            geo=coarse_gt,
+            epsg=self.epsg,
             no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
-            plain_fdir, routing="d8", encoding=self.encoding,
+            plain_fdir,
+            routing="d8",
+            encoding=self.encoding,
         )
 
         upscaled_dem = None
         if dem is not None:
             from digitalrivers.dem import DEM as _DEM
+
             out_rows = fdir_arr.shape[0] // scale_factor
             out_cols = fdir_arr.shape[1] // scale_factor
             coarse_z = np.full(
-                (out_rows, out_cols), Dataset.default_no_data_value,
+                (out_rows, out_cols),
+                Dataset.default_no_data_value,
                 dtype=np.float32,
             )
             z_arr = dem.read_array().astype(np.float64, copy=False)
@@ -342,7 +359,9 @@ class FlowDirection(Dataset):
                 fc = int(out[2])
                 coarse_z[br, bc] = _pick_coarse_elev(z_arr, fr, fc)
             plain_dem = Dataset.create_from_array(
-                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                coarse_z,
+                geo=coarse_gt,
+                epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_dem = _DEM(plain_dem.raster)
@@ -396,29 +415,31 @@ class FlowDirection(Dataset):
             ValueError: If `scale_factor < 1` or `accumulation` is
                 missing for COTAT.
         """
-        import numpy as np
-
         from digitalrivers.accumulation import Accumulation
 
         if scale_factor < 1:
-            raise ValueError(
-                f"scale_factor must be >= 1; got {scale_factor}"
-            )
+            raise ValueError(f"scale_factor must be >= 1; got {scale_factor}")
         if scale_factor == 1:
-            return (dem, FlowDirection.from_dataset(
-                Dataset(self.raster), routing=self.routing,
-                encoding=self.encoding,
-            ))
+            return (
+                dem,
+                FlowDirection.from_dataset(
+                    Dataset(self.raster),
+                    routing=self.routing,
+                    encoding=self.encoding,
+                ),
+            )
         if method == "ihu":
             return self.upscale_ihu(scale_factor, accumulation, dem)[:2]
         if method in ("eam", "dmm"):
             return self._upscale_eam_or_dmm(
-                scale_factor, method=method, accumulation=accumulation, dem=dem,
+                scale_factor,
+                method=method,
+                accumulation=accumulation,
+                dem=dem,
             )
         if method != "cotat":
             raise NotImplementedError(
-                f"method={method!r} not yet implemented "
-                "(only 'cotat', 'eam', 'dmm')"
+                f"method={method!r} not yet implemented " "(only 'cotat', 'eam', 'dmm')"
             )
         if not isinstance(accumulation, Accumulation):
             raise ValueError("COTAT requires an Accumulation input")
@@ -443,14 +464,19 @@ class FlowDirection(Dataset):
 
         if is_numba_enabled():
             coarse_fdir = cotat_upscale_numba(
-                fdir, acc, scale_factor, d_row, d_col,
+                fdir,
+                acc,
+                scale_factor,
+                d_row,
+                d_col,
                 np.int32(Dataset.default_no_data_value),
             )
             z = None
             if dem is not None:
                 z = dem.read_array().astype(np.float64, copy=False)
                 coarse_z = np.full(
-                    (out_rows, out_cols), Dataset.default_no_data_value,
+                    (out_rows, out_cols),
+                    Dataset.default_no_data_value,
                     dtype=np.float32,
                 )
                 for br in range(out_rows):
@@ -465,20 +491,31 @@ class FlowDirection(Dataset):
                         coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
             gt = self.geotransform
             coarse_gt = (
-                gt[0], gt[1] * scale_factor, gt[2],
-                gt[3], gt[4], gt[5] * scale_factor,
+                gt[0],
+                gt[1] * scale_factor,
+                gt[2],
+                gt[3],
+                gt[4],
+                gt[5] * scale_factor,
             )
             plain_fdir = Dataset.create_from_array(
-                coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+                coarse_fdir,
+                geo=coarse_gt,
+                epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_fdir = FlowDirection.from_dataset(
-                plain_fdir, routing="d8", encoding=self.encoding,
+                plain_fdir,
+                routing="d8",
+                encoding=self.encoding,
             )
             if z is not None:
                 from digitalrivers.dem import DEM as _DEM
+
                 plain_dem = Dataset.create_from_array(
-                    coarse_z, geo=coarse_gt, epsg=self.epsg,
+                    coarse_z,
+                    geo=coarse_gt,
+                    epsg=self.epsg,
                     no_data_value=Dataset.default_no_data_value,
                 )
                 upscaled_dem = _DEM(plain_dem.raster)
@@ -487,14 +524,17 @@ class FlowDirection(Dataset):
             return upscaled_dem, upscaled_fdir
 
         coarse_fdir = np.full(
-            (out_rows, out_cols), Dataset.default_no_data_value, dtype=np.int32,
+            (out_rows, out_cols),
+            Dataset.default_no_data_value,
+            dtype=np.int32,
         )
 
         z = None
         if dem is not None:
             z = dem.read_array().astype(np.float64, copy=False)
             coarse_z = np.full(
-                (out_rows, out_cols), Dataset.default_no_data_value,
+                (out_rows, out_cols),
+                Dataset.default_no_data_value,
                 dtype=np.float32,
             )
 
@@ -553,20 +593,31 @@ class FlowDirection(Dataset):
         # Build coarse geotransform.
         gt = self.geotransform
         coarse_gt = (
-            gt[0], gt[1] * scale_factor, gt[2],
-            gt[3], gt[4], gt[5] * scale_factor,
+            gt[0],
+            gt[1] * scale_factor,
+            gt[2],
+            gt[3],
+            gt[4],
+            gt[5] * scale_factor,
         )
         plain_fdir = Dataset.create_from_array(
-            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            coarse_fdir,
+            geo=coarse_gt,
+            epsg=self.epsg,
             no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
-            plain_fdir, routing="d8", encoding=self.encoding,
+            plain_fdir,
+            routing="d8",
+            encoding=self.encoding,
         )
         if z is not None:
             from digitalrivers.dem import DEM as _DEM
+
             plain_dem = Dataset.create_from_array(
-                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                coarse_z,
+                geo=coarse_gt,
+                epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_dem = _DEM(plain_dem.raster)
@@ -605,8 +656,6 @@ class FlowDirection(Dataset):
         Returns:
             Tuple `(upscaled_dem, upscaled_fdir)`.
         """
-        import numpy as np
-
         from digitalrivers.accumulation import Accumulation
 
         fdir = self.read_array().astype(np.int32, copy=False)
@@ -617,9 +666,7 @@ class FlowDirection(Dataset):
 
         if method == "eam":
             if not isinstance(accumulation, Accumulation):
-                raise ValueError(
-                    "EAM upscaling requires an Accumulation input"
-                )
+                raise ValueError("EAM upscaling requires an Accumulation input")
             weights = accumulation.read_array().astype(np.float64, copy=False)
         else:  # dmm
             weights = None
@@ -627,7 +674,9 @@ class FlowDirection(Dataset):
         d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
         d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
         coarse_fdir = np.full(
-            (out_rows, out_cols), Dataset.default_no_data_value, dtype=np.int32,
+            (out_rows, out_cols),
+            Dataset.default_no_data_value,
+            dtype=np.int32,
         )
 
         for br in range(out_rows):
@@ -667,21 +716,31 @@ class FlowDirection(Dataset):
                     coarse_fdir[br, bc] = int(np.argmax(votes))
 
         coarse_gt = (
-            gt[0], gt[1] * scale_factor, gt[2],
-            gt[3], gt[4], gt[5] * scale_factor,
+            gt[0],
+            gt[1] * scale_factor,
+            gt[2],
+            gt[3],
+            gt[4],
+            gt[5] * scale_factor,
         )
         plain_fdir = Dataset.create_from_array(
-            coarse_fdir, geo=coarse_gt, epsg=self.epsg,
+            coarse_fdir,
+            geo=coarse_gt,
+            epsg=self.epsg,
             no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
-            plain_fdir, routing="d8", encoding=self.encoding,
+            plain_fdir,
+            routing="d8",
+            encoding=self.encoding,
         )
         upscaled_dem = None
         if dem is not None and weights is not None:
             from digitalrivers.dem import DEM as _DEM
+
             coarse_z = np.full(
-                (out_rows, out_cols), Dataset.default_no_data_value,
+                (out_rows, out_cols),
+                Dataset.default_no_data_value,
                 dtype=np.float32,
             )
             z = dem.read_array().astype(np.float64, copy=False)
@@ -696,7 +755,9 @@ class FlowDirection(Dataset):
                     fc = bc * scale_factor + idx % scale_factor
                     coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
             plain_dem = Dataset.create_from_array(
-                coarse_z, geo=coarse_gt, epsg=self.epsg,
+                coarse_z,
+                geo=coarse_gt,
+                epsg=self.epsg,
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_dem = _DEM(plain_dem.raster)
@@ -825,8 +886,6 @@ class FlowDirection(Dataset):
             FlowDirection.accumulate: upstream-area accumulation needed for
                 tributary ranking.
         """
-        import numpy as np
-
         from digitalrivers.accumulation import Accumulation
         from digitalrivers.stream_raster import StreamRaster
         from digitalrivers.watershed_raster import WatershedRaster
@@ -835,8 +894,7 @@ class FlowDirection(Dataset):
             raise ValueError(f"level must be >= 1; got {level}")
         if encoding != "packed_int":
             raise NotImplementedError(
-                f"encoding={encoding!r} not yet implemented "
-                f"(only 'packed_int')"
+                f"encoding={encoding!r} not yet implemented " f"(only 'packed_int')"
             )
         if self.routing not in ("d8", "rho8"):
             raise ValueError(
@@ -857,13 +915,18 @@ class FlowDirection(Dataset):
                 f"accumulation={acc.shape}, streams={stream_mask.shape}"
             )
         out = self._pfafstetter_kernel(
-            fdir=fdir, acc=acc, stream_mask=stream_mask,
-            basin_mask=None, level=level,
+            fdir=fdir,
+            acc=acc,
+            stream_mask=stream_mask,
+            basin_mask=None,
+            level=level,
         )
         plain = Dataset.create_from_array(
-            out, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+            out,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=0,
         )
-        import geopandas as gpd
         ids = sorted({int(v) for v in np.unique(out) if v != 0})
         # Per-basin outlet = the cell with the highest accumulation in that
         # basin. Locate it via masked-argmax so the resulting GeoDataFrame
@@ -882,11 +945,18 @@ class FlowDirection(Dataset):
             crs=self.epsg,
         )
         return WatershedRaster.from_dataset(
-            plain, routing=self.routing, outlets=outlets_gdf,
+            plain,
+            routing=self.routing,
+            outlets=outlets_gdf,
         )
 
     def _pfafstetter_kernel(
-        self, fdir, acc, stream_mask, basin_mask, level: int,
+        self,
+        fdir,
+        acc,
+        stream_mask,
+        basin_mask,
+        level: int,
     ):
         """Recursive Pfafstetter kernel.
 
@@ -907,10 +977,7 @@ class FlowDirection(Dataset):
             `(rows, cols)` int32 of Pfafstetter codes. Cells outside
             `basin_mask` (or sub-basins with no stream cells) are 0.
         """
-        import numpy as np
-        out_level_1 = self._pfafstetter_level1(
-            fdir, acc, stream_mask, basin_mask
-        )
+        out_level_1 = self._pfafstetter_level1(fdir, acc, stream_mask, basin_mask)
         if level == 1:
             return out_level_1
         out = np.zeros_like(out_level_1)
@@ -920,7 +987,11 @@ class FlowDirection(Dataset):
             if not sub_mask.any():
                 continue
             sub_out = self._pfafstetter_kernel(
-                fdir, acc, stream_mask, sub_mask, level - 1,
+                fdir,
+                acc,
+                stream_mask,
+                sub_mask,
+                level - 1,
             )
             # Combine: parent code shifted left + sub-code.
             shift = 10 ** (level - 1)
@@ -939,8 +1010,6 @@ class FlowDirection(Dataset):
             `(rows, cols)` int32 array with codes `1..9` inside the
             basin and `0` everywhere else.
         """
-        import numpy as np
-
         if basin_mask is None:
             basin_mask = np.ones(fdir.shape, dtype=bool)
 
@@ -1003,8 +1072,6 @@ class FlowDirection(Dataset):
         for r0, c0 in main_stem:
             out[r0, c0] = 5
 
-        from digitalrivers._flow.watershed import watershed_d8
-
         codes = [2, 4, 6, 8]
         seeds = [(int(uh[2]), int(uh[3])) for uh in top4]
         ids = codes[: len(seeds)]
@@ -1062,10 +1129,6 @@ class FlowDirection(Dataset):
         Raises:
             ValueError: If `self.routing` is not single-direction.
         """
-        import numpy as np
-
-        from digitalrivers._flow.accumulation import kahn_max_upslope_length
-
         if self.routing not in ("d8", "rho8"):
             raise ValueError(
                 f"upslope_flowpath_length supports single-direction routing "
@@ -1112,15 +1175,6 @@ class FlowDirection(Dataset):
             ValueError: If routing is multi-direction, shapes mismatch, or
                 `target_area_km2` is not positive.
         """
-        import numpy as np
-
-        from digitalrivers._flow.watershed import watershed_d8
-        from digitalrivers._streams.order import (
-            _DIR_DR,
-            _DIR_DC,
-            _INV_DIR,
-            _stream_outlets,
-        )
         from digitalrivers.watershed_raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
@@ -1181,25 +1235,36 @@ class FlowDirection(Dataset):
                 # No stream cells at all — emit an all-zero basin raster.
                 labels = np.zeros((rows, cols), dtype=np.int32)
                 plain = Dataset.create_from_array(
-                    labels, geo=self.geotransform, epsg=self.epsg,
+                    labels,
+                    geo=self.geotransform,
+                    epsg=self.epsg,
                     no_data_value=0,
                 )
                 return WatershedRaster.from_dataset(
-                    plain, routing=self.routing, outlets={},
+                    plain,
+                    routing=self.routing,
+                    outlets={},
                 )
             seed_rcs = [outlets[0]]
 
         basin_ids = list(range(1, len(seed_rcs) + 1))
         labels = watershed_d8(
-            fdir, seed_rcs, basin_ids, require_unique_basins=True,
+            fdir,
+            seed_rcs,
+            basin_ids,
+            require_unique_basins=True,
         )
         plain = Dataset.create_from_array(
-            labels.astype(np.int32), geo=self.geotransform, epsg=self.epsg,
+            labels.astype(np.int32),
+            geo=self.geotransform,
+            epsg=self.epsg,
             no_data_value=0,
         )
         outlets_dict = dict(zip(basin_ids, seed_rcs))
         return WatershedRaster.from_dataset(
-            plain, routing=self.routing, outlets=outlets_dict,
+            plain,
+            routing=self.routing,
+            outlets=outlets_dict,
         )
 
     def basins(
@@ -1240,9 +1305,6 @@ class FlowDirection(Dataset):
             ValueError: If both area kwargs are supplied or
                 `merge_small` is unknown.
         """
-        import numpy as np
-
-        from digitalrivers._flow.watershed import watershed_d8
         from digitalrivers.watershed_raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
@@ -1251,9 +1313,7 @@ class FlowDirection(Dataset):
                 f"got {self.routing!r}"
             )
         if min_area_cells is not None and min_area_km2 is not None:
-            raise ValueError(
-                "Pass at most one of min_area_cells / min_area_km2"
-            )
+            raise ValueError("Pass at most one of min_area_cells / min_area_km2")
         if merge_small not in ("drop", "merge_to_neighbour"):
             raise ValueError(
                 f"merge_small must be 'drop' or 'merge_to_neighbour'; "
@@ -1285,11 +1345,15 @@ class FlowDirection(Dataset):
             c = int(c)
             seeds.append((r, c))
             basin_ids.append(bid)
-            outlet_records.append({
-                "basin_id": bid, "row": r, "col": c,
-                "x": x0 + (c + 0.5) * dx,
-                "y": y0 + (r + 0.5) * dy,
-            })
+            outlet_records.append(
+                {
+                    "basin_id": bid,
+                    "row": r,
+                    "col": c,
+                    "x": x0 + (c + 0.5) * dx,
+                    "y": y0 + (r + 0.5) * dy,
+                }
+            )
             bid += 1
 
         basins = watershed_d8(fdir, seeds, basin_ids, require_unique_basins=True)
@@ -1324,12 +1388,11 @@ class FlowDirection(Dataset):
                             mask_dst = mask[r0:r1, c0:c1]
                             labels_src = basins[src_r0:src_r1, src_c0:src_c1]
                             touched = labels_src[mask_dst]
-                            border_labels.update(
-                                int(v) for v in np.unique(touched)
-                            )
+                            border_labels.update(int(v) for v in np.unique(touched))
                     # Drop self, background, and other small basins.
                     candidates = [
-                        lbl for lbl in border_labels
+                        lbl
+                        for lbl in border_labels
                         if lbl != 0 and lbl != b and lbl not in small_ids
                     ]
                     if not candidates:
@@ -1350,18 +1413,21 @@ class FlowDirection(Dataset):
                 rec["cell_count"] = int(sizes.get(rec["basin_id"], 0))
 
         plain = Dataset.create_from_array(
-            basins, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+            basins,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=0,
         )
 
-        import geopandas as gpd
-        from shapely.geometry import Point
         outlets_gdf = gpd.GeoDataFrame(
             outlet_records,
             geometry=[Point(rec["x"], rec["y"]) for rec in outlet_records],
             crs=self.epsg,
         )
         return WatershedRaster.from_dataset(
-            plain, routing=self.routing, outlets=outlets_gdf,
+            plain,
+            routing=self.routing,
+            outlets=outlets_gdf,
         )
 
     def watershed(
@@ -1390,9 +1456,6 @@ class FlowDirection(Dataset):
             The `outlets` attribute is a GeoDataFrame parallel to the input
             `pour_points`.
         """
-        import numpy as np
-
-        from digitalrivers._flow.watershed import watershed_d8
         from digitalrivers.watershed_raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
@@ -1425,25 +1488,36 @@ class FlowDirection(Dataset):
             if 0 <= row < rows and 0 <= col < cols:
                 seeds.append((row, col))
                 basin_ids.append(bid)
-                outlet_records.append({
-                    "basin_id": bid, "row": row, "col": col,
-                    "x": x0 + (col + 0.5) * dx,
-                    "y": y0 + (row + 0.5) * dy,
-                })
+                outlet_records.append(
+                    {
+                        "basin_id": bid,
+                        "row": row,
+                        "col": col,
+                        "x": x0 + (col + 0.5) * dx,
+                        "y": y0 + (row + 0.5) * dy,
+                    }
+                )
             else:
-                outlet_records.append({
-                    "basin_id": bid, "row": -1, "col": -1,
-                    "x": float("nan"), "y": float("nan"),
-                })
+                outlet_records.append(
+                    {
+                        "basin_id": bid,
+                        "row": -1,
+                        "col": -1,
+                        "x": float("nan"),
+                        "y": float("nan"),
+                    }
+                )
 
-        basins = watershed_d8(fdir, seeds, basin_ids,
-                              require_unique_basins=require_unique_basins)
+        basins = watershed_d8(
+            fdir, seeds, basin_ids, require_unique_basins=require_unique_basins
+        )
         plain = Dataset.create_from_array(
-            basins, geo=self.geotransform, epsg=self.epsg, no_data_value=0,
+            basins,
+            geo=self.geotransform,
+            epsg=self.epsg,
+            no_data_value=0,
         )
 
-        import geopandas as gpd
-        from shapely.geometry import Point
         outlets_gdf = gpd.GeoDataFrame(
             outlet_records,
             geometry=[
@@ -1453,7 +1527,9 @@ class FlowDirection(Dataset):
             crs=target_epsg,
         )
         return WatershedRaster.from_dataset(
-            plain, routing=self.routing, outlets=outlets_gdf,
+            plain,
+            routing=self.routing,
+            outlets=outlets_gdf,
         )
 
     def __repr__(self) -> str:
