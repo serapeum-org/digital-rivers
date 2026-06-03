@@ -1,6 +1,10 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![codecov](https://codecov.io/gh/serapeum-org/digital-rivers/branch/main/graph/badge.svg)](https://codecov.io/gh/serapeum-org/digital-rivers)
+[![conda-forge version](https://img.shields.io/conda/vn/conda-forge/digital-rivers.svg)](https://anaconda.org/conda-forge/digital-rivers)
+[![conda-forge downloads](https://img.shields.io/conda/dn/conda-forge/digital-rivers.svg)](https://anaconda.org/conda-forge/digital-rivers)
+[![conda-forge platforms](https://img.shields.io/conda/pn/conda-forge/digital-rivers.svg)](https://anaconda.org/conda-forge/digital-rivers)
+[![conda-forge feedstock](https://img.shields.io/badge/conda--forge-feedstock-blue?logo=conda-forge)](https://github.com/conda-forge/digital-rivers-feedstock)
 
 # digital-rivers
 
@@ -15,9 +19,19 @@ The package exposes two classes: `DEM` and `Terrain`. Both subclass `pyramids.da
 
 ## Installation
 
-The package is **not yet published to conda-forge or PyPI**. Install from source for now:
+`digital-rivers` is published on **[conda-forge](https://anaconda.org/conda-forge/digital-rivers)**
+(feedstock: [`conda-forge/digital-rivers-feedstock`](https://github.com/conda-forge/digital-rivers-feedstock)).
+conda-forge also provides GDAL, so this is the recommended route.
 
-### With Pixi (recommended — provides GDAL via conda-forge)
+### With conda / mamba (recommended — pulls GDAL automatically)
+
+```bash
+conda install -c conda-forge digital-rivers
+# or, faster:
+mamba install -c conda-forge digital-rivers
+```
+
+### With Pixi (for development from source)
 
 ```bash
 git clone https://github.com/serapeum-org/digital-rivers.git
@@ -26,9 +40,9 @@ pixi install -e dev      # creates the dev environment
 pixi shell -e dev
 ```
 
-### With pip
+### With pip (from source)
 
-GDAL must already be importable. If you don't have it from conda-forge:
+Not yet on PyPI. GDAL must already be importable (e.g. from conda-forge):
 
 ```bash
 pip install git+https://github.com/serapeum-org/digital-rivers.git
