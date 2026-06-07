@@ -50,6 +50,10 @@ viz = ["pyramids-gis[viz] @ git+https://github.com/serapeum-org/pyramids.git@mai
 # feature below — deliberately a different name so pixi does not auto-activate this PyPI extra and drag pyramids'
 # whole git closure into the lock.)
 distributed = ["pyramids-gis[lazy] @ git+https://github.com/serapeum-org/pyramids.git@main"]
+# Convenience meta-extra: `pip install digital-rivers[all]` pulls every optional capability (viz + the dask
+# distributed backend). Self-referential so the individual extras above stay the single source of truth. Once the
+# package stabilises we can revisit how many extras exist and which can be merged.
+all = ["digital-rivers[viz,distributed]"]
 dev = [
     "nbval >=0.11.0",
     "pre-commit >=3.7.1",

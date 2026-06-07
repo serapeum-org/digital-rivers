@@ -6747,7 +6747,7 @@ packages:
 - pypi: ./
   name: digital-rivers
   version: 0.2.0
-  sha256: 57798cb48a1ba66e4f6df2146330cf0a0152a786f5f2cf82f2efa2cf3d11052d
+  sha256: 9e58b06db26bca64b7137aae2b6849b761e079fd20c6cdab9008016438b23f20
   requires_dist:
   - pyramids-gis @ git+https://github.com/serapeum-org/pyramids.git@main
   - geopandas>=1.0.0
@@ -6755,6 +6755,7 @@ packages:
   - numpy>=2.0.0
   - pyramids-gis[viz] @ git+https://github.com/serapeum-org/pyramids.git@main ; extra == 'viz'
   - pyramids-gis[lazy] @ git+https://github.com/serapeum-org/pyramids.git@main ; extra == 'distributed'
+  - digital-rivers[viz,distributed] ; extra == 'all'
   - nbval>=0.11.0 ; extra == 'dev'
   - pre-commit>=3.7.1 ; extra == 'dev'
   - pre-commit-hooks>=4.6.0 ; extra == 'dev'
