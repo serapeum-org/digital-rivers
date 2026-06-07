@@ -60,9 +60,12 @@ def flow_accumulation_tiled(
         weights: Optional per-cell weight ``Dataset``; defaults to 1.0 per cell (cell counts).
         tile_rows: Core tile height. Defaults to 2048.
         tile_cols: Core tile width. Defaults to 2048.
-        cache: Reserved for parity with the fill API; the perimeter exchange re-reads tiles per round.
-        workers: Reserved for the dask backend (B7).
-        scratch_dir: Reserved.
+        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
+        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
+        client: Optional ``distributed.Client``; when given, the dask backend is used.
+        cache: Accepted for parity with the fill API but currently ignored — the perimeter exchange re-reads
+            tiles each round (bounded memory) rather than caching them.
+        scratch_dir: Accepted for parity but currently ignored.
 
     Returns:
         The accumulation `pyramids` ``Dataset`` opened on ``out_path``.
