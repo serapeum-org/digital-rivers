@@ -147,7 +147,9 @@ def flow_accumulation_tiled(
         for i in range(n_rows):
             cells.append((i, 0))
             cells.append((i, n_cols - 1))
-        for i, j in set(cells):
+        # dict.fromkeys dedups while preserving insertion order, so the export-sum order is deterministic
+        # (unlike set() iteration) — float addition is not associative.
+        for i, j in dict.fromkeys(cells):
             d = int(fd[i, j])
             if d < 0 or d > 7:
                 continue

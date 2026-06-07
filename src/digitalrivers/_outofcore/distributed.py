@@ -238,14 +238,15 @@ def _accum_exports(spec, fd, w, acc, rows, cols, dr, dc):
         spec.row_off + n_rows,
         spec.col_off + n_cols,
     )
-    border = set()
+    cells = []
     for j in range(n_cols):
-        border.add((0, j))
-        border.add((n_rows - 1, j))
+        cells.append((0, j))
+        cells.append((n_rows - 1, j))
     for i in range(n_rows):
-        border.add((i, 0))
-        border.add((i, n_cols - 1))
-    for i, j in border:
+        cells.append((i, 0))
+        cells.append((i, n_cols - 1))
+    # dict.fromkeys dedups deterministically (order-stable) so the export-sum order is reproducible.
+    for i, j in dict.fromkeys(cells):
         d = int(fd[i, j])
         if d < 0 or d > 7:
             continue
