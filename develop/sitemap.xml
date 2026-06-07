@@ -81,6 +81,18 @@
          <lastmod>2026-06-07</lastmod>
     </url>
     <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/examples/10_out_of_core_fill/</loc>
+         <lastmod>2026-06-07</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/examples/11_out_of_core_flow/</loc>
+         <lastmod>2026-06-07</lastmod>
+    </url>
+    <url>
+         <loc>https://serapeum-org.github.io/digital-rivers/develop/examples/12_out_of_core_dask/</loc>
+         <lastmod>2026-06-07</lastmod>
+    </url>
+    <url>
          <loc>https://serapeum-org.github.io/digital-rivers/develop/guides/hydrology-pipeline/</loc>
          <lastmod>2026-06-07</lastmod>
     </url>
