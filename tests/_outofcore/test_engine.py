@@ -181,3 +181,22 @@ class TestAccumulateEngine:
         fd = dem.flow_direction()
         with pytest.raises(ValueError):
             fd.accumulate(engine="tiled")
+
+    def test_dem_flow_accumulation_forwards_engine(self):
+        # N2: DEM.flow_accumulation(engine="tiled", ...) streams to disk and matches the in-memory result.
+        arr = _seam_pit_dem()
+        filled = _dem(arr).fill_depressions(engine="in_memory")
+        fd = filled.flow_direction()
+        in_mem = np.asarray(filled.flow_accumulation(fd).read_array()).astype(
+            np.float64
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            out = filled.flow_accumulation(
+                fd, engine="tiled", out_path=os.path.join(tmp, "a.tif"), tile_size=5
+            )
+            try:
+                np.testing.assert_allclose(
+                    np.asarray(out.read_array()).astype(np.float64), in_mem
+                )
+            finally:
+                out.close()

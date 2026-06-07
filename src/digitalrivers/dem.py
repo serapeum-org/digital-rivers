@@ -2854,6 +2854,14 @@ class DEM(Dataset):
         flow_direction,
         weights: Dataset | None = None,
         dir_offsets: dict = None,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+        cache: str = "evict",
+        workers: int = 1,
+        scheduler: str = "threads",
+        client=None,
     ) -> Dataset:
         """Compute flow accumulation under the given routing scheme.
 
@@ -2930,6 +2938,22 @@ class DEM(Dataset):
         if not isinstance(flow_direction, FlowDirection):
             # Wrap a bare Dataset as D8 for back-compat callers.
             flow_direction = FlowDirection.from_dataset(flow_direction, routing="d8")
+
+        from digitalrivers._outofcore.engine import resolve_engine  # lazy
+
+        if resolve_engine(engine, self.rows, self.columns, k=6) == "tiled":
+            # Out-of-core path: stream the float32 Accumulation to disk; no whole-array int32 cast (that would
+            # defeat the larger-than-RAM goal). Routing / out_path guards live in FlowDirection.accumulate.
+            return flow_direction.accumulate(
+                weights=weights,
+                engine="tiled",
+                out_path=out_path,
+                tile_size=tile_size,
+                cache=cache,
+                workers=workers,
+                scheduler=scheduler,
+                client=client,
+            )
 
         if flow_direction.routing not in ("d8", "rho8"):
             warnings.warn(

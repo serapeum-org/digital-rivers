@@ -191,6 +191,8 @@ class FlowDirection(Dataset):
         cache: str = "evict",
         workers: int = 1,
         scratch_dir: str | None = None,
+        scheduler: str = "threads",
+        client=None,
     ) -> Accumulation:
         """Run flow accumulation over this raster's routing scheme.
 
@@ -237,6 +239,8 @@ class FlowDirection(Dataset):
                 cache=cache,
                 workers=workers,
                 scratch_dir=scratch_dir,
+                scheduler=scheduler,
+                client=client,
             )
             from digitalrivers.accumulation import Accumulation
 
