@@ -53,10 +53,14 @@ def _flood_tile(
     return filled, glabels, n_local, halo_arr, core
 
 
-def _add_outlet_edges(
-    graph, spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
-):
-    """Connect true-outlet cells (domain edge or no-data-adjacent) to the OUTLET node at their filled elevation."""
+def collect_outlet_edges(
+    spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
+) -> list[tuple[int, float]]:
+    """Return ``(label, elevation)`` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
+
+    Shared by the serial orchestrator and the dask backend (B7); the latter needs the edges as plain data it can
+    ship back from a worker rather than mutating a producer-side graph.
+    """
     from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32  # noqa: PLC0415
 
     halo_nodata = _nodata_mask(np.asarray(halo_arr, dtype=np.float64), nodata)
@@ -64,6 +68,7 @@ def _add_outlet_edges(
     hr0, hc0 = rsl.start, csl.start
     hrows, hcols = halo_nodata.shape
     n_rows, n_cols = glabels.shape
+    out: list[tuple[int, float]] = []
     for i in range(n_rows):
         gr = spec.row_off + i
         on_row_edge = gr == 0 or gr == full_rows - 1
@@ -82,7 +87,18 @@ def _add_outlet_edges(
                         outlet = True
                         break
             if outlet:
-                graph.add_outlet(lab, float(filled[i, j]))
+                out.append((lab, float(filled[i, j])))
+    return out
+
+
+def _add_outlet_edges(
+    graph, spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
+):
+    """Connect true-outlet cells to the OUTLET node at their filled elevation (serial path)."""
+    for lab, elev in collect_outlet_edges(
+        spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
+    ):
+        graph.add_outlet(lab, elev)
 
 
 def _edge_strips(
@@ -107,6 +123,8 @@ def fill_depressions_tiled(
     cache: str = "evict",
     workers: int = 1,
     scratch_dir: str | None = None,
+    scheduler: str = "threads",
+    client=None,
 ):
     """Out-of-core depression fill (Barnes 2016 master-graph, ``epsilon = 0`` only).
 
@@ -117,8 +135,11 @@ def fill_depressions_tiled(
         tile_cols: Core tile width in cells. Defaults to 2048.
         epsilon: Per-step lift. Only ``0.0`` is seam-correct; anything else raises ``NotImplementedError``.
         cache: ``TileStore`` mode — ``"evict"`` (default), ``"retain"``, or ``"cache"``.
-        workers: Reserved for the dask backend (B7); currently the loop is serial.
+        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
         scratch_dir: Scratch directory for ``cache`` mode.
+        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
+        client: Optional ``distributed.Client``; when given, the dask backend is used and
+            ``pyramids.configure(client=...)`` replays GDAL config on every worker.
 
     Returns:
         The filled `pyramids` ``Dataset`` opened on ``out_path``.
@@ -130,6 +151,19 @@ def fill_depressions_tiled(
         raise NotImplementedError(
             "tiled fill is seam-correct for epsilon=0 only (monotonic eps-fill does not compose across "
             "tile seams; see B6 / the out-of-core plan §2.3)"
+        )
+    if client is not None or workers > 1:
+        from digitalrivers._outofcore.distributed import (
+            fill_depressions_dask,
+        )  # noqa: PLC0415
+
+        return fill_depressions_dask(
+            dem,
+            out_path,
+            tile_rows=tile_rows,
+            tile_cols=tile_cols,
+            scheduler=scheduler,
+            client=client,
         )
     from digitalrivers._outofcore.cache import TileStore  # noqa: PLC0415
 

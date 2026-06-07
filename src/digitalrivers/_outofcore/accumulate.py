@@ -43,6 +43,8 @@ def flow_accumulation_tiled(
     cache: str = "evict",
     workers: int = 1,
     scratch_dir: str | None = None,
+    scheduler: str = "threads",
+    client=None,
 ):
     """Out-of-core D8/Rho8 flow accumulation by tiled perimeter-exchange to convergence.
 
@@ -68,6 +70,20 @@ def flow_accumulation_tiled(
         raise NotImplementedError(
             f"tiled accumulation is D8/rho8 only; got routing={routing!r} (divergent flow has no fixed-halo "
             "closure — keep it on the in-memory engine)"
+        )
+    if client is not None or workers > 1:
+        from digitalrivers._outofcore.distributed import (
+            flow_accumulation_dask,
+        )  # noqa: PLC0415
+
+        return flow_accumulation_dask(
+            fdir,
+            out_path,
+            weights=weights,
+            tile_rows=tile_rows,
+            tile_cols=tile_cols,
+            scheduler=scheduler,
+            client=client,
         )
     from digitalrivers._numba import (  # noqa: PLC0415
         _DIR_DC_I32,

@@ -44,6 +44,9 @@ dependencies = [
 
 [project.optional-dependencies]
 viz = ["pyramids-gis[viz] @ git+https://github.com/serapeum-org/pyramids.git@main"]
+# Distributed (out-of-core B7) — dask + distributed for the tiled fill / accumulation dask backend. Pyramids
+# routes dask through conda-forge `dask-core`; this PyPI extra is the pip-install equivalent.
+distributed = ["dask>=2024.1.0", "distributed>=2024.1.0"]
 dev = [
     "nbval >=0.11.0",
     "pre-commit >=3.7.1",
@@ -184,7 +187,7 @@ publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*"
 
 [tool.pixi.environments]
 default = { features = ["gil"], solve-group = "default" }
-dev = { features = ["dev", "viz", "gil"], solve-group = "default" }
+dev = { features = ["dev", "viz", "distributed", "gil"], solve-group = "default" }
 docs = { features = ["docs", "gil"], solve-group = "default" }
 py311 = { features = ["py311", "dev", "viz"], solve-group = "py311" }
 py312 = { features = ["py312", "dev", "viz"], solve-group = "py312" }
@@ -219,3 +222,9 @@ gdal = ">=3.12,<3.13"
 # collide with the `py311` / `py312` / `py313` env python pins.
 [tool.pixi.feature.gil.dependencies]
 python = { version = "3.14.*"}
+
+# Dask + distributed for the out-of-core B7 backend, routed through conda-forge (`dask-core`, not the heavy `dask`
+# meta-package) to share the same numpy as the rest of the stack — mirrors pyramids' own `lazy` feature.
+[tool.pixi.feature.distributed.dependencies]
+dask-core = ">=2024.1.0"
+distributed = ">=2024.1.0"
