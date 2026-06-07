@@ -1,0 +1,115 @@
+"""Equivalence tests for tiled depression fill (B3): tiled == whole-array, bit-for-bit (epsilon=0)."""
+
+from __future__ import annotations
+
+import os
+import tempfile
+
+import numpy as np
+import pytest
+from pyramids.dataset import Dataset
+
+from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32, priority_flood_numba
+from digitalrivers._outofcore.fill import fill_depressions_tiled
+
+NODATA = -9999.0
+
+
+def _baseline(arr: np.ndarray) -> np.ndarray:
+    """Whole-array Priority-Flood (epsilon=0), nodata written back as the sentinel, float32."""
+    filled = priority_flood_numba(
+        arr.astype(np.float64), arr == NODATA, 0.0, _DIR_DR_I32, _DIR_DC_I32
+    )
+    return np.where(np.isnan(filled), NODATA, filled).astype(np.float32)
+
+
+def _dem_with_seam_pit(seed: int, shape=(13, 17), nodata_patch=False) -> np.ndarray:
+    rng = np.random.default_rng(seed)
+    arr = rng.uniform(0.0, 100.0, size=shape).astype(np.float32)
+    arr[3:7, 3:7] = 2.0  # a depression that straddles small tile seams
+    arr[5, 5] = 0.0
+    if nodata_patch:
+        arr[0, 0:3] = NODATA
+    return arr
+
+
+def _run_tiled(arr: np.ndarray, tile, cache="evict", scratch=None) -> np.ndarray:
+    with tempfile.TemporaryDirectory() as tmp:
+        dem = Dataset.create_from_array(
+            arr,
+            top_left_corner=(0, 0),
+            cell_size=1.0,
+            epsg=4326,
+            no_data_value=NODATA,
+            driver_type="GTiff",
+            path=os.path.join(tmp, "dem.tif"),
+        )
+        out = fill_depressions_tiled(
+            dem,
+            os.path.join(tmp, "out.tif"),
+            tile_rows=tile[0],
+            tile_cols=tile[1],
+            cache=cache,
+            scratch_dir=(
+                os.path.join(tmp, "scratch")
+                if scratch is None and cache == "cache"
+                else scratch
+            ),
+        )
+        try:
+            return np.asarray(out.read_array()).astype(np.float32)
+        finally:
+            dem.close()
+            out.close()
+
+
+class TestEquivalence:
+    @pytest.mark.parametrize("seed", [0, 1, 2, 3])
+    @pytest.mark.parametrize("tile", [(13, 17), (5, 5), (3, 3), (4, 6), (7, 4)])
+    def test_tiled_equals_whole_array(self, seed, tile):
+        arr = _dem_with_seam_pit(seed)
+        np.testing.assert_array_equal(_run_tiled(arr, tile), _baseline(arr))
+
+    @pytest.mark.parametrize("tile", [(5, 5), (3, 3)])
+    def test_with_nodata(self, tile):
+        arr = _dem_with_seam_pit(7, nodata_patch=True)
+        np.testing.assert_array_equal(_run_tiled(arr, tile), _baseline(arr))
+
+    @pytest.mark.parametrize("cache", ["evict", "retain", "cache"])
+    def test_memory_modes_agree(self, cache):
+        arr = _dem_with_seam_pit(1)
+        np.testing.assert_array_equal(
+            _run_tiled(arr, (5, 5), cache=cache), _baseline(arr)
+        )
+
+    def test_larger_random_dem(self):
+        rng = np.random.default_rng(99)
+        arr = rng.uniform(0.0, 200.0, size=(40, 55)).astype(np.float32)
+        arr[10:20, 10:20] = 1.0  # broad basin
+        np.testing.assert_array_equal(_run_tiled(arr, (16, 16)), _baseline(arr))
+
+
+class TestGuards:
+    def test_epsilon_nonzero_raises(self):
+        arr = _dem_with_seam_pit(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            dem = Dataset.create_from_array(
+                arr,
+                top_left_corner=(0, 0),
+                cell_size=1.0,
+                epsg=4326,
+                no_data_value=NODATA,
+                driver_type="GTiff",
+                path=os.path.join(tmp, "d.tif"),
+            )
+            try:
+                with pytest.raises(NotImplementedError):
+                    fill_depressions_tiled(
+                        dem,
+                        os.path.join(tmp, "o.tif"),
+                        tile_rows=5,
+                        tile_cols=5,
+                        epsilon=0.01,
+                    )
+            finally:
+                dem.close()
