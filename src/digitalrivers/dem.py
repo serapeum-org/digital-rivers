@@ -164,6 +164,13 @@ class DEM(Dataset):
         method: str = "priority_flood",
         epsilon: float = 0.0,
         inplace: bool = False,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+        cache: str = "evict",
+        workers: int = 1,
+        scratch_dir: str | None = None,
     ) -> DEM | None:
         """Fill closed depressions in the DEM.
 
@@ -210,7 +217,45 @@ class DEM(Dataset):
         Raises:
             ValueError: If `method` is unknown, or `planchon_darboux` is requested
                 with `epsilon <= 0`.
+
+        Out-of-core:
+            `engine="auto"` (default) runs the in-memory algorithm unless the DEM is large enough to risk
+            exhausting RAM, in which case it streams a tiled Barnes-2016 fill to `out_path`. Force the path with
+            `engine="in_memory"` / `engine="tiled"`. `engine="tiled"` requires `out_path`, supports `epsilon=0`
+            only, and does not support `inplace`.
         """
+        from digitalrivers._outofcore.engine import (
+            resolve_engine,
+        )  # lazy: keeps import digitalrivers light
+
+        resolved = resolve_engine(engine, self.rows, self.columns, k=8)
+        if resolved == "tiled":
+            if out_path is None:
+                raise ValueError(
+                    "engine='tiled' requires out_path (results stream to disk)"
+                )
+            if inplace:
+                raise ValueError(
+                    "engine='tiled' streams to disk; inplace=True is not supported"
+                )
+            # lazy import: pulls the numba kernels only when the tiled path is actually used
+            from digitalrivers._outofcore.fill import fill_depressions_tiled
+
+            tile_rows, tile_cols = (
+                (tile_size, tile_size) if isinstance(tile_size, int) else tile_size
+            )
+            out = fill_depressions_tiled(
+                self,
+                out_path,
+                tile_rows=tile_rows,
+                tile_cols=tile_cols,
+                epsilon=epsilon,
+                cache=cache,
+                workers=workers,
+                scratch_dir=scratch_dir,
+            )
+            return DEM(out.raster)
+
         elev = self.values
         nodata_mask = np.isnan(elev)
         z_fill = _fill_depressions_array(
