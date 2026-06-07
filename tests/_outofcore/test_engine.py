@@ -89,11 +89,15 @@ class TestFillDepressionsEngine:
                     engine="tiled", out_path=os.path.join(tmp, "f.tif"), inplace=True
                 )
 
-    def test_tiled_rejects_epsilon(self):
+    def test_tiled_rejects_exact_epsilon(self):
+        # eps_fill='exact' is the deferred byte-identical mode; the default 'monotone' runs (covered elsewhere).
         with tempfile.TemporaryDirectory() as tmp:
             with pytest.raises(NotImplementedError):
                 _dem(_seam_pit_dem()).fill_depressions(
-                    engine="tiled", out_path=os.path.join(tmp, "f.tif"), epsilon=0.01
+                    engine="tiled",
+                    out_path=os.path.join(tmp, "f.tif"),
+                    epsilon=0.01,
+                    eps_fill="exact",
                 )
 
     def test_auto_small_dem_is_byte_identical_to_in_memory(self):

@@ -90,7 +90,8 @@ class TestEquivalence:
 
 
 class TestGuards:
-    def test_epsilon_nonzero_raises(self):
+    def test_epsilon_exact_mode_raises(self):
+        # epsilon>0 with eps_fill='exact' is the deferred byte-identical mode -> NotImplementedError.
         arr = _dem_with_seam_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = Dataset.create_from_array(
@@ -110,6 +111,29 @@ class TestGuards:
                         tile_rows=5,
                         tile_cols=5,
                         epsilon=0.01,
+                        eps_fill="exact",
                     )
             finally:
                 dem.close()
+
+    def test_epsilon_monotone_mode_runs(self):
+        # epsilon>0 with the default eps_fill='monotone' produces a result (does not raise).
+        arr = _dem_with_seam_pit(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            dem = Dataset.create_from_array(
+                arr,
+                top_left_corner=(0, 0),
+                cell_size=1.0,
+                epsg=4326,
+                no_data_value=NODATA,
+                driver_type="GTiff",
+                path=os.path.join(tmp, "d.tif"),
+            )
+            out = fill_depressions_tiled(
+                dem, os.path.join(tmp, "o.tif"), tile_rows=5, tile_cols=5, epsilon=0.001
+            )
+            try:
+                assert np.asarray(out.read_array()).shape == arr.shape
+            finally:
+                dem.close()
+                out.close()

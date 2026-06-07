@@ -171,6 +171,7 @@ class DEM(Dataset):
         cache: str = "evict",
         workers: int = 1,
         scratch_dir: str | None = None,
+        eps_fill: str = "monotone",
     ) -> DEM | None:
         """Fill closed depressions in the DEM.
 
@@ -221,8 +222,9 @@ class DEM(Dataset):
         Out-of-core:
             `engine="auto"` (default) runs the in-memory algorithm unless the DEM is large enough to risk
             exhausting RAM, in which case it streams a tiled Barnes-2016 fill to `out_path`. Force the path with
-            `engine="in_memory"` / `engine="tiled"`. `engine="tiled"` requires `out_path`, supports `epsilon=0`
-            only, and does not support `inplace`.
+            `engine="in_memory"` / `engine="tiled"`. `engine="tiled"` requires `out_path` and does not support
+            `inplace`. For `epsilon>0`, `eps_fill="monotone"` (default) produces a valid tiled flat-free fill
+            (drainage identical to in-memory, ε-decimals may differ); `eps_fill="exact"` is not yet implemented.
         """
         from digitalrivers._outofcore.engine import (
             resolve_engine,
@@ -253,6 +255,7 @@ class DEM(Dataset):
                 cache=cache,
                 workers=workers,
                 scratch_dir=scratch_dir,
+                eps_fill=eps_fill,
             )
             return DEM(out.raster)
 

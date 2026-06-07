@@ -125,32 +125,57 @@ def fill_depressions_tiled(
     scratch_dir: str | None = None,
     scheduler: str = "threads",
     client=None,
+    eps_fill: str = "monotone",
 ):
-    """Out-of-core depression fill (Barnes 2016 master-graph, ``epsilon = 0`` only).
+    """Out-of-core depression fill (Barnes 2016 master-graph).
 
     Args:
         dem: Source `pyramids` ``Dataset`` (or ``DEM``) to fill.
         out_path: Path of the GeoTIFF to create and stream the filled result into.
         tile_rows: Core tile height in cells. Defaults to 2048.
         tile_cols: Core tile width in cells. Defaults to 2048.
-        epsilon: Per-step lift. Only ``0.0`` is seam-correct; anything else raises ``NotImplementedError``.
+        epsilon: Per-step lift. ``0.0`` (default) is exact / bit-for-bit. For ``epsilon > 0`` see ``eps_fill``.
         cache: ``TileStore`` mode — ``"evict"`` (default), ``"retain"``, or ``"cache"``.
         workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
+            Only the ``epsilon = 0`` path is dask-parallelised; ``epsilon > 0`` runs serially.
         scratch_dir: Scratch directory for ``cache`` mode.
         scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
         client: Optional ``distributed.Client``; when given, the dask backend is used and
             ``pyramids.configure(client=...)`` replays GDAL config on every worker.
+        eps_fill: Strategy for ``epsilon > 0`` (ignored for ``epsilon = 0``). ``"monotone"`` (default) produces a
+            tiled terracing (``fill_0 + epsilon * exit_distance``) that is flat-free **only for small epsilon**
+            and is *not* byte-identical to the in-memory kernel — see ``fill_monotone`` for the caveats.
+            ``"exact"`` (byte-identical to the in-memory Barnes kernel) is not implemented and raises.
 
     Returns:
         The filled `pyramids` ``Dataset`` opened on ``out_path``.
 
     Raises:
-        NotImplementedError: If ``epsilon != 0`` (see B6 / plan §2.3).
+        NotImplementedError: If ``epsilon != 0`` and ``eps_fill="exact"``.
+        ValueError: If ``eps_fill`` is not ``"monotone"`` or ``"exact"``.
     """
     if epsilon != 0.0:
-        raise NotImplementedError(
-            "tiled fill is seam-correct for epsilon=0 only (monotonic eps-fill does not compose across "
-            "tile seams; see B6 / the out-of-core plan §2.3)"
+        if eps_fill == "exact":
+            raise NotImplementedError(
+                "eps_fill='exact' (byte-identical to the in-memory Barnes epsilon kernel) is not implemented for "
+                "the tiled engine — the global step-count does not compose across seams (research-grade). Use "
+                "eps_fill='monotone' for a valid tiled flat-free fill, or engine='in_memory' for the exact result."
+            )
+        if eps_fill != "monotone":
+            raise ValueError(
+                f"eps_fill must be 'monotone' or 'exact', got {eps_fill!r}"
+            )
+        from digitalrivers._outofcore.fill_monotone import (  # noqa: PLC0415
+            fill_depressions_monotone_tiled,
+        )
+
+        return fill_depressions_monotone_tiled(
+            dem,
+            out_path,
+            epsilon=epsilon,
+            tile_rows=tile_rows,
+            tile_cols=tile_cols,
+            cache=cache,
         )
     if client is not None or workers > 1:
         from digitalrivers._outofcore.distributed import (

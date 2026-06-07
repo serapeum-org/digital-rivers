@@ -1,0 +1,199 @@
+"""Tiled monotone (epsilon>0) depression fill — the ``eps_fill="monotone"`` path of B6.
+
+    fill_monotone = fill_0 + epsilon * g
+
+where ``g`` is the graph distance, over the ``epsilon = 0`` filled surface (B3) stepping to lower-or-equal
+neighbours, from each cell to the nearest **real-terrain exit** (a strictly-lower cell that was *not* raised by
+the fill) or domain edge / no-data. Real (already-draining) terrain has ``g = 0`` and is left unchanged.
+
+**What this guarantees (tested):**
+
+* ``epsilon -> 0`` reduces to the exact ``fill_0``.
+* The tiled result is **bit-for-bit identical to its own whole-array reference** (graph distance is unique and
+  seam-reconcilable), so tiling introduces no error.
+
+**What this does NOT guarantee — read before using:**
+
+The in-memory Barnes epsilon-kernel is flat-free for *any* epsilon because its ``g`` is a **global priority-flood
+step-count** that strictly increases along every drainage path; that step-count depends on the global traversal
+order and is not reproducible by a tileable min-distance. The min-distance ``g`` used here can let ``epsilon * g``
+over-inflate a flat above adjacent lower terrain and create a spurious pit **when epsilon is not small relative to
+the terrain's vertical steps**. Concretely: this is a valid, flat-free terracing for **small** epsilon
+(``epsilon`` ≪ the smallest real elevation difference you care about — the normal regime, e.g. ``1e-3`` on
+metre-scale DEMs); for large epsilon it may leave residual flats. It is therefore **not** a drop-in replacement
+for the in-memory kernel's universal flat-removal, and it is **not** byte-identical to it.
+
+A guaranteed-flat-free / byte-identical tiled epsilon-fill requires the global priority-flood order (the same
+machinery as the deferred ``eps_fill="exact"`` mode). For guaranteed flat removal at any epsilon, use
+``engine="in_memory"``. ``eps_fill="exact"`` raises ``NotImplementedError`` (research-grade, deferred).
+"""
+
+from __future__ import annotations
+
+import os
+import tempfile
+
+import numpy as np
+from pyramids.dataset import Dataset
+
+from digitalrivers._outofcore.fill import _nodata_mask, fill_depressions_tiled
+from digitalrivers._outofcore.tiling import plan_tiles, read_tile, write_core
+
+_BIG = 1 << 30  # "unset" / +inf sentinel for the integer distance field
+_DIRS = ((1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1))
+
+
+def _shift(arr: np.ndarray, dr: int, dc: int):
+    """Return ``(neighbour_values, valid_mask)`` for the (dr, dc) shift; invalid outside the array."""
+    rows, cols = arr.shape
+    out = np.zeros_like(arr)
+    valid = np.zeros(arr.shape, dtype=bool)
+    r0s, r1s = max(0, -dr), rows - max(0, dr)
+    c0s, c1s = max(0, -dc), cols - max(0, dc)
+    out[r0s:r1s, c0s:c1s] = arr[r0s + dr : r1s + dr, c0s + dc : c1s + dc]
+    valid[r0s:r1s, c0s:c1s] = True
+    return out, valid
+
+
+def _source_mask(orig, fill0, nodata, glob_r0, glob_c0, rows, cols) -> np.ndarray:
+    """Cells with ``g = 0``: a strictly-lower **real-terrain** neighbour, or domain edge / no-data-adjacent."""
+    nod = _nodata_mask(fill0, nodata)
+    real = (fill0 == orig) & ~nod  # cell that was NOT raised by the epsilon=0 fill
+    lower_real = np.zeros(fill0.shape, dtype=bool)
+    nodata_adj = np.zeros(fill0.shape, dtype=bool)
+    for dr, dc in _DIRS:
+        nbr_f, valid = _shift(fill0, dr, dc)
+        nbr_real, _ = _shift(real.astype(np.uint8), dr, dc)
+        nbr_nod, _ = _shift(nod.astype(np.uint8), dr, dc)
+        nbr_real = nbr_real.astype(bool) & valid
+        nbr_nod = nbr_nod.astype(bool) & valid
+        lower_real |= valid & nbr_real & (nbr_f < fill0)
+        nodata_adj |= nbr_nod
+    rr = glob_r0 + np.arange(fill0.shape[0])[:, None]
+    cc = glob_c0 + np.arange(fill0.shape[1])[None, :]
+    edge = (rr == 0) | (rr == rows - 1) | (cc == 0) | (cc == cols - 1)
+    return (lower_real | nodata_adj | edge) & ~nod
+
+
+def _relax(fill0, g, source, nodata) -> np.ndarray:
+    """Relax ``g`` to local convergence: ``g[c] = min(g[c], 1 + g[n])`` over neighbours ``n`` with
+    ``fill0[n] <= fill0[c]`` (downhill-or-flat); ``g = 0`` at sources."""
+    nod = _nodata_mask(fill0, nodata)
+    g = g.astype(np.int64, copy=True)
+    g[source] = 0
+    while True:
+        best = g.copy()
+        for dr, dc in _DIRS:
+            nbr_g, valid = _shift(g, dr, dc)
+            nbr_f, _ = _shift(fill0, dr, dc)
+            nbr_nod, _ = _shift(nod.astype(np.uint8), dr, dc)
+            step = valid & (nbr_f <= fill0) & ~nbr_nod.astype(bool)
+            best = np.minimum(best, np.where(step, nbr_g + 1, _BIG))
+        best[source] = 0
+        best[nod] = g[nod]
+        if np.array_equal(best, g):
+            return best
+        g = best
+
+
+def monotone_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
+    """Whole-array reference for the monotone fill (the tiled path must reproduce this)."""
+    orig = np.asarray(orig, dtype=np.float64)
+    fill0 = np.asarray(fill0, dtype=np.float64)
+    rows, cols = fill0.shape
+    src = _source_mask(orig, fill0, nodata, 0, 0, rows, cols)
+    g = _relax(fill0, np.full(fill0.shape, _BIG, dtype=np.int64), src, nodata)
+    g = np.where(g >= _BIG, 0, g)
+    out = fill0 + epsilon * g
+    nod = _nodata_mask(fill0, nodata)
+    out[nod] = fill0[nod]
+    return out
+
+
+def fill_depressions_monotone_tiled(
+    dem,
+    out_path: str,
+    *,
+    epsilon: float,
+    tile_rows: int = 2048,
+    tile_cols: int = 2048,
+    cache: str = "evict",
+):
+    """Tiled monotone terracing = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
+
+    Flat-free for small ``epsilon`` only; see the module docstring for the (important) caveats.
+    """
+    rows, cols = dem.rows, dem.columns
+    nodata = dem.no_data_value[0] if dem.no_data_value else None
+    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
+
+    out = Dataset.create_empty(
+        rows,
+        cols,
+        dtype="float32",
+        geo=dem.geotransform,
+        epsg=dem.epsg,
+        no_data_value=-9999.0 if nodata is None else nodata,
+        driver_type="GTiff",
+        path=out_path,
+    )
+    scratch = tempfile.mkdtemp(prefix="dr_monotone_")
+    fill0_ds = g_ds = None
+    try:
+        fill0_ds = fill_depressions_tiled(
+            dem,
+            os.path.join(scratch, "fill0.tif"),
+            tile_rows=tile_rows,
+            tile_cols=tile_cols,
+            epsilon=0.0,
+            cache=cache,
+        )
+        g_ds = Dataset.create_empty(
+            rows,
+            cols,
+            dtype="int32",
+            geo=dem.geotransform,
+            epsg=dem.epsg,
+            no_data_value=-1,
+            driver_type="GTiff",
+            path=os.path.join(scratch, "g.tif"),
+        )
+        for s in specs:
+            write_core(g_ds, s, np.full((s.n_rows, s.n_cols), _BIG, dtype=np.int32))
+
+        # seam-reconciled multi-source BFS: Gauss-Seidel sweeps until the field stops changing.
+        for _ in range(max(64, len(specs) + 2)):
+            changed = False
+            for s in specs:
+                o_halo, core = read_tile(dem, s, rows, cols)
+                f_halo, _ = read_tile(fill0_ds, s, rows, cols)
+                g_halo, _ = read_tile(g_ds, s, rows, cols)
+                r0 = s.row_off - core[0].start
+                c0 = s.col_off - core[1].start
+                orig = np.asarray(o_halo, dtype=np.float64)
+                fill0 = np.asarray(f_halo, dtype=np.float64)
+                src = _source_mask(orig, fill0, nodata, r0, c0, rows, cols)
+                new_g = _relax(fill0, np.asarray(g_halo), src, nodata)
+                core_new = new_g[core].astype(np.int32)
+                if not np.array_equal(core_new, np.asarray(g_halo)[core]):
+                    changed = True
+                write_core(g_ds, s, core_new)
+            if not changed:
+                break
+
+        for s in specs:  # combine: fill_0 + epsilon * g
+            f_halo, core = read_tile(fill0_ds, s, rows, cols)
+            g_halo, _ = read_tile(g_ds, s, rows, cols)
+            f_core = np.asarray(f_halo, dtype=np.float64)[core]
+            g_core = np.asarray(g_halo)[core]
+            g_core = np.where(g_core >= _BIG, 0, g_core)
+            res = f_core + epsilon * g_core
+            nod = _nodata_mask(f_core, nodata)
+            out_nodata = -9999.0 if nodata is None else nodata
+            write_core(out, s, np.where(nod, out_nodata, res).astype(np.float32))
+        return out
+    finally:
+        if fill0_ds is not None:
+            fill0_ds.close()
+        if g_ds is not None:
+            g_ds.close()
