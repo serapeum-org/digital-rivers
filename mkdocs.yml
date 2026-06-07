@@ -126,6 +126,9 @@ nav:
     - Mesh + topobathy fusion: examples/07_mesh_and_fusion.ipynb
     - Cloud I/O: examples/08_cloud_io.ipynb
     - Real-world Mount Hood (SRTM): examples/09_real_world_mt_hood.ipynb
+    - Out-of-core fill (larger-than-RAM): examples/10_out_of_core_fill.ipynb
+    - Out-of-core flow & slope: examples/11_out_of_core_flow.ipynb
+    - Out-of-core dask backend: examples/12_out_of_core_dask.ipynb
   - Reference:
     - DEM: reference/dem.md
     - FlowDirection: reference/flow_direction.md
