@@ -6747,7 +6747,7 @@ packages:
 - pypi: ./
   name: digital-rivers
   version: 0.2.0
-  sha256: 9e58b06db26bca64b7137aae2b6849b761e079fd20c6cdab9008016438b23f20
+  sha256: eccdc2994a540887d09d393a99fe47e3a1c2fb7b8e2613784543eccd92e98e16
   requires_dist:
   - pyramids-gis @ git+https://github.com/serapeum-org/pyramids.git@main
   - geopandas>=1.0.0
