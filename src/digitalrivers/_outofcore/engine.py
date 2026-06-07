@@ -67,3 +67,25 @@ def resolve_engine(
     if available_bytes is not None:
         return "tiled" if estimate > safety * available_bytes else "in_memory"
     return "tiled" if cells > threshold_cells else "in_memory"
+
+
+def require_out_path(engine: str, out_path) -> None:
+    """Raise a clear ``ValueError`` if the tiled engine was selected without an ``out_path``.
+
+    The message names ``engine="auto"`` when *auto* picked the tiled engine, so a previously-working
+    ``dem.fill_depressions()`` on a large raster fails with an actionable explanation rather than a bare
+    "requires out_path".
+
+    Raises:
+        ValueError: If ``out_path`` is ``None``.
+    """
+    if out_path is not None:
+        return
+    if engine == "auto":
+        hint = (
+            "engine='auto' selected the tiled out-of-core engine because the raster is large enough to risk "
+            "exhausting RAM; pass out_path= to stream the result to disk, or force engine='in_memory'."
+        )
+    else:
+        hint = "the tiled engine streams to disk; pass out_path=, or use engine='in_memory'."
+    raise ValueError(hint)

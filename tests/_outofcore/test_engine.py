@@ -9,8 +9,21 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset
 
-from digitalrivers._outofcore.engine import resolve_engine
+from digitalrivers._outofcore.engine import require_out_path, resolve_engine
 from digitalrivers.dem import DEM
+
+
+class TestRequireOutPath:
+    def test_ok_when_path_given(self):
+        require_out_path("auto", "out.tif")  # no raise
+
+    def test_auto_message_names_auto(self):
+        with pytest.raises(ValueError, match="auto"):
+            require_out_path("auto", None)
+
+    def test_tiled_raises(self):
+        with pytest.raises(ValueError):
+            require_out_path("tiled", None)
 
 
 class TestResolveEngine:

@@ -214,14 +214,14 @@ class FlowDirection(Dataset):
             `engine="tiled"` streams a Barnes-2017 tiled accumulation to `out_path` (D8/Rho8 only). `engine="auto"`
             (default) only switches to it when the raster is large enough to risk exhausting RAM.
         """
-        from digitalrivers._outofcore.engine import resolve_engine  # lazy
+        from digitalrivers._outofcore.engine import (  # lazy
+            require_out_path,
+            resolve_engine,
+        )
 
         resolved = resolve_engine(engine, self.rows, self.columns, k=6)
         if resolved == "tiled":
-            if out_path is None:
-                raise ValueError(
-                    "engine='tiled' requires out_path (results stream to disk)"
-                )
+            require_out_path(engine, out_path)
             # lazy import: pulls the numba kernels only when the tiled path is actually used
             from digitalrivers._outofcore.accumulate import flow_accumulation_tiled
 

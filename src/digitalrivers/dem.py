@@ -226,16 +226,14 @@ class DEM(Dataset):
             `inplace`. For `epsilon>0`, `eps_fill="monotone"` (default) produces a valid tiled flat-free fill
             (drainage identical to in-memory, ε-decimals may differ); `eps_fill="exact"` is not yet implemented.
         """
-        from digitalrivers._outofcore.engine import (
+        from digitalrivers._outofcore.engine import (  # lazy: keeps import digitalrivers light
+            require_out_path,
             resolve_engine,
-        )  # lazy: keeps import digitalrivers light
+        )
 
         resolved = resolve_engine(engine, self.rows, self.columns, k=8)
         if resolved == "tiled":
-            if out_path is None:
-                raise ValueError(
-                    "engine='tiled' requires out_path (results stream to disk)"
-                )
+            require_out_path(engine, out_path)
             if inplace:
                 raise ValueError(
                     "engine='tiled' streams to disk; inplace=True is not supported"
@@ -2571,14 +2569,14 @@ class DEM(Dataset):
             Terrain.slope: GDAL-based slope using Horn or
                 Zevenbergen-Thorne algorithms.
         """
-        from digitalrivers._outofcore.engine import resolve_engine  # lazy
+        from digitalrivers._outofcore.engine import (  # lazy
+            require_out_path,
+            resolve_engine,
+        )
 
         resolved = resolve_engine(engine, self.rows, self.columns, k=3)
         if resolved == "tiled":
-            if out_path is None:
-                raise ValueError(
-                    "engine='tiled' requires out_path (results stream to disk)"
-                )
+            require_out_path(engine, out_path)
             # lazy import keeps `import digitalrivers` light
             from digitalrivers._outofcore.local import max_slope_2d, tiled_stencil
 
