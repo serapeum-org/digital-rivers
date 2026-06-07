@@ -53,42 +53,42 @@ def _flood_tile(
     return filled, glabels, n_local, halo_arr, core
 
 
+def _dilate8(mask: np.ndarray) -> np.ndarray:
+    """8-connected binary dilation by one cell (vectorised, no scipy dependency)."""
+    out = mask.copy()
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            if dr == 0 and dc == 0:
+                continue
+            rows, cols = mask.shape
+            r0d, r1d = max(0, dr), rows + min(0, dr)
+            c0d, c1d = max(0, dc), cols + min(0, dc)
+            out[r0d:r1d, c0d:c1d] |= mask[r0d - dr : r1d - dr, c0d - dc : c1d - dc]
+    return out
+
+
 def collect_outlet_edges(
     spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
 ) -> list[tuple[int, float]]:
     """Return ``(label, elevation)`` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
 
-    Shared by the serial orchestrator and the dask backend (B7); the latter needs the edges as plain data it can
-    ship back from a worker rather than mutating a producer-side graph.
+    Vectorised: an outlet cell is a labelled core cell that is on the domain boundary or 8-adjacent to no-data.
+    Shared by the serial orchestrator and the dask backend (B7); the latter ships the list back from a worker
+    rather than mutating a producer-side graph. (Order is irrelevant — the graph keeps the min spill per label.)
     """
-    from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32  # noqa: PLC0415
-
     halo_nodata = _nodata_mask(np.asarray(halo_arr, dtype=np.float64), nodata)
     rsl, csl = core
-    hr0, hc0 = rsl.start, csl.start
-    hrows, hcols = halo_nodata.shape
+    nodata_adj = _dilate8(halo_nodata)[
+        rsl, csl
+    ]  # core-shaped: any 8-neighbour is no-data
     n_rows, n_cols = glabels.shape
-    out: list[tuple[int, float]] = []
-    for i in range(n_rows):
-        gr = spec.row_off + i
-        on_row_edge = gr == 0 or gr == full_rows - 1
-        for j in range(n_cols):
-            lab = int(glabels[i, j])
-            if lab < 1:
-                continue
-            gc = spec.col_off + j
-            outlet = on_row_edge or gc == 0 or gc == full_cols - 1
-            if not outlet:
-                hi, hj = hr0 + i, hc0 + j
-                for k in range(8):
-                    ni = hi + int(_DIR_DR_I32[k])
-                    nj = hj + int(_DIR_DC_I32[k])
-                    if 0 <= ni < hrows and 0 <= nj < hcols and halo_nodata[ni, nj]:
-                        outlet = True
-                        break
-            if outlet:
-                out.append((lab, float(filled[i, j])))
-    return out
+    gr = spec.row_off + np.arange(n_rows)[:, None]
+    gc = spec.col_off + np.arange(n_cols)[None, :]
+    edge = (gr == 0) | (gr == full_rows - 1) | (gc == 0) | (gc == full_cols - 1)
+    outlet = (edge | nodata_adj) & (glabels >= 1)
+    labels = glabels[outlet].astype(np.int64).tolist()
+    elevs = filled[outlet].astype(np.float64).tolist()
+    return list(zip(labels, elevs))
 
 
 def _add_outlet_edges(

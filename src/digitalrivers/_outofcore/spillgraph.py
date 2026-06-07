@@ -153,5 +153,17 @@ class GlobalSpillGraph:
     def _reduce_pairs(
         self, a_arr: np.ndarray, b_arr: np.ndarray, e_arr: np.ndarray
     ) -> None:
-        for a, b, e in zip(a_arr.tolist(), b_arr.tolist(), e_arr.tolist()):
-            self.add_edge(a, b, e)
+        # Group by the unordered label pair and keep the minimum spill, so the Python-level work is per *unique
+        # pair* (perimeter-sized) rather than per adjacent cell (area-sized).
+        if a_arr.size == 0:
+            return
+        lo = np.minimum(a_arr, b_arr)
+        hi = np.maximum(a_arr, b_arr)
+        order = np.lexsort((hi, lo))
+        lo, hi, e_sorted = lo[order], hi[order], e_arr[order]
+        starts = np.flatnonzero(
+            np.concatenate(([True], (lo[1:] != lo[:-1]) | (hi[1:] != hi[:-1])))
+        )
+        mins = np.minimum.reduceat(e_sorted, starts)
+        for k, s in enumerate(starts):
+            self.add_edge(int(lo[s]), int(hi[s]), float(mins[k]))
