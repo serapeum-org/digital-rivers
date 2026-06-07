@@ -26,21 +26,26 @@ classifiers = [
 
 requires-python = ">= 3.11, <4"
 
-# GDAL is intentionally NOT a direct dependency: pyramids-gis bundles GDAL's
-# osgeo bindings in its platform wheel and activates them on `import pyramids`.
-# The >=0.29.0 floor is the first pyramids-gis whose bundled GDAL exposes the
-# APIs digital-rivers now calls (gdal.ViewshedGenerate + the GVM_* viewshed
-# enums used by Terrain.viewshed) and which ships cp314 wheels. Bumping the floor
-# below 0.29 will break Terrain.viewshed at runtime.
+# pyramids-gis is pinned to the GitHub `main` branch (not a released PyPI version)
+# to pick up unreleased APIs (e.g. `Dataset.create_empty` / `empty_like`, pyramids
+# #473). A git/sdist build does NOT vendor osgeo (only pyramids' cibuildwheel
+# platform wheel does), so GDAL is supplied from conda-forge via
+# [tool.pixi.dependencies] for the pixi environments.
+# NOTE: a direct git URL here cannot be uploaded to PyPI — before publishing
+# digital-rivers to PyPI, re-pin to a released `pyramids-gis >=x.y` floor (the
+# floor must stay >=0.29.0, the first pyramids-gis whose bundled GDAL exposes
+# gdal.ViewshedGenerate + the GVM_* viewshed enums used by Terrain.viewshed).
 dependencies = [
-    "pyramids-gis >=0.29.0",
+    "pyramids-gis @ git+https://github.com/serapeum-org/pyramids.git@main",
     "geopandas >=1.0.0",
     "numba >=0.60.0,<1",
     "numpy >=2.0.0",
 ]
 
 [project.optional-dependencies]
-viz = ["pyramids-gis[viz] >=0.29.0"]
+viz = ["pyramids-gis[viz] @ git+https://github.com/serapeum-org/pyramids.git@main"]
+distributed = ["pyramids-gis[lazy] @ git+https://github.com/serapeum-org/pyramids.git@main"]
+all = ["digital-rivers[viz,distributed]"]
 dev = [
     "nbval >=0.11.0",
     "pre-commit >=3.7.1",
@@ -168,6 +173,9 @@ macos = "14.0"
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
+# pyramids-gis is pinned to git `main` directly in [project.dependencies] (and the
+# `viz` extra), so no override is needed here. GDAL for that from-source build is
+# supplied from conda-forge — see [tool.pixi.dependencies] below.
 
 [tool.pixi.tasks]
 main = { cmd = "pytest -vvv --cov=src/digitalrivers -sv -m 'not plot' --cov-report=xml", description = "Run the main test suite" }
@@ -178,12 +186,12 @@ publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*"
 
 [tool.pixi.environments]
 default = { features = ["gil"], solve-group = "default" }
-dev = { features = ["dev", "viz", "gil"], solve-group = "default" }
+dev = { features = ["dev", "viz", "lazy", "gil"], solve-group = "default" }
 docs = { features = ["docs", "gil"], solve-group = "default" }
-py311 = { features = ["py311", "dev", "viz"], solve-group = "py311" }
-py312 = { features = ["py312", "dev", "viz"], solve-group = "py312" }
-py313 = { features = ["py313", "dev", "viz"], solve-group = "py313" }
-py314 = { features = ["py314", "dev", "viz"], solve-group = "py314" }
+py311 = { features = ["py311", "dev", "viz", "lazy"], solve-group = "py311" }
+py312 = { features = ["py312", "dev", "viz", "lazy"], solve-group = "py312" }
+py313 = { features = ["py313", "dev", "viz", "lazy"], solve-group = "py313" }
+py314 = { features = ["py314", "dev", "viz", "lazy"], solve-group = "py314" }
 
 
 [tool.pixi.feature.py311.dependencies]
@@ -197,6 +205,10 @@ python = "3.14.*"
 
 [tool.pixi.dependencies]
 numba = ">=0.60.0,<1"
+# pyramids-gis is built from git `main` (sdist) per [project.dependencies], which
+# does NOT vendor osgeo; provide GDAL from conda-forge so `from osgeo import gdal`
+# works. Pin matches pyramids' own gdal feature (>=3.12,<3.13).
+gdal = ">=3.12,<3.13"
 
 # Force the standard (GIL) CPython build for the unpinned `default`
 # solve-group (default / dev / docs). Without this, conda-forge's solver
@@ -209,3 +221,9 @@ numba = ">=0.60.0,<1"
 # collide with the `py311` / `py312` / `py313` env python pins.
 [tool.pixi.feature.gil.dependencies]
 python = { version = "3.14.*"}
+
+# Dask backend for the out-of-core B7 path, via conda-forge `dask-core`. Named `lazy` (not `distributed`) so it
+# does not collide with the `distributed` PyPI extra and trigger pixi to auto-activate it.
+[tool.pixi.feature.lazy.dependencies]
+dask-core = ">=2024.1.0"
+distributed = ">=2024.1.0"

@@ -164,6 +164,14 @@ class DEM(Dataset):
         method: str = "priority_flood",
         epsilon: float = 0.0,
         inplace: bool = False,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+        cache: str = "evict",
+        workers: int = 1,
+        scratch_dir: str | None = None,
+        eps_fill: str = "monotone",
     ) -> DEM | None:
         """Fill closed depressions in the DEM.
 
@@ -210,7 +218,45 @@ class DEM(Dataset):
         Raises:
             ValueError: If `method` is unknown, or `planchon_darboux` is requested
                 with `epsilon <= 0`.
+
+        Out-of-core:
+            `engine="auto"` (default) runs the in-memory algorithm unless the DEM is large enough to risk
+            exhausting RAM, in which case it streams a tiled Barnes-2016 fill to `out_path`. Force the path with
+            `engine="in_memory"` / `engine="tiled"`. `engine="tiled"` requires `out_path` and does not support
+            `inplace`. For `epsilon>0`, `eps_fill="monotone"` (default) produces a valid tiled flat-free fill
+            (drainage identical to in-memory, ε-decimals may differ); `eps_fill="exact"` is not yet implemented.
         """
+        from digitalrivers._outofcore.engine import (  # lazy: keeps import digitalrivers light
+            require_out_path,
+            resolve_engine,
+        )
+
+        resolved = resolve_engine(engine, self.rows, self.columns, k=8)
+        if resolved == "tiled":
+            require_out_path(engine, out_path)
+            if inplace:
+                raise ValueError(
+                    "engine='tiled' streams to disk; inplace=True is not supported"
+                )
+            # lazy import: pulls the numba kernels only when the tiled path is actually used
+            from digitalrivers._outofcore.fill import fill_depressions_tiled
+
+            tile_rows, tile_cols = (
+                (tile_size, tile_size) if isinstance(tile_size, int) else tile_size
+            )
+            out = fill_depressions_tiled(
+                self,
+                out_path,
+                tile_rows=tile_rows,
+                tile_cols=tile_cols,
+                epsilon=epsilon,
+                cache=cache,
+                workers=workers,
+                scratch_dir=scratch_dir,
+                eps_fill=eps_fill,
+            )
+            return DEM(out.raster)
+
         elev = self.values
         nodata_mask = np.isnan(elev)
         z_fill = _fill_depressions_array(
@@ -2497,7 +2543,13 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
-    def slope(self) -> Dataset:
+    def slope(
+        self,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+    ) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 
         Calculates slopes in all eight D8 directions via
@@ -2508,10 +2560,37 @@ class DEM(Dataset):
             Dataset: Single-band raster with the same geometry as the
                 DEM, containing the maximum slope value per cell.
 
+        Out-of-core:
+            Slope is a local 3×3 stencil, so `engine="tiled"` streams it tile-by-tile to `out_path` with
+            constant memory (bit-for-bit identical to the whole-array result). `engine="auto"` (default) only
+            switches to it for rasters large enough to risk exhausting RAM; `engine="tiled"` requires `out_path`.
+
         See Also:
             Terrain.slope: GDAL-based slope using Horn or
                 Zevenbergen-Thorne algorithms.
         """
+        from digitalrivers._outofcore.engine import (  # lazy
+            require_out_path,
+            resolve_engine,
+        )
+
+        resolved = resolve_engine(engine, self.rows, self.columns, k=3)
+        if resolved == "tiled":
+            require_out_path(engine, out_path)
+            # lazy import keeps `import digitalrivers` light
+            from digitalrivers._outofcore.local import max_slope_2d, tiled_stencil
+
+            cell_size = self.cell_size
+            nodata = self.no_data_value[0] if self.no_data_value else None
+            return tiled_stencil(
+                self,
+                lambda block: max_slope_2d(block, cell_size),
+                out_path,
+                depth=1,
+                tile_size=tile_size,
+                input_nodata=nodata,
+            )
+
         slope = self._get_8_direction_slopes()
         max_slope = np.nanmax(slope, axis=2)
 
@@ -2775,6 +2854,14 @@ class DEM(Dataset):
         flow_direction,
         weights: Dataset | None = None,
         dir_offsets: dict = None,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+        cache: str = "evict",
+        workers: int = 1,
+        scheduler: str = "threads",
+        client=None,
     ) -> Dataset:
         """Compute flow accumulation under the given routing scheme.
 
@@ -2851,6 +2938,22 @@ class DEM(Dataset):
         if not isinstance(flow_direction, FlowDirection):
             # Wrap a bare Dataset as D8 for back-compat callers.
             flow_direction = FlowDirection.from_dataset(flow_direction, routing="d8")
+
+        from digitalrivers._outofcore.engine import resolve_engine  # lazy
+
+        if resolve_engine(engine, self.rows, self.columns, k=6) == "tiled":
+            # Out-of-core path: stream the float32 Accumulation to disk; no whole-array int32 cast (that would
+            # defeat the larger-than-RAM goal). Routing / out_path guards live in FlowDirection.accumulate.
+            return flow_direction.accumulate(
+                weights=weights,
+                engine="tiled",
+                out_path=out_path,
+                tile_size=tile_size,
+                cache=cache,
+                workers=workers,
+                scheduler=scheduler,
+                client=client,
+            )
 
         if flow_direction.routing not in ("d8", "rho8"):
             warnings.warn(

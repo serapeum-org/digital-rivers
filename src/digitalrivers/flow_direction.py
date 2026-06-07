@@ -181,7 +181,19 @@ class FlowDirection(Dataset):
             )
         return cls(ds.raster, routing=resolved_routing, encoding=resolved_encoding)
 
-    def accumulate(self, weights: Dataset | None = None) -> Accumulation:
+    def accumulate(
+        self,
+        weights: Dataset | None = None,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+        cache: str = "evict",
+        workers: int = 1,
+        scratch_dir: str | None = None,
+        scheduler: str = "threads",
+        client=None,
+    ) -> Accumulation:
         """Run flow accumulation over this raster's routing scheme.
 
         Implements a Kahn topological-sort sweep that handles all five routing
@@ -199,7 +211,41 @@ class FlowDirection(Dataset):
 
         Returns:
             Accumulation carrying this object's `routing` for provenance.
+
+        Out-of-core:
+            `engine="tiled"` streams a Barnes-2017 tiled accumulation to `out_path` (D8/Rho8 only). `engine="auto"`
+            (default) only switches to it when the raster is large enough to risk exhausting RAM.
         """
+        from digitalrivers._outofcore.engine import (  # lazy
+            require_out_path,
+            resolve_engine,
+        )
+
+        resolved = resolve_engine(engine, self.rows, self.columns, k=6)
+        if resolved == "tiled":
+            require_out_path(engine, out_path)
+            # lazy import: pulls the numba kernels only when the tiled path is actually used
+            from digitalrivers._outofcore.accumulate import flow_accumulation_tiled
+
+            tile_rows, tile_cols = (
+                (tile_size, tile_size) if isinstance(tile_size, int) else tile_size
+            )
+            out = flow_accumulation_tiled(
+                self,
+                out_path,
+                weights=weights,
+                tile_rows=tile_rows,
+                tile_cols=tile_cols,
+                cache=cache,
+                workers=workers,
+                scratch_dir=scratch_dir,
+                scheduler=scheduler,
+                client=client,
+            )
+            from digitalrivers.accumulation import Accumulation
+
+            return Accumulation.from_dataset(out, routing=self.routing)
+
         from digitalrivers.accumulation import Accumulation
 
         fd_arr = self.read_array()
