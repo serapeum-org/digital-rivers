@@ -147,6 +147,33 @@ class TestGuards:
             finally:
                 dem.close()
 
+    def test_monotone_with_workers_warns(self):
+        # L2: workers>1 is ignored for the serial monotone (epsilon>0) path -> a warning, not silence.
+        arr = _dem_with_seam_pit(0)
+        with tempfile.TemporaryDirectory() as tmp:
+            dem = Dataset.create_from_array(
+                arr,
+                top_left_corner=(0, 0),
+                cell_size=1.0,
+                epsg=4326,
+                no_data_value=NODATA,
+                driver_type="GTiff",
+                path=os.path.join(tmp, "d.tif"),
+            )
+            try:
+                with pytest.warns(UserWarning):
+                    out = fill_depressions_tiled(
+                        dem,
+                        os.path.join(tmp, "o.tif"),
+                        tile_rows=5,
+                        tile_cols=5,
+                        epsilon=0.001,
+                        workers=4,
+                    )
+                out.close()
+            finally:
+                dem.close()
+
     def test_epsilon_monotone_mode_runs(self):
         # epsilon>0 with the default eps_fill='monotone' produces a result (does not raise).
         arr = _dem_with_seam_pit(0)

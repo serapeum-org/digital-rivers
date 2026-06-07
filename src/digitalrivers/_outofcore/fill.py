@@ -16,6 +16,8 @@ selection among the original elevations and the master graph assigns one consist
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 from pyramids.dataset import Dataset
 
@@ -176,6 +178,12 @@ def fill_depressions_tiled(
         if eps_fill != "monotone":
             raise ValueError(
                 f"eps_fill must be 'monotone' or 'exact', got {eps_fill!r}"
+            )
+        if workers > 1 or client is not None:
+            warnings.warn(
+                "the monotone epsilon>0 tiled fill runs serially; the dask backend (workers>1 / client) is "
+                "only used for epsilon=0 and is ignored here.",
+                stacklevel=2,
             )
         from digitalrivers._outofcore.fill_monotone import (  # noqa: PLC0415
             fill_depressions_monotone_tiled,
