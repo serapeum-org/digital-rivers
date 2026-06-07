@@ -36,7 +36,11 @@ import tempfile
 import numpy as np
 from pyramids.dataset import Dataset
 
-from digitalrivers._outofcore.fill import _nodata_mask, fill_depressions_tiled
+from digitalrivers._outofcore.fill import (
+    _nodata_mask,
+    fill_depressions_tiled,
+    out_dtype,
+)
 from digitalrivers._outofcore.tiling import plan_tiles, read_tile, write_core
 
 _BIG = 1 << 30  # "unset" / +inf sentinel for the integer distance field
@@ -125,12 +129,13 @@ def fill_depressions_monotone_tiled(
     """
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
+    dtype = out_dtype(dem)
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
 
     out = Dataset.create_empty(
         rows,
         cols,
-        dtype="float32",
+        dtype=dtype,
         geo=dem.geotransform,
         epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
@@ -199,7 +204,7 @@ def fill_depressions_monotone_tiled(
             res = f_core + epsilon * g_core
             nod = _nodata_mask(f_core, nodata)
             out_nodata = -9999.0 if nodata is None else nodata
-            write_core(out, s, np.where(nod, out_nodata, res).astype(np.float32))
+            write_core(out, s, np.where(nod, out_nodata, res).astype(dtype))
         return out
     finally:
         if fill0_ds is not None:

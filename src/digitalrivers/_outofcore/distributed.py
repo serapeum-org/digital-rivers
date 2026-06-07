@@ -25,6 +25,7 @@ from digitalrivers._outofcore.fill import (
     _edge_strips,
     _flood_tile,
     collect_outlet_edges,
+    out_dtype,
 )
 from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
 from digitalrivers._outofcore.tiling import plan_tiles, write_core
@@ -69,7 +70,7 @@ def _consume_fill_tile(path, spec, rows, cols, nodata):
         ds.close()
 
 
-def _finalize_fill_tile(path, spec, rows, cols, nodata, offset, drainvec):
+def _finalize_fill_tile(path, spec, rows, cols, nodata, offset, drainvec, dtype):
     """Stage-3 map: recompute the flood, raise to drain levels, return the finished core tile array."""
     ds = Dataset.read_file(path)
     try:
@@ -78,9 +79,7 @@ def _finalize_fill_tile(path, spec, rows, cols, nodata, offset, drainvec):
         levels = drainvec[np.clip(glabels, 0, label_offset)]
         raised = np.where(glabels >= 1, np.maximum(filled, levels), filled)
         out_nodata = -9999.0 if nodata is None else nodata
-        return spec.tid, np.where(np.isnan(raised), out_nodata, raised).astype(
-            np.float32
-        )
+        return spec.tid, np.where(np.isnan(raised), out_nodata, raised).astype(dtype)
     finally:
         ds.close()
 
@@ -105,13 +104,14 @@ def fill_depressions_dask(
     path = _source_path(dem)
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
+    dtype = out_dtype(dem)
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
     by_grid = {(s.row, s.col): s for s in specs}
 
     out = Dataset.create_empty(
         rows,
         cols,
-        dtype="float32",
+        dtype=dtype,
         geo=dem.geotransform,
         epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
@@ -193,7 +193,7 @@ def fill_depressions_dask(
     finalized = _compute(
         (
             dask.delayed(_finalize_fill_tile)(
-                path, s, rows, cols, nodata, offsets[s.tid], drainvec
+                path, s, rows, cols, nodata, offsets[s.tid], drainvec, dtype
             )
             for s in specs
         ),

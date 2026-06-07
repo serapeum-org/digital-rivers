@@ -31,6 +31,18 @@ def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
     return mask
 
 
+def out_dtype(dem) -> str:
+    """Band-0 dtype string of ``dem`` (e.g. ``"float32"`` / ``"float64"``), defaulting to ``"float32"``.
+
+    The tiled fill preserves the source dtype so it stays bit-for-bit with the in-memory fill (which casts back
+    to the input dtype) for float64 DEMs, not just float32.
+    """
+    dt = getattr(dem, "dtype", None)
+    if not dt:
+        return "float32"
+    return str(dt[0]) if isinstance(dt, (list, tuple)) else str(dt)
+
+
 def _flood_tile(
     dem, spec: TileSpec, full_rows: int, full_cols: int, nodata, offset: int
 ):
@@ -194,13 +206,14 @@ def fill_depressions_tiled(
 
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
+    dtype = out_dtype(dem)
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
     by_grid = {(s.row, s.col): s for s in specs}
 
     out = Dataset.create_empty(
         rows,
         cols,
-        dtype="float32",
+        dtype=dtype,
         geo=dem.geotransform,
         epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
@@ -280,6 +293,6 @@ def fill_depressions_tiled(
         levels = drainvec[clipped]
         raised = np.where(glabels >= 1, np.maximum(filled, levels), filled)
         out_nodata = -9999.0 if nodata is None else nodata
-        raised = np.where(np.isnan(raised), out_nodata, raised).astype(np.float32)
+        raised = np.where(np.isnan(raised), out_nodata, raised).astype(dtype)
         write_core(out, s, raised)
     return out

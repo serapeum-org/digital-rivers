@@ -89,6 +89,37 @@ class TestEquivalence:
         np.testing.assert_array_equal(_run_tiled(arr, (16, 16)), _baseline(arr))
 
 
+class TestDtypePreservation:
+    def test_float64_dem_preserves_dtype_and_matches_in_memory(self):
+        # M2: a float64 DEM must yield a float64 tiled fill, bit-for-bit with the whole-array fill.
+        rng = np.random.default_rng(2)
+        arr = rng.uniform(0.0, 100.0, size=(13, 17)).astype(np.float64)
+        arr[3:7, 3:7] = 2.0
+        arr[5, 5] = 0.0
+        base = priority_flood_numba(arr, arr == NODATA, 0.0, _DIR_DR_I32, _DIR_DC_I32)
+        base = np.where(np.isnan(base), NODATA, base)  # float64
+        with tempfile.TemporaryDirectory() as tmp:
+            dem = Dataset.create_from_array(
+                arr,
+                top_left_corner=(0, 0),
+                cell_size=1.0,
+                epsg=4326,
+                no_data_value=NODATA,
+                driver_type="GTiff",
+                path=os.path.join(tmp, "d.tif"),
+            )
+            out = fill_depressions_tiled(
+                dem, os.path.join(tmp, "o.tif"), tile_rows=5, tile_cols=5
+            )
+            try:
+                got = np.asarray(out.read_array())
+                assert got.dtype == np.float64
+                np.testing.assert_array_equal(got, base)
+            finally:
+                dem.close()
+                out.close()
+
+
 class TestGuards:
     def test_epsilon_exact_mode_raises(self):
         # epsilon>0 with eps_fill='exact' is the deferred byte-identical mode -> NotImplementedError.
