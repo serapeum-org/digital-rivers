@@ -161,8 +161,12 @@ def fill_depressions_monotone_tiled(
         for s in specs:
             write_core(g_ds, s, np.full((s.n_rows, s.n_cols), _BIG, dtype=np.int32))
 
-        # seam-reconciled multi-source BFS: Gauss-Seidel sweeps until the field stops changing.
-        for _ in range(max(64, len(specs) + 2)):
+        # seam-reconciled multi-source BFS: Gauss-Seidel sweeps until the field stops changing. The exit-distance
+        # can span many tiles, so bound the sweeps by total perimeter (not tile count) and RAISE on
+        # non-convergence rather than silently writing a partial distance field (cf. accumulate.py).
+        perimeter_cells = sum(2 * (s.n_rows + s.n_cols) for s in specs)
+        converged = False
+        for _ in range(max(64, perimeter_cells + 2)):
             changed = False
             for s in specs:
                 o_halo, core = read_tile(dem, s, rows, cols)
@@ -179,7 +183,12 @@ def fill_depressions_monotone_tiled(
                     changed = True
                 write_core(g_ds, s, core_new)
             if not changed:
+                converged = True
                 break
+        if not converged:
+            raise RuntimeError(
+                "tiled monotone fill: the flat-distance BFS did not converge — please report with the input"
+            )
 
         for s in specs:  # combine: fill_0 + epsilon * g
             f_halo, core = read_tile(fill0_ds, s, rows, cols)
