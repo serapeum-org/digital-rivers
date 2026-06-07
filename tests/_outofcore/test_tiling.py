@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import os
 import tempfile
+import types
 
 import numpy as np
 import pytest
 from pyramids.dataset import Dataset
-
-import types
 
 from digitalrivers._outofcore.tiling import (
     TileSpec,
@@ -19,6 +18,7 @@ from digitalrivers._outofcore.tiling import (
     require_single_band,
     write_core,
 )
+from digitalrivers.cloud_io import tile_windows
 
 
 class TestRequireSingleBand:
@@ -28,9 +28,6 @@ class TestRequireSingleBand:
     def test_multiband_raises(self):
         with pytest.raises(ValueError):
             require_single_band(types.SimpleNamespace(band_count=3))
-
-
-from digitalrivers.cloud_io import tile_windows
 
 
 class TestPlanTiles:
