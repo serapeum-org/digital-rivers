@@ -9,13 +9,27 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset
 
+import types
+
 from digitalrivers._outofcore.tiling import (
     TileSpec,
     gid,
     plan_tiles,
     read_tile,
+    require_single_band,
     write_core,
 )
+
+
+class TestRequireSingleBand:
+    def test_single_band_ok(self):
+        require_single_band(types.SimpleNamespace(band_count=1))  # no raise
+
+    def test_multiband_raises(self):
+        with pytest.raises(ValueError):
+            require_single_band(types.SimpleNamespace(band_count=3))
+
+
 from digitalrivers.cloud_io import tile_windows
 
 

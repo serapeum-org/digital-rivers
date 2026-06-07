@@ -181,6 +181,20 @@ def write_core(dataset, spec: TileSpec, core_array: np.ndarray) -> None:
     )
 
 
+def require_single_band(dataset) -> None:
+    """Raise ``ValueError`` unless ``dataset`` is single-band.
+
+    The tiled algorithms assume `read_array` returns a 2-D array; a multi-band raster would yield a 3-D block and
+    confusing downstream failures, so reject it up front with a clear message.
+    """
+    bands = getattr(dataset, "band_count", 1)
+    if bands != 1:
+        raise ValueError(
+            f"out-of-core tiled operations require a single-band raster; got {bands} bands "
+            "(select one band first)"
+        )
+
+
 def gid(row: int, col: int, full_cols: int) -> int:
     """Return the overflow-safe global cell id ``row * full_cols + col`` as a Python ``int`` (int64-safe).
 

@@ -21,7 +21,12 @@ from collections import defaultdict
 import numpy as np
 from pyramids.dataset import Dataset
 
-from digitalrivers._outofcore.tiling import plan_tiles, read_tile, write_core
+from digitalrivers._outofcore.tiling import (
+    plan_tiles,
+    read_tile,
+    require_single_band,
+    write_core,
+)
 
 
 def _read_core(dataset, spec, rows, cols, dtype):
@@ -65,6 +70,7 @@ def flow_accumulation_tiled(
     Raises:
         NotImplementedError: If ``fdir.routing`` is not D8 / Rho8 (divergent flow has no fixed-halo closure).
     """
+    require_single_band(fdir)
     routing = getattr(fdir, "routing", "d8")
     if routing not in ("d8", "rho8"):
         raise NotImplementedError(

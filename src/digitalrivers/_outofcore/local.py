@@ -15,7 +15,12 @@ from __future__ import annotations
 import numpy as np
 from pyramids.dataset import Dataset
 
-from digitalrivers._outofcore.tiling import plan_tiles, read_tile, write_core
+from digitalrivers._outofcore.tiling import (
+    plan_tiles,
+    read_tile,
+    require_single_band,
+    write_core,
+)
 
 
 def max_slope_2d(elev: np.ndarray, cell_size: float) -> np.ndarray:
@@ -85,6 +90,7 @@ def tiled_stencil(
     Returns:
         The result `pyramids` ``Dataset`` opened on ``out_path``.
     """
+    require_single_band(dataset)
     rows, cols = dataset.rows, dataset.columns
     tile_rows, tile_cols = (
         (tile_size, tile_size) if isinstance(tile_size, int) else tile_size

@@ -22,7 +22,13 @@ import numpy as np
 from pyramids.dataset import Dataset
 
 from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
-from digitalrivers._outofcore.tiling import TileSpec, plan_tiles, read_tile, write_core
+from digitalrivers._outofcore.tiling import (
+    TileSpec,
+    plan_tiles,
+    read_tile,
+    require_single_band,
+    write_core,
+)
 
 
 def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
@@ -166,8 +172,10 @@ def fill_depressions_tiled(
 
     Raises:
         NotImplementedError: If ``epsilon != 0`` and ``eps_fill="exact"``.
-        ValueError: If ``eps_fill`` is not ``"monotone"`` or ``"exact"``.
+        ValueError: If ``eps_fill`` is not ``"monotone"`` or ``"exact"``, or ``dem`` is multi-band. Use a sane
+            tile size (e.g. ``>= 512``): the global label count / drain vector scale with total tile perimeter.
     """
+    require_single_band(dem)
     if epsilon != 0.0:
         if eps_fill == "exact":
             raise NotImplementedError(
