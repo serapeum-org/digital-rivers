@@ -18,6 +18,8 @@ Design notes:
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 from pyramids.dataset import Dataset
 
@@ -32,11 +34,21 @@ from digitalrivers._outofcore.tiling import plan_tiles, write_core
 
 
 def _source_path(dataset) -> str:
+    """Return a reopenable path for ``dataset``, or raise if it is not file-backed.
+
+    Workers reopen the source by path, so an in-memory MEM dataset (empty description) or a description that is
+    neither an on-disk file nor a GDAL ``/vsi`` virtual path cannot be used by the dask backend.
+    """
     path = dataset.raster.GetDescription()
     if not path:
         raise ValueError(
             "the dask backend requires a file-backed source (an in-memory MEM dataset cannot be reopened on "
             "workers); write the source to disk first or use the serial engine"
+        )
+    if not os.path.exists(path) and not path.startswith("/vsi"):
+        raise ValueError(
+            f"the dask backend cannot reopen the source by path: {path!r} is not an on-disk file or a GDAL /vsi "
+            "path; write the source to a GeoTIFF first or use the serial engine"
         )
     return path
 
