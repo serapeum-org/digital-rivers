@@ -145,8 +145,13 @@ def flow_accumulation_tiled(
         return exports
 
     # --- fixed-point perimeter exchange ---
+    # Each round propagates external inflow one more tile-hop along the (acyclic) flow graph. A path can re-enter a
+    # tile at progressively lower cells, so the number of hops is bounded by the total perimeter cell count, not by
+    # len(specs); cap accordingly and RAISE on non-convergence rather than ever returning a silently-wrong result.
     inflow: dict[int, float] = {}
-    max_rounds = len(specs) + 2
+    perimeter_cells = sum(2 * (s.n_rows + s.n_cols) for s in specs)
+    max_rounds = max(64, perimeter_cells + 2)
+    converged = False
     for _ in range(max_rounds):
         buckets = bucket_inflow(inflow)
         next_inflow: dict[int, float] = defaultdict(float)
@@ -158,8 +163,14 @@ def flow_accumulation_tiled(
                 next_inflow[cell_id] += amount
         next_inflow = {k: v for k, v in next_inflow.items() if v != 0.0}
         if next_inflow == inflow:
+            converged = True
             break
         inflow = next_inflow
+    if not converged:
+        raise RuntimeError(
+            f"tiled accumulation did not converge within {max_rounds} perimeter-exchange rounds; "
+            "this should not happen for acyclic D8 flow — please report with the input"
+        )
 
     # --- finalize: write acc = kahn(weights + inflow) + inflow ---
     buckets = bucket_inflow(inflow)
