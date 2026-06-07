@@ -447,6 +447,113 @@ def priority_flood_numba(
     return out
 
 
+@njit(cache=True)
+def priority_flood_labels_numba(
+    elev: np.ndarray,
+    nodata_mask: np.ndarray,
+    d_row: np.ndarray,
+    d_col: np.ndarray,
+):
+    """Watershed-labelled Priority-Flood (Barnes 2016, Algorithm 1).
+
+    Runs the same `epsilon = 0` Priority-Flood as :func:`priority_flood_numba` — so the returned ``filled`` is
+    **bit-for-bit identical** to ``priority_flood_numba(elev, nodata_mask, 0.0, ...)`` — while additionally
+    painting every data cell with a **watershed label**. A label identifies the set of cells that drain to one
+    common outlet on the seed set (the domain edge / no-data boundary). The labels are the per-tile output the
+    Barnes 2016 master-graph fill (B3) stitches across tile seams.
+
+    Labelling rule: seed cells (domain edge + cells adjacent to no-data) are pushed unlabelled; when a cell is
+    popped still unlabelled it mints a fresh label, and every cell it floods into inherits that label. No-data
+    cells get label 0; every data cell ends with a label ``>= 1``.
+
+    Args:
+        elev: `(rows, cols)` float64 elevation.
+        nodata_mask: `(rows, cols)` bool — True at no-data cells.
+        d_row: `int32[8]` row offsets (`DIR_OFFSETS` convention).
+        d_col: `int32[8]` column offsets.
+
+    Returns:
+        Tuple ``(filled, labels)``: ``filled`` is `(rows, cols)` float64 (no-data positions are NaN, identical to
+        ``priority_flood_numba`` with ``epsilon = 0``); ``labels`` is `(rows, cols)` int32 (0 at no-data, ``>= 1``
+        elsewhere).
+    """
+    rows, cols = elev.shape
+    out = elev.copy()
+    closed = nodata_mask.copy()
+    labels = np.zeros((rows, cols), dtype=np.int32)
+    for r in range(rows):
+        for c in range(cols):
+            if nodata_mask[r, c]:
+                out[r, c] = np.nan
+                closed[r, c] = True
+
+    capacity = rows * cols + 1
+    heap_prio = np.empty(capacity, dtype=np.float64)
+    heap_idx = np.empty(capacity, dtype=np.int64)
+    heap_size = 0
+
+    pit_idx = np.empty(capacity, dtype=np.int64)
+    pit_prio = np.empty(capacity, dtype=np.float64)
+    pit_head = 0
+    pit_tail = 0
+
+    for r in range(rows):
+        for c in range(cols):
+            if closed[r, c]:
+                continue
+            is_seed = r == 0 or r == rows - 1 or c == 0 or c == cols - 1
+            if not is_seed:
+                for k in range(8):
+                    nr = r + d_row[k]
+                    nc = c + d_col[k]
+                    if 0 <= nr < rows and 0 <= nc < cols and nodata_mask[nr, nc]:
+                        is_seed = True
+                        break
+            if is_seed:
+                linear = r * cols + c
+                heap_size = _heap_push(
+                    heap_prio, heap_idx, heap_size, out[r, c], linear
+                )
+                closed[r, c] = True
+
+    next_label = 1
+    while heap_size > 0 or pit_head < pit_tail:
+        if pit_head < pit_tail:
+            e = pit_prio[pit_head]
+            linear = pit_idx[pit_head]
+            pit_head += 1
+        else:
+            e, linear, heap_size = _heap_pop(heap_prio, heap_idx, heap_size)
+
+        r = linear // cols
+        c = linear % cols
+        if labels[r, c] == 0:
+            labels[r, c] = next_label
+            next_label += 1
+        cur = labels[r, c]
+
+        for k in range(8):
+            nr = r + d_row[k]
+            nc = c + d_col[k]
+            if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+                continue
+            if closed[nr, nc]:
+                continue
+            closed[nr, nc] = True
+            labels[nr, nc] = cur
+            n_linear = nr * cols + nc
+            if out[nr, nc] <= e:
+                out[nr, nc] = e
+                pit_prio[pit_tail] = e
+                pit_idx[pit_tail] = n_linear
+                pit_tail += 1
+            else:
+                heap_size = _heap_push(
+                    heap_prio, heap_idx, heap_size, out[nr, nc], n_linear
+                )
+    return out, labels
+
+
 # ----- horizon-walk (Yokoyama 2002 openness / sky-view factor) -------------------------------
 
 
