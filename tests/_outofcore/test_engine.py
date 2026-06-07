@@ -119,6 +119,44 @@ class TestFillDepressionsEngine:
         in_mem = _dem(arr).fill_depressions(engine="in_memory").values
         np.testing.assert_array_equal(auto, in_mem)
 
+    def _assert_tiled_matches_in_memory_nodata(self, arr, nodata):
+        # M4: no-data parity for a non-(-9999) sentinel or NaN no-data — tiled == in-memory at finite cells,
+        # and the no-data positions agree.
+        def _build(path):
+            ds = Dataset.create_from_array(
+                arr,
+                top_left_corner=(0, 0),
+                cell_size=1.0,
+                epsg=4326,
+                no_data_value=nodata,
+                driver_type=("GTiff" if path else "MEM"),
+                path=path,
+            )
+            return DEM(ds.raster)
+
+        in_mem = _build(None).fill_depressions(engine="in_memory").values
+        with tempfile.TemporaryDirectory() as tmp:
+            out = _build(os.path.join(tmp, "d.tif")).fill_depressions(
+                engine="tiled", out_path=os.path.join(tmp, "o.tif"), tile_size=5
+            )
+            try:
+                got = out.values
+                np.testing.assert_array_equal(np.isnan(in_mem), np.isnan(got))
+                finite = ~np.isnan(in_mem)
+                np.testing.assert_array_equal(in_mem[finite], got[finite])
+            finally:
+                out.close()
+
+    def test_tiled_matches_in_memory_alt_sentinel_nodata(self):
+        arr = _seam_pit_dem().astype(np.float32)
+        arr[0, 0:3] = -32768.0  # a no-data patch with a non-default sentinel
+        self._assert_tiled_matches_in_memory_nodata(arr, -32768.0)
+
+    def test_tiled_matches_in_memory_nan_nodata(self):
+        arr = _seam_pit_dem().astype(np.float32)
+        arr[0, 0:3] = np.nan  # NaN-valued no-data
+        self._assert_tiled_matches_in_memory_nodata(arr, np.nan)
+
 
 class TestAccumulateEngine:
     def test_tiled_equals_in_memory(self):
