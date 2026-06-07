@@ -44,6 +44,24 @@ def out_dtype(dem) -> str:
 
     The tiled fill preserves the source dtype so it stays bit-for-bit with the in-memory fill (which casts back
     to the input dtype) for float64 DEMs, not just float32.
+
+    Examples:
+        - A pyramids ``Dataset`` reports its band dtypes as a list; the band-0 dtype is used:
+            ```python
+            >>> import types
+            >>> from digitalrivers._outofcore.fill import out_dtype
+            >>> out_dtype(types.SimpleNamespace(dtype=["float64"]))
+            'float64'
+
+            ```
+        - Falls back to ``"float32"`` when no dtype is available:
+            ```python
+            >>> import types
+            >>> from digitalrivers._outofcore.fill import out_dtype
+            >>> out_dtype(types.SimpleNamespace(dtype=None))
+            'float32'
+
+            ```
     """
     dt = getattr(dem, "dtype", None)
     if not dt:

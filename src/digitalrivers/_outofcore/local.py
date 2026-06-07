@@ -36,6 +36,25 @@ def max_slope_2d(elev: np.ndarray, cell_size: float) -> np.ndarray:
 
     Returns:
         `(rows, cols)` float32 maximum-slope array.
+
+    Examples:
+        - The centre of an east-facing ramp drains to its lower (east) neighbour at slope ``(2-1)/1``:
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._outofcore.local import max_slope_2d
+            >>> z = np.array([[3.0, 2.0, 1.0], [3.0, 2.0, 1.0], [3.0, 2.0, 1.0]])
+            >>> float(max_slope_2d(z, 1.0)[1, 1])
+            1.0
+
+            ```
+        - A flat block has zero slope everywhere:
+            ```python
+            >>> import numpy as np
+            >>> from digitalrivers._outofcore.local import max_slope_2d
+            >>> float(max_slope_2d(np.zeros((3, 3)), 1.0)[1, 1])
+            0.0
+
+            ```
     """
     elev = np.asarray(elev, dtype=np.float32)
     rows, cols = elev.shape

@@ -78,6 +78,25 @@ def require_out_path(engine: str, out_path) -> None:
 
     Raises:
         ValueError: If ``out_path`` is ``None``.
+
+    Examples:
+        - With a path it is a no-op:
+            ```python
+            >>> from digitalrivers._outofcore.engine import require_out_path
+            >>> require_out_path("auto", "out.tif") is None
+            True
+
+            ```
+        - When ``auto`` chose the tiled engine but no path was given, the message names ``auto``:
+            ```python
+            >>> from digitalrivers._outofcore.engine import require_out_path
+            >>> try:
+            ...     require_out_path("auto", None)
+            ... except ValueError as exc:
+            ...     print("auto" in str(exc))
+            True
+
+            ```
     """
     if out_path is not None:
         return

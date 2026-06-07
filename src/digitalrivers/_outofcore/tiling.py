@@ -186,6 +186,27 @@ def require_single_band(dataset) -> None:
 
     The tiled algorithms assume `read_array` returns a 2-D array; a multi-band raster would yield a 3-D block and
     confusing downstream failures, so reject it up front with a clear message.
+
+    Examples:
+        - A single-band dataset passes silently:
+            ```python
+            >>> import types
+            >>> from digitalrivers._outofcore.tiling import require_single_band
+            >>> require_single_band(types.SimpleNamespace(band_count=1)) is None
+            True
+
+            ```
+        - A multi-band dataset is rejected:
+            ```python
+            >>> import types
+            >>> from digitalrivers._outofcore.tiling import require_single_band
+            >>> try:
+            ...     require_single_band(types.SimpleNamespace(band_count=3))
+            ... except ValueError as exc:
+            ...     print("single-band" in str(exc))
+            True
+
+            ```
     """
     bands = getattr(dataset, "band_count", 1)
     if bands != 1:
