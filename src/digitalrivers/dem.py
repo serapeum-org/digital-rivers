@@ -2542,7 +2542,13 @@ class DEM(Dataset):
             no_data_value=no_val,
         )
 
-    def slope(self) -> Dataset:
+    def slope(
+        self,
+        *,
+        engine: str = "auto",
+        out_path: str | None = None,
+        tile_size: int | tuple[int, int] = 2048,
+    ) -> Dataset:
         """Compute the maximum downhill slope at every cell.
 
         Calculates slopes in all eight D8 directions via
@@ -2553,10 +2559,37 @@ class DEM(Dataset):
             Dataset: Single-band raster with the same geometry as the
                 DEM, containing the maximum slope value per cell.
 
+        Out-of-core:
+            Slope is a local 3×3 stencil, so `engine="tiled"` streams it tile-by-tile to `out_path` with
+            constant memory (bit-for-bit identical to the whole-array result). `engine="auto"` (default) only
+            switches to it for rasters large enough to risk exhausting RAM; `engine="tiled"` requires `out_path`.
+
         See Also:
             Terrain.slope: GDAL-based slope using Horn or
                 Zevenbergen-Thorne algorithms.
         """
+        from digitalrivers._outofcore.engine import resolve_engine  # lazy
+
+        resolved = resolve_engine(engine, self.rows, self.columns, k=3)
+        if resolved == "tiled":
+            if out_path is None:
+                raise ValueError(
+                    "engine='tiled' requires out_path (results stream to disk)"
+                )
+            # lazy import keeps `import digitalrivers` light
+            from digitalrivers._outofcore.local import max_slope_2d, tiled_stencil
+
+            cell_size = self.cell_size
+            nodata = self.no_data_value[0] if self.no_data_value else None
+            return tiled_stencil(
+                self,
+                lambda block: max_slope_2d(block, cell_size),
+                out_path,
+                depth=1,
+                tile_size=tile_size,
+                input_nodata=nodata,
+            )
+
         slope = self._get_8_direction_slopes()
         max_slope = np.nanmax(slope, axis=2)
 
