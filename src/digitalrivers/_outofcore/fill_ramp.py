@@ -7,7 +7,7 @@ neighbours, from each cell to the nearest **real-terrain exit** (a strictly-lowe
 the fill) or domain edge / no-data. Real (already-draining) terrain has ``g = 0`` and is left unchanged.
 
 This is the **single epsilon>0 definition used by both engines**: the in-memory path
-(``DEM.fill_depressions(eps_fill="exact")``) computes :func:`monotone_fill_reference` directly, and the tiled
+(``DEM.fill_depressions(eps_fill="exact")``) computes :func:`ramp_fill_reference` directly, and the tiled
 path reproduces it tile-by-tile — so ``engine="in_memory"`` and ``engine="tiled"`` agree **bit-for-bit**, which
 is what makes ``eps_fill="exact"`` exact (see ``docs/eps-fill-exact-feasibility.md`` and issue #69).
 
@@ -101,8 +101,8 @@ def _relax(fill0, g, source, nodata) -> np.ndarray:
         g = best
 
 
-def monotone_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
-    """Whole-array reference for the monotone fill (the tiled path must reproduce this)."""
+def ramp_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
+    """Whole-array reference for the exit-distance ramp fill (the tiled path must reproduce this)."""
     orig = np.asarray(orig, dtype=np.float64)
     fill0 = np.asarray(fill0, dtype=np.float64)
     rows, cols = fill0.shape
@@ -115,7 +115,7 @@ def monotone_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
     return out
 
 
-def fill_depressions_monotone_tiled(
+def fill_depressions_ramp_tiled(
     dem,
     out_path: str,
     *,
@@ -124,13 +124,18 @@ def fill_depressions_monotone_tiled(
     tile_cols: int = 2048,
     cache: str = "evict",
 ):
-    """Tiled monotone terracing = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
+    """Tiled exit-distance ramp = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
 
-    Flat-free for small ``epsilon`` only; see the module docstring for the (important) caveats.
+    Byte-for-byte identical to :func:`ramp_fill_reference` (the in-memory engine), so ``engine="tiled"`` matches
+    ``engine="in_memory"``. Flat-free for small ``epsilon`` only; see the module docstring for the caveats.
     """
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
+    # epsilon>0 produces a fractional ramp; never write it to an integer band (it would truncate the gradient).
+    # Match the in-memory engine: floating sources keep their precision, integer sources are promoted to float64.
     dtype = out_dtype(dem)
+    if not np.issubdtype(np.dtype(dtype), np.floating):
+        dtype = "float64"
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
 
     out = Dataset.create_empty(

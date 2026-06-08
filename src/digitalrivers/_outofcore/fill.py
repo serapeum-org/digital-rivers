@@ -219,11 +219,11 @@ def fill_depressions_tiled(
                 "client) is only used for epsilon=0 and is ignored here.",
                 stacklevel=2,
             )
-        from digitalrivers._outofcore.fill_monotone import (  # noqa: PLC0415
-            fill_depressions_monotone_tiled,
+        from digitalrivers._outofcore.fill_ramp import (  # noqa: PLC0415
+            fill_depressions_ramp_tiled,
         )
 
-        return fill_depressions_monotone_tiled(
+        return fill_depressions_ramp_tiled(
             dem,
             out_path,
             epsilon=epsilon,
@@ -243,6 +243,7 @@ def fill_depressions_tiled(
             tile_cols=tile_cols,
             scheduler=scheduler,
             client=client,
+            dtype=dtype,
         )
     from digitalrivers._outofcore.cache import TileStore  # noqa: PLC0415
 

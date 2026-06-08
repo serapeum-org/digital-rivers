@@ -104,8 +104,13 @@ def fill_depressions_dask(
     tile_cols: int = 2048,
     scheduler: str = "threads",
     client=None,
+    dtype: str | None = None,
 ):
-    """Dask-distributed Barnes-2016 tiled fill (epsilon=0). Result identical to the serial engine."""
+    """Dask-distributed Barnes-2016 tiled fill (epsilon=0). Result identical to the serial engine.
+
+    ``dtype`` overrides the output band dtype (``None`` uses the source band dtype), matching the serial
+    :func:`digitalrivers._outofcore.fill.fill_depressions_tiled`.
+    """
     import dask  # noqa: PLC0415
 
     if client is not None:
@@ -116,7 +121,7 @@ def fill_depressions_dask(
     path = _source_path(dem)
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = out_dtype(dem)
+    dtype = dtype or out_dtype(dem)
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
     by_grid = {(s.row, s.col): s for s in specs}
 

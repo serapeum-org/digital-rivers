@@ -147,6 +147,36 @@ class TestFillDepressionsEngine:
             finally:
                 out.close()
 
+    def test_epsilon_integer_dem_keeps_float_ramp_and_matches(self):
+        # M1: epsilon>0 on an integer DEM must not truncate the ramp to ints. Both engines promote to float and
+        # stay byte-identical. (int16 is the SRTM dtype; epsilon>0 is the flat-breaking step before D8 routing.)
+        arr = np.full((12, 12), 100, dtype=np.int16)
+        arr[4:8, 4:8] = 50
+        arr[6, 6] = 10
+        in_mem = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=1e-3, engine="in_memory")
+            .read_array()
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            out = _dem(arr).fill_depressions(
+                method="priority_flood",
+                epsilon=1e-3,
+                engine="tiled",
+                out_path=os.path.join(tmp, "f.tif"),
+                tile_size=5,
+                eps_fill="exact",
+            )
+            try:
+                tiled = np.asarray(out.read_array())
+                assert np.issubdtype(in_mem.dtype, np.floating)
+                assert np.issubdtype(tiled.dtype, np.floating)
+                # the pit pool carries a real gradient, not a single truncated fill level
+                assert np.unique(in_mem[4:8, 4:8]).size > 1
+                np.testing.assert_array_equal(tiled, in_mem)
+            finally:
+                out.close()
+
     def test_epsilon_monotone_is_alias_of_exact(self):
         arr = _seam_pit_dem()
         a = np.asarray(

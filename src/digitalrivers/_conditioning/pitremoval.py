@@ -367,12 +367,12 @@ def _priority_flood_ramp(
     edge / no-data. Flat-free for small ``epsilon``; for the universal (any-epsilon) flat-removal guarantee use
     ``eps_fill="barnes"``.
     """
-    # Lazy: the monotone reference lives in the out-of-core package (pulls the numba fill_0 kernel); keep it out
-    # of module import so `import digitalrivers` stays light and to avoid a _conditioning -> _outofcore cycle.
-    from digitalrivers._outofcore.fill_monotone import monotone_fill_reference
+    # Lazy: the ramp reference lives in the out-of-core package (pulls the numba fill_0 kernel); keep it out of
+    # module import so `import digitalrivers` stays light and to avoid a _conditioning -> _outofcore cycle.
+    from digitalrivers._outofcore.fill_ramp import ramp_fill_reference
 
     fill0 = _priority_flood_with_numba(z, nodata_mask, 0.0)
-    return monotone_fill_reference(z, fill0, epsilon, np.nan)
+    return ramp_fill_reference(z, fill0, epsilon, np.nan)
 
 
 def fill_depressions(
