@@ -1874,7 +1874,7 @@
 <p><strong>Resolution (Path B, implemented).</strong> Rather than reproduce the in-memory Barnes step-count tile-by-tile (which
 is ill-posed — see below), both engines were unified on a single deterministic, tile-reconstructible
 <code>epsilon &gt; 0</code> gradient: the <strong>exit-distance ramp</strong> (<code>fill_0 + epsilon * exit_distance</code>,
-:func:<code>digitalrivers._outofcore.fill_monotone.monotone_fill_reference</code>). The in-memory engine now computes that
+:func:<code>digitalrivers._outofcore.fill_ramp.ramp_fill_reference</code>). The in-memory engine now computes that
 ramp directly and the tiled engine reproduces it bit-for-bit, so <code>eps_fill="exact"</code> is <strong>byte-for-byte identical
 across <code>engine="in_memory"</code> / <code>"tiled"</code> / <code>"auto"</code></strong> for every tile size and dtype (float32 and float64, with and
 without no-data — covered by <code>tests/_outofcore/test_engine.py</code>). The classic Barnes step-count is preserved as
