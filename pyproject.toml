@@ -36,15 +36,15 @@ requires-python = ">= 3.11, <4"
 # floor must stay >=0.29.0, the first pyramids-gis whose bundled GDAL exposes
 # gdal.ViewshedGenerate + the GVM_* viewshed enums used by Terrain.viewshed).
 dependencies = [
-    "pyramids-gis @ git+https://github.com/serapeum-org/pyramids.git@main",
+    "pyramids-gis >=0.32.0",
     "geopandas >=1.0.0",
     "numba >=0.60.0,<1",
     "numpy >=2.0.0",
 ]
 
 [project.optional-dependencies]
-viz = ["pyramids-gis[viz] @ git+https://github.com/serapeum-org/pyramids.git@main"]
-distributed = ["pyramids-gis[lazy] @ git+https://github.com/serapeum-org/pyramids.git@main"]
+viz = ["pyramids-gis[viz] >=0.32.0"]
+distributed = ["pyramids-gis[lazy] >=0.32.0"]
 all = ["digital-rivers[viz,distributed]"]
 dev = [
     "nbval >=0.11.0",
