@@ -102,15 +102,16 @@ class TestFillDepressionsEngine:
                     engine="tiled", out_path=os.path.join(tmp, "f.tif"), inplace=True
                 )
 
-    def test_tiled_rejects_exact_epsilon(self):
-        # eps_fill='exact' is the deferred byte-identical mode; the default 'monotone' runs (covered elsewhere).
+    def test_tiled_rejects_barnes_epsilon(self):
+        # eps_fill='barnes' (classic step-count) is not tileable; eps_fill='exact' (default) is the tileable,
+        # byte-identical ramp (covered by the equivalence tests).
         with tempfile.TemporaryDirectory() as tmp:
             with pytest.raises(NotImplementedError):
                 _dem(_seam_pit_dem()).fill_depressions(
                     engine="tiled",
                     out_path=os.path.join(tmp, "f.tif"),
                     epsilon=0.01,
-                    eps_fill="exact",
+                    eps_fill="barnes",
                 )
 
     def test_auto_small_dem_is_byte_identical_to_in_memory(self):
@@ -118,6 +119,68 @@ class TestFillDepressionsEngine:
         auto = _dem(arr).fill_depressions(engine="auto").values
         in_mem = _dem(arr).fill_depressions(engine="in_memory").values
         np.testing.assert_array_equal(auto, in_mem)
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    @pytest.mark.parametrize("tile", [5, 7, (5, 9), 64])
+    def test_epsilon_exact_tiled_is_byte_identical_to_in_memory(self, dtype, tile):
+        # Path B: eps_fill="exact" (the shared exit-distance ramp) is bit-for-bit identical across engines,
+        # for every tile size and dtype — read the rasters (not .values, which downcasts float64 -> float32).
+        arr = _seam_pit_dem().astype(dtype)
+        in_mem = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=1e-3, engine="in_memory")
+            .read_array()
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            out = _dem(arr).fill_depressions(
+                method="priority_flood",
+                epsilon=1e-3,
+                engine="tiled",
+                out_path=os.path.join(tmp, "f.tif"),
+                tile_size=tile,
+                eps_fill="exact",
+            )
+            try:
+                tiled = np.asarray(out.read_array())
+                assert tiled.dtype == in_mem.dtype == np.dtype(dtype)
+                np.testing.assert_array_equal(tiled, in_mem)
+            finally:
+                out.close()
+
+    def test_epsilon_monotone_is_alias_of_exact(self):
+        arr = _seam_pit_dem()
+        a = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=1e-3, eps_fill="exact")
+            .read_array()
+        )
+        b = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=1e-3, eps_fill="monotone")
+            .read_array()
+        )
+        np.testing.assert_array_equal(a, b)
+
+    def test_epsilon_barnes_differs_from_exact_in_memory(self):
+        # The two epsilon definitions are genuinely different surfaces (sanity that "barnes" is not aliased away).
+        arr = _seam_pit_dem()
+        exact = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=0.1, eps_fill="exact")
+            .read_array()
+        )
+        barnes = np.asarray(
+            _dem(arr)
+            .fill_depressions(method="priority_flood", epsilon=0.1, eps_fill="barnes")
+            .read_array()
+        )
+        assert not np.array_equal(exact, barnes)
+
+    def test_unknown_eps_fill_raises(self):
+        with pytest.raises(ValueError, match="eps_fill"):
+            _dem(_seam_pit_dem()).fill_depressions(
+                method="priority_flood", epsilon=1e-3, eps_fill="bogus"
+            )
 
     def _assert_tiled_matches_in_memory_nodata(self, arr, nodata):
         # M4: no-data parity for a non-(-9999) sentinel or NaN no-data — tiled == in-memory at finite cells,

@@ -120,7 +120,8 @@ class TestFlatFreeSmallEpsilon:
 
 
 class TestGuards:
-    def test_exact_mode_raises(self):
+    def test_barnes_mode_raises(self):
+        # eps_fill='barnes' (classic step-count) depends on global order -> not tileable.
         arr = _noisy_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = DEM(
@@ -137,7 +138,7 @@ class TestGuards:
                     engine="tiled",
                     out_path=os.path.join(tmp, "o.tif"),
                     epsilon=0.1,
-                    eps_fill="exact",
+                    eps_fill="barnes",
                 )
 
     def test_invalid_eps_fill_raises(self):
