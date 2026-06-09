@@ -171,7 +171,7 @@ class DEM(Dataset):
         cache: str = "evict",
         workers: int = 1,
         scratch_dir: str | None = None,
-        eps_fill: str = "monotone",
+        eps_fill: str = "exact",
     ) -> DEM | None:
         """Fill closed depressions in the DEM.
 
@@ -179,9 +179,10 @@ class DEM(Dataset):
 
         * `"priority_flood"` (default) — Barnes, Lehman & Mulla (2014) Priority-Flood
           with the two-queue plateau optimisation. With `epsilon == 0` it produces flat
-          fills; with `epsilon > 0` it produces a strictly monotonic surface (every cell
-          has at least one strictly lower neighbour along the flood path) at the cost of
-          a small elevation inflation proportional to plateau width.
+          fills; with `epsilon > 0` it produces a monotonic surface (every cell has at
+          least one lower neighbour along the drainage path) at the cost of a small
+          elevation inflation proportional to plateau width. The `epsilon > 0` gradient is
+          selected by `eps_fill` (see below).
         * `"wang_liu"` — Wang & Liu (2006). Flat fill, no epsilon. Equivalent in output
           to `priority_flood` with `epsilon == 0`; kept as a named alternative for
           callers who plan to resolve flats explicitly afterwards (P4).
@@ -205,11 +206,16 @@ class DEM(Dataset):
             method: One of `"priority_flood"`, `"wang_liu"`, `"planchon_darboux"`.
             epsilon: Per-step elevation lift inside depressions. `0.0` (default for
                 `priority_flood`) returns a non-strictly-decreasing surface — flats
-                remain flat. Positive values guarantee a unique downhill path at the
-                cost of slight elevation inflation. `planchon_darboux` requires
-                `epsilon > 0`.
+                remain flat. Positive values impose a downhill path at the cost of
+                slight elevation inflation. `planchon_darboux` requires `epsilon > 0`.
             inplace: If `True` the current instance is updated in place and `None`
                 is returned. If `False` (default) a new `DEM` is returned.
+            eps_fill: Gradient for `priority_flood` with `epsilon > 0` (ignored otherwise).
+                `"exact"` (default) / `"monotone"` use the deterministic exit-distance
+                ramp that is **identical in-memory and tiled** (so `engine="auto"` is
+                consistent); it is flat-free for small `epsilon`. `"barnes"` uses the
+                classic Priority-Flood step-count — flat-free for any `epsilon` but
+                in-memory only (it is not tileable; `engine="tiled"` rejects it).
 
         Returns:
             DEM | None: A new `DEM` containing the filled elevation, or `None` when
@@ -223,8 +229,9 @@ class DEM(Dataset):
             `engine="auto"` (default) runs the in-memory algorithm unless the DEM is large enough to risk
             exhausting RAM, in which case it streams a tiled Barnes-2016 fill to `out_path`. Force the path with
             `engine="in_memory"` / `engine="tiled"`. `engine="tiled"` requires `out_path` and does not support
-            `inplace`. For `epsilon>0`, `eps_fill="monotone"` (default) produces a valid tiled flat-free fill
-            (drainage identical to in-memory, ε-decimals may differ); `eps_fill="exact"` is not yet implemented.
+            `inplace`. For `epsilon>0`, `eps_fill="exact"` (default, alias `"monotone"`) produces a tiled fill
+            **byte-for-byte identical** to the in-memory result; `eps_fill="barnes"` (the classic step-count) is
+            in-memory only and is rejected by `engine="tiled"`.
         """
         from digitalrivers._outofcore.engine import (  # lazy: keeps import digitalrivers light
             require_out_path,
@@ -257,22 +264,37 @@ class DEM(Dataset):
             )
             return DEM(out.raster)
 
-        elev = self.values
-        nodata_mask = np.isnan(elev)
+        # Read at native precision via read_array, not self.values: the latter downcasts float64 rasters to
+        # float32, which would make the in-memory fill disagree with the native-precision tiled engine (the
+        # epsilon>0 ramp is shared, so engine="auto" must give identical results). Build the no-data mask from the
+        # sentinel here (read_array returns the raw sentinel, not NaN) to match the tiled path.
+        native = np.asarray(self.read_array())
+        no_val = self.no_data_value[0]
+        nodata_mask = np.isnan(native)
+        if no_val is not None and not np.isnan(no_val):
+            nodata_mask = nodata_mask | (native == no_val)
+        elev = native.astype(np.float64, copy=True)
+        elev[nodata_mask] = np.nan
         z_fill = _fill_depressions_array(
-            elev.astype(np.float64, copy=False),
+            elev,
             nodata_mask=nodata_mask,
             method=method,
             epsilon=epsilon,
+            eps_fill=eps_fill,
         )
-        # Restore the original raster's no-data sentinel (the array carries NaN; the
-        # GeoTIFF needs the numeric sentinel).
-        no_val = self.no_data_value[0]
-        z_fill[nodata_mask] = no_val
+        # Restore the original raster's no-data sentinel (the array carries NaN; the GeoTIFF needs the sentinel).
+        if no_val is not None:
+            z_fill[nodata_mask] = no_val
 
+        # For epsilon>0 the fill is a fractional ramp, so never emit an integer output dtype (it would truncate
+        # the gradient and silently collapse the fill to a flat). Floating DEMs keep their native precision;
+        # integer DEMs (e.g. int16 SRTM) are promoted to float64. epsilon=0 fills keep the native dtype.
+        out_dt = native.dtype
+        if epsilon != 0.0 and not np.issubdtype(native.dtype, np.floating):
+            out_dt = np.float64
         # Build a plain Dataset (cls=Dataset so we don't get a DEM via cls(...)), then
         # wrap with the typed DEM. This mirrors the pattern used in flow_direction().
-        plain_ds = Dataset.dataset_like(self, z_fill.astype(elev.dtype, copy=False))
+        plain_ds = Dataset.dataset_like(self, z_fill.astype(out_dt, copy=False))
         if inplace:
             self._update_inplace(plain_ds.raster)
             return None

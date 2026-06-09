@@ -1,11 +1,11 @@
-"""Tests for the tiled monotone (epsilon>0) fill — eps_fill='monotone' (B6).
+"""Tests for the tiled exit-distance ramp (epsilon>0) fill — eps_fill='exact'/'monotone' (B6).
 
-These assert only the guarantees the monotone terracing actually provides:
-- tiled == whole-array reference, bit-for-bit (tiling adds no error);
+These assert the guarantees the ramp fill provides:
+- tiled == whole-array reference, bit-for-bit (tiling adds no error, and it matches the in-memory engine);
 - epsilon -> 0 reduces to the exact fill_0;
 - flat-free for SMALL epsilon on smooth terrain (the supported regime).
-They do NOT assert universal flat-free / byte-identity with the in-memory Barnes kernel — see the module
-docstring: that needs the global priority-flood order (deferred eps_fill='exact').
+They do NOT assert universal flat-free removal — that needs the global priority-flood order, available only via
+the in-memory eps_fill='barnes' kernel (see docs/eps-fill-exact-feasibility.md).
 """
 
 from __future__ import annotations
@@ -18,9 +18,9 @@ import pytest
 from pyramids.dataset import Dataset
 
 from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32, priority_flood_numba
-from digitalrivers._outofcore.fill_monotone import (
-    fill_depressions_monotone_tiled,
-    monotone_fill_reference,
+from digitalrivers._outofcore.fill_ramp import (
+    fill_depressions_ramp_tiled,
+    ramp_fill_reference,
 )
 from digitalrivers.dem import DEM
 
@@ -71,7 +71,7 @@ def _run_tiled(arr, tile, epsilon):
             driver_type="GTiff",
             path=os.path.join(tmp, "d.tif"),
         )
-        out = fill_depressions_monotone_tiled(
+        out = fill_depressions_ramp_tiled(
             dem,
             os.path.join(tmp, "o.tif"),
             epsilon=epsilon,
@@ -91,7 +91,7 @@ class TestTiledEqualsReference:
     @pytest.mark.parametrize("epsilon", [0.5, 0.01])
     def test_tiled_matches_whole_array_reference(self, seed, tile, epsilon):
         arr = _noisy_pit(seed)
-        ref = monotone_fill_reference(
+        ref = ramp_fill_reference(
             arr.astype(np.float64), _fill0(arr), epsilon, NODATA
         )
         np.testing.assert_allclose(_run_tiled(arr, tile, epsilon), ref)
@@ -99,7 +99,7 @@ class TestTiledEqualsReference:
     def test_epsilon_zero_reduces_to_fill0(self):
         arr = _noisy_pit(0)
         f0 = _fill0(arr).astype(np.float32)
-        ref = monotone_fill_reference(
+        ref = ramp_fill_reference(
             arr.astype(np.float64), _fill0(arr), 0.0, NODATA
         ).astype(np.float32)
         np.testing.assert_array_equal(ref, f0)
@@ -115,12 +115,13 @@ class TestFlatFreeSmallEpsilon:
 
     def test_reference_smooth_bowl_flat_free(self):
         arr = _smooth_bowl()
-        ref = monotone_fill_reference(arr.astype(np.float64), _fill0(arr), 1e-3, NODATA)
+        ref = ramp_fill_reference(arr.astype(np.float64), _fill0(arr), 1e-3, NODATA)
         assert _interior_minima(ref) == 0
 
 
 class TestGuards:
-    def test_exact_mode_raises(self):
+    def test_barnes_mode_raises(self):
+        # eps_fill='barnes' (classic step-count) depends on global order -> not tileable.
         arr = _noisy_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = DEM(
@@ -137,7 +138,7 @@ class TestGuards:
                     engine="tiled",
                     out_path=os.path.join(tmp, "o.tif"),
                     epsilon=0.1,
-                    eps_fill="exact",
+                    eps_fill="barnes",
                 )
 
     def test_invalid_eps_fill_raises(self):

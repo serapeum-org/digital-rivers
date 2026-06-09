@@ -40,6 +40,14 @@ VALID_METHODS: frozenset[str] = frozenset(
     {"priority_flood", "wang_liu", "planchon_darboux"}
 )
 
+# eps_fill selects the epsilon>0 gradient for `priority_flood` (ignored for epsilon=0 and the other methods):
+#   * "exact" / "monotone" — the deterministic exit-distance ramp (fill_0 + epsilon * exit_distance). Identical
+#     in-memory and tiled (bit-for-bit), so engine="auto"/"in_memory"/"tiled" all agree. Flat-free for small
+#     epsilon. This is the shared definition (see docs/eps-fill-exact-feasibility.md).
+#   * "barnes" — the classic Barnes 2014 Priority-Flood step-count fill, flat-free for *any* epsilon but
+#     dependent on the global traversal order, so in-memory only (not tileable; see issue #69).
+VALID_EPS_FILL: frozenset[str] = frozenset({"exact", "monotone", "barnes"})
+
 
 def local_minima_8(z: np.ndarray, nodata_mask: np.ndarray | None = None) -> np.ndarray:
     """Boolean mask of cells strictly lower than all 8 valid neighbours.
@@ -348,12 +356,32 @@ def _priority_flood_with_numba(
     return _priority_flood(z, nodata_mask, epsilon=epsilon, use_pit_queue=True)
 
 
+def _priority_flood_ramp(
+    z: np.ndarray, nodata_mask: np.ndarray, epsilon: float
+) -> np.ndarray:
+    """Exit-distance ramp fill: ``fill_0 + epsilon * exit_distance``.
+
+    The deterministic, tile-reconstructible epsilon gradient shared by the in-memory and tiled engines (so they
+    agree bit-for-bit). ``fill_0`` is the ``epsilon = 0`` Priority-Flood; the per-cell ``exit_distance`` is the
+    graph distance over ``fill_0`` (stepping to lower-or-equal neighbours) to the nearest real-terrain exit /
+    edge / no-data. Flat-free for small ``epsilon``; for the universal (any-epsilon) flat-removal guarantee use
+    ``eps_fill="barnes"``.
+    """
+    # Lazy: the ramp reference lives in the out-of-core package (pulls the numba fill_0 kernel); keep it out of
+    # module import so `import digitalrivers` stays light and to avoid a _conditioning -> _outofcore cycle.
+    from digitalrivers._outofcore.fill_ramp import ramp_fill_reference
+
+    fill0 = _priority_flood_with_numba(z, nodata_mask, 0.0)
+    return ramp_fill_reference(z, fill0, epsilon, np.nan)
+
+
 def fill_depressions(
     z: np.ndarray,
     nodata_mask: np.ndarray | None = None,
     *,
     method: str = "priority_flood",
     epsilon: float = 0.0,
+    eps_fill: str = "exact",
 ) -> np.ndarray:
     """Fill depressions in an elevation surface.
 
@@ -367,6 +395,11 @@ def fill_depressions(
             (ignored entirely by `wang_liu`; rejected by `planchon_darboux` which requires
             `> 0`). Positive values guarantee a strict downhill path at the cost of slight
             elevation inflation proportional to plateau width.
+        eps_fill: Gradient used for `priority_flood` with `epsilon > 0` (ignored for
+            `epsilon = 0` and for the other methods). `"exact"` (default) / `"monotone"`
+            use the deterministic exit-distance ramp shared with the tiled engine (so
+            in-memory and tiled agree bit-for-bit); `"barnes"` uses the classic
+            Priority-Flood step-count, flat-free for any `epsilon` but in-memory only.
 
     Returns:
         2-D float64 array. No-data positions hold NaN; all other cells satisfy
@@ -374,12 +407,16 @@ def fill_depressions(
         lower (epsilon > 0) or equal-or-lower (epsilon == 0) elevation.
 
     Raises:
-        ValueError: If `method` is unknown, or `planchon_darboux` is requested with
-            `epsilon <= 0`.
+        ValueError: If `method` or `eps_fill` is unknown, or `planchon_darboux` is
+            requested with `epsilon <= 0`.
     """
     if method not in VALID_METHODS:
         raise ValueError(
             f"method must be one of {sorted(VALID_METHODS)}; got {method!r}"
+        )
+    if eps_fill not in VALID_EPS_FILL:
+        raise ValueError(
+            f"eps_fill must be one of {sorted(VALID_EPS_FILL)}; got {eps_fill!r}"
         )
 
     if nodata_mask is None:
@@ -392,6 +429,8 @@ def fill_depressions(
         nodata_mask = nodata_mask | nan_mask
 
     if method == "priority_flood":
+        if epsilon > 0 and eps_fill in ("exact", "monotone"):
+            return _priority_flood_ramp(z, nodata_mask, epsilon)
         return _priority_flood_with_numba(z, nodata_mask, epsilon)
     if method == "wang_liu":
         # Wang & Liu = Priority-Flood with epsilon=0 and no pit queue.

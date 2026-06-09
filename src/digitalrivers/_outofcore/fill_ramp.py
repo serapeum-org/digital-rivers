@@ -1,31 +1,32 @@
-"""Tiled monotone (epsilon>0) depression fill — the ``eps_fill="monotone"`` path of B6.
+"""Exit-distance ramp epsilon-fill — the shared ``eps_fill="exact"`` / ``"monotone"`` definition (B6).
 
-    fill_monotone = fill_0 + epsilon * g
+    fill_ramp = fill_0 + epsilon * g
 
 where ``g`` is the graph distance, over the ``epsilon = 0`` filled surface (B3) stepping to lower-or-equal
 neighbours, from each cell to the nearest **real-terrain exit** (a strictly-lower cell that was *not* raised by
 the fill) or domain edge / no-data. Real (already-draining) terrain has ``g = 0`` and is left unchanged.
 
+This is the **single epsilon>0 definition used by both engines**: the in-memory path
+(``DEM.fill_depressions(eps_fill="exact")``) computes :func:`ramp_fill_reference` directly, and the tiled
+path reproduces it tile-by-tile — so ``engine="in_memory"`` and ``engine="tiled"`` agree **bit-for-bit**, which
+is what makes ``eps_fill="exact"`` exact (see ``docs/eps-fill-exact-feasibility.md`` and issue #69).
+
 **What this guarantees (tested):**
 
 * ``epsilon -> 0`` reduces to the exact ``fill_0``.
-* The tiled result is **bit-for-bit identical to its own whole-array reference** (graph distance is unique and
-  seam-reconcilable), so tiling introduces no error.
+* The tiled result is **bit-for-bit identical to its whole-array reference** (graph distance is unique and
+  seam-reconcilable), so tiling introduces no error and matches the in-memory engine exactly.
 
 **What this does NOT guarantee — read before using:**
 
-The in-memory Barnes epsilon-kernel is flat-free for *any* epsilon because its ``g`` is a **global priority-flood
-step-count** that strictly increases along every drainage path; that step-count depends on the global traversal
-order and is not reproducible by a tileable min-distance. The min-distance ``g`` used here can let ``epsilon * g``
-over-inflate a flat above adjacent lower terrain and create a spurious pit **when epsilon is not small relative to
-the terrain's vertical steps**. Concretely: this is a valid, flat-free terracing for **small** epsilon
+``g`` is a tile-reconstructible **min-distance**, not the in-memory Barnes step-count. Because it is deterministic
+and order-independent it cannot, for *large* epsilon, replicate the classic kernel's universal flat-removal:
+``epsilon * g`` can over-inflate a wide flat above adjacent lower terrain and leave a residual flat **when epsilon
+is not small relative to the terrain's vertical steps**. This is a valid, flat-free fill for **small** epsilon
 (``epsilon`` ≪ the smallest real elevation difference you care about — the normal regime, e.g. ``1e-3`` on
-metre-scale DEMs); for large epsilon it may leave residual flats. It is therefore **not** a drop-in replacement
-for the in-memory kernel's universal flat-removal, and it is **not** byte-identical to it.
-
-A guaranteed-flat-free / byte-identical tiled epsilon-fill requires the global priority-flood order (the same
-machinery as the deferred ``eps_fill="exact"`` mode). For guaranteed flat removal at any epsilon, use
-``engine="in_memory"``. ``eps_fill="exact"`` raises ``NotImplementedError`` (research-grade, deferred).
+metre-scale DEMs). For guaranteed flat removal at *any* epsilon use ``eps_fill="barnes"`` (the classic
+Priority-Flood step-count), which is in-memory only — it depends on the global traversal order and is provably
+not tileable (``docs/eps-fill-exact-feasibility.md``).
 """
 
 from __future__ import annotations
@@ -100,8 +101,8 @@ def _relax(fill0, g, source, nodata) -> np.ndarray:
         g = best
 
 
-def monotone_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
-    """Whole-array reference for the monotone fill (the tiled path must reproduce this)."""
+def ramp_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
+    """Whole-array reference for the exit-distance ramp fill (the tiled path must reproduce this)."""
     orig = np.asarray(orig, dtype=np.float64)
     fill0 = np.asarray(fill0, dtype=np.float64)
     rows, cols = fill0.shape
@@ -114,7 +115,7 @@ def monotone_fill_reference(orig, fill0, epsilon, nodata) -> np.ndarray:
     return out
 
 
-def fill_depressions_monotone_tiled(
+def fill_depressions_ramp_tiled(
     dem,
     out_path: str,
     *,
@@ -123,13 +124,18 @@ def fill_depressions_monotone_tiled(
     tile_cols: int = 2048,
     cache: str = "evict",
 ):
-    """Tiled monotone terracing = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
+    """Tiled exit-distance ramp = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
 
-    Flat-free for small ``epsilon`` only; see the module docstring for the (important) caveats.
+    Byte-for-byte identical to :func:`ramp_fill_reference` (the in-memory engine), so ``engine="tiled"`` matches
+    ``engine="in_memory"``. Flat-free for small ``epsilon`` only; see the module docstring for the caveats.
     """
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
+    # epsilon>0 produces a fractional ramp; never write it to an integer band (it would truncate the gradient).
+    # Match the in-memory engine: floating sources keep their precision, integer sources are promoted to float64.
     dtype = out_dtype(dem)
+    if not np.issubdtype(np.dtype(dtype), np.floating):
+        dtype = "float64"
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
 
     out = Dataset.create_empty(
@@ -145,6 +151,8 @@ def fill_depressions_monotone_tiled(
     scratch = tempfile.mkdtemp(prefix="dr_monotone_")
     fill0_ds = g_ds = None
     try:
+        # fill_0 scratch is float64 (not the source dtype) so that ``fill_0 + epsilon * g`` matches the in-memory
+        # engine bit-for-bit on float32 sources — the final ``out`` below is still cast to the source dtype.
         fill0_ds = fill_depressions_tiled(
             dem,
             os.path.join(scratch, "fill0.tif"),
@@ -152,6 +160,7 @@ def fill_depressions_monotone_tiled(
             tile_cols=tile_cols,
             epsilon=0.0,
             cache=cache,
+            dtype="float64",
         )
         g_ds = Dataset.create_empty(
             rows,

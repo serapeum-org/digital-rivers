@@ -263,7 +263,11 @@ class TestCoelloBasinSinksFree:
         self, coello_dem_4000: gdal.Dataset
     ):
         dem = DEM(coello_dem_4000)
-        filled = dem.fill_depressions(method="priority_flood", epsilon=0.1)
+        # eps_fill="barnes" is the step-count kernel that guarantees a flat-free surface for *any* epsilon
+        # (the default "exact" ramp only guarantees that for small epsilon — see eps-fill-exact-feasibility).
+        filled = dem.fill_depressions(
+            method="priority_flood", epsilon=0.1, eps_fill="barnes"
+        )
         sinks = _internal_sinks_mask(filled.values)
         assert int(sinks.sum()) == 0, (
             f"priority_flood left {int(sinks.sum())} internal sinks on the Coello DEM"

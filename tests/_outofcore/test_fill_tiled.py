@@ -121,8 +121,8 @@ class TestDtypePreservation:
 
 
 class TestGuards:
-    def test_epsilon_exact_mode_raises(self):
-        # epsilon>0 with eps_fill='exact' is the deferred byte-identical mode -> NotImplementedError.
+    def test_epsilon_barnes_mode_raises(self):
+        # epsilon>0 with eps_fill='barnes' (classic step-count) is not tileable -> NotImplementedError.
         arr = _dem_with_seam_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = Dataset.create_from_array(
@@ -142,7 +142,7 @@ class TestGuards:
                         tile_rows=5,
                         tile_cols=5,
                         epsilon=0.01,
-                        eps_fill="exact",
+                        eps_fill="barnes",
                     )
             finally:
                 dem.close()

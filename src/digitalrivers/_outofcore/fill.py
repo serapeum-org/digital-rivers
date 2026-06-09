@@ -163,7 +163,8 @@ def fill_depressions_tiled(
     scratch_dir: str | None = None,
     scheduler: str = "threads",
     client=None,
-    eps_fill: str = "monotone",
+    eps_fill: str = "exact",
+    dtype: str | None = None,
 ):
     """Out-of-core depression fill (Barnes 2016 master-graph).
 
@@ -180,42 +181,49 @@ def fill_depressions_tiled(
         scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
         client: Optional ``distributed.Client``; when given, the dask backend is used and
             ``pyramids.configure(client=...)`` replays GDAL config on every worker.
-        eps_fill: Strategy for ``epsilon > 0`` (ignored for ``epsilon = 0``). ``"monotone"`` (default) produces a
-            tiled terracing (``fill_0 + epsilon * exit_distance``) that is flat-free **only for small epsilon**
-            and is *not* byte-identical to the in-memory kernel — see ``fill_monotone`` for the caveats.
-            ``"exact"`` (byte-identical to the in-memory Barnes kernel) is not implemented and raises.
+        eps_fill: Strategy for ``epsilon > 0`` (ignored for ``epsilon = 0``). ``"exact"`` (default, alias
+            ``"monotone"``) produces the exit-distance ramp (``fill_0 + epsilon * exit_distance``) — the *same*
+            definition the in-memory engine uses, so the tiled result is **byte-for-byte identical** to
+            ``engine="in_memory"`` (flat-free for small epsilon). ``"barnes"`` (the classic Priority-Flood
+            step-count) is in-memory only and raises here: it depends on the global traversal order and is not
+            tileable (see issue #69 / ``docs/eps-fill-exact-feasibility.md``).
+        dtype: Optional output dtype override (e.g. ``"float64"``). ``None`` (default) uses the source band
+            dtype. The ``epsilon>0`` ramp path requests ``"float64"`` for its intermediate ``fill_0`` so the
+            ``fill_0 + epsilon * g`` arithmetic matches the in-memory engine bit-for-bit on ``float32`` sources.
 
     Returns:
         The filled `pyramids` ``Dataset`` opened on ``out_path``.
 
     Raises:
-        NotImplementedError: If ``epsilon != 0`` and ``eps_fill="exact"``.
-        ValueError: If ``eps_fill`` is not ``"monotone"`` or ``"exact"``, or ``dem`` is multi-band. Use a sane
-            tile size (e.g. ``>= 512``): the global label count / drain vector scale with total tile perimeter.
+        NotImplementedError: If ``epsilon != 0`` and ``eps_fill="barnes"`` (not tileable).
+        ValueError: If ``eps_fill`` is not ``"exact"``, ``"monotone"`` or ``"barnes"``, or ``dem`` is multi-band.
+            Use a sane tile size (e.g. ``>= 512``): the global label count / drain vector scale with total tile
+            perimeter.
     """
     require_single_band(dem)
     if epsilon != 0.0:
-        if eps_fill == "exact":
+        if eps_fill == "barnes":
             raise NotImplementedError(
-                "eps_fill='exact' (byte-identical to the in-memory Barnes epsilon kernel) is not implemented for "
-                "the tiled engine — the global step-count does not compose across seams (research-grade). Use "
-                "eps_fill='monotone' for a valid tiled flat-free fill, or engine='in_memory' for the exact result."
+                "eps_fill='barnes' (the classic Priority-Flood step-count) is not tileable: it depends on the "
+                "global traversal order, which a per-tile + perimeter-graph reconstruction cannot reproduce (see "
+                "issue #69 / docs/eps-fill-exact-feasibility.md). Use eps_fill='exact' for a byte-identical tiled "
+                "fill, or engine='in_memory' for the classic step-count."
             )
-        if eps_fill != "monotone":
+        if eps_fill not in ("exact", "monotone"):
             raise ValueError(
-                f"eps_fill must be 'monotone' or 'exact', got {eps_fill!r}"
+                f"eps_fill must be 'exact', 'monotone', or 'barnes', got {eps_fill!r}"
             )
         if workers > 1 or client is not None:
             warnings.warn(
-                "the monotone epsilon>0 tiled fill runs serially; the dask backend (workers>1 / client) is "
-                "only used for epsilon=0 and is ignored here.",
+                "the epsilon>0 tiled fill (exit-distance ramp) runs serially; the dask backend (workers>1 / "
+                "client) is only used for epsilon=0 and is ignored here.",
                 stacklevel=2,
             )
-        from digitalrivers._outofcore.fill_monotone import (  # noqa: PLC0415
-            fill_depressions_monotone_tiled,
+        from digitalrivers._outofcore.fill_ramp import (  # noqa: PLC0415
+            fill_depressions_ramp_tiled,
         )
 
-        return fill_depressions_monotone_tiled(
+        return fill_depressions_ramp_tiled(
             dem,
             out_path,
             epsilon=epsilon,
@@ -235,12 +243,13 @@ def fill_depressions_tiled(
             tile_cols=tile_cols,
             scheduler=scheduler,
             client=client,
+            dtype=dtype,
         )
     from digitalrivers._outofcore.cache import TileStore  # noqa: PLC0415
 
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = out_dtype(dem)
+    dtype = dtype or out_dtype(dem)
     specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
     by_grid = {(s.row, s.col): s for s in specs}
 

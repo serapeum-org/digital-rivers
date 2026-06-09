@@ -68,10 +68,14 @@ def test_priority_flood_numba_matches_pure_python_single_pit():
 
 
 def test_priority_flood_numba_with_epsilon_matches():
+    # The numba Barnes step-count kernel must match the pure-Python one; select it explicitly with
+    # eps_fill="barnes" (the default eps_fill="exact" uses the order-independent exit-distance ramp instead).
     z = _single_pit_5x5()
     nodata = np.zeros(z.shape, dtype=bool)
     eps = 0.01
-    numba_out = fill_depressions(z.copy(), method="priority_flood", epsilon=eps)
+    numba_out = fill_depressions(
+        z.copy(), method="priority_flood", epsilon=eps, eps_fill="barnes"
+    )
     py_out = _priority_flood(z.copy(), nodata, epsilon=eps, use_pit_queue=True)
     np.testing.assert_allclose(numba_out, py_out, rtol=0, atol=1e-12)
 

@@ -129,6 +129,7 @@ nav:
     - Out-of-core fill (larger-than-RAM): examples/10_out_of_core_fill.ipynb
     - Out-of-core flow & slope: examples/11_out_of_core_flow.ipynb
     - Out-of-core dask backend: examples/12_out_of_core_dask.ipynb
+    - Epsilon-fill modes (exact/barnes): examples/13_epsilon_fill_modes.ipynb
   - Reference:
     - DEM: reference/dem.md
     - FlowDirection: reference/flow_direction.md
