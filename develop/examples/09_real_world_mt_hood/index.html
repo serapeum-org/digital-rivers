@@ -3444,26 +3444,30 @@ approximation is fine for demonstration.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
 
 <span class="n">cell_size_m</span> <span class="o">=</span> <span class="mf">30.0</span>
-<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">subset</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size_m</span><span class="p">,</span>
-    <span class="n">epsg</span><span class="o">=</span><span class="mi">32610</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>  <span class="c1"># UTM 10N (approximate)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">subset</span><span class="p">,</span>
+    <span class="c1"># UTM 10N (approximate),</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size_m</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32610</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span>
 <span class="n">valid</span> <span class="o">=</span> <span class="n">subset</span><span class="p">[</span><span class="n">subset</span> <span class="o">!=</span> <span class="o">-</span><span class="mf">9999.0</span><span class="p">]</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Mount Hood DEM    : </span><span class="si">{</span><span class="n">dem</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">  "</span>
       <span class="sa">f</span><span class="s2">"elev range [</span><span class="si">{</span><span class="n">valid</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">valid</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">] m"</span><span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-4">from pyramids.dataset import Dataset
+<div class="clipboard-copy-txt" id="cell-4">from pyramids.dataset import Dataset, GeoReference
 from digitalrivers import DEM
 
 cell_size_m = 30.0
-ds = Dataset.create_from_array(
-    subset, top_left_corner=(0.0, 0.0), cell_size=cell_size_m,
-    epsg=32610, no_data_value=-9999.0,  # UTM 10N (approximate)
+ds = Dataset.from_array(
+    subset,
+    # UTM 10N (approximate),
+    geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=cell_size_m, epsg=32610),
+    no_data_value=-9999.0,
 )
 dem = DEM(ds.raster)
 valid = subset[subset != -9999.0]
@@ -3698,6 +3702,7 @@ Largest catchment  : 5.02 km²
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColorScaling</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
 
@@ -3717,7 +3722,7 @@ Largest catchment  : 5.02 km²
 <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
 
 <span class="c1"># Flow accumulation on a log-like colour scale.</span>
-<span class="n">acc</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"sym-lognorm"</span><span class="p">,</span>
+<span class="n">acc</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">sym_log</span><span class="p">(),</span>
          <span class="n">title</span><span class="o">=</span><span class="s2">"Flow accumulation (log scale, cells)"</span><span class="p">,</span> <span class="n">add_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
@@ -3733,6 +3738,7 @@ Largest catchment  : 5.02 km²
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-7">import matplotlib.pyplot as plt
 from pyramids.dataset import Dataset
+from pyramids.plot import ColorScaling
 
 fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
@@ -3752,7 +3758,7 @@ axes[0, 1].set_xticks([])
 axes[0, 1].set_yticks([])
 
 # Flow accumulation on a log-like colour scale.
-acc.plot(band=0, ax=axes[1, 0], cmap="viridis", color_scale="sym-lognorm",
+acc.plot(band=0, ax=axes[1, 0], cmap="viridis", color=ColorScaling.sym_log(),
          title="Flow accumulation (log scale, cells)", add_colorbar=False)
 axes[1, 0].set_xticks([])
 axes[1, 0].set_yticks([])
@@ -4673,6 +4679,7 @@ STI: range=[     0.000,     3252.068]  mean=   15.149
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColorScaling</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
 <span class="n">twi_show</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">twi</span> <span class="o">==</span> <span class="o">-</span><span class="mf">9999.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">twi</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -4684,12 +4691,12 @@ STI: range=[     0.000,     3252.068]  mean=   15.149
 <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">spi_show</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"sym-lognorm"</span><span class="p">,</span>
+    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">sym_log</span><span class="p">(),</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"SPI (log scale)"</span><span class="p">,</span> <span class="n">add_colorbar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">sti_show</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"sym-lognorm"</span><span class="p">,</span>
+    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">sym_log</span><span class="p">(),</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"STI (log scale)"</span><span class="p">,</span> <span class="n">add_colorbar</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
@@ -4699,6 +4706,7 @@ STI: range=[     0.000,     3252.068]  mean=   15.149
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-19">import matplotlib.pyplot as plt
 from pyramids.dataset import Dataset
+from pyramids.plot import ColorScaling
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 twi_show = np.where(twi == -9999.0, np.nan, twi).astype(np.float32)
@@ -4710,12 +4718,12 @@ Dataset.dataset_like(filled, twi_show).plot(
 axes[0].set_xticks([])
 axes[0].set_yticks([])
 Dataset.dataset_like(filled, spi_show).plot(
-    band=0, ax=axes[1], cmap="hot_r", color_scale="sym-lognorm",
+    band=0, ax=axes[1], cmap="hot_r", color=ColorScaling.sym_log(),
     title="SPI (log scale)", add_colorbar=True)
 axes[1].set_xticks([])
 axes[1].set_yticks([])
 Dataset.dataset_like(filled, sti_show).plot(
-    band=0, ax=axes[2], cmap="hot_r", color_scale="sym-lognorm",
+    band=0, ax=axes[2], cmap="hot_r", color=ColorScaling.sym_log(),
     title="STI (log scale)", add_colorbar=True)
 axes[2].set_xticks([])
 axes[2].set_yticks([])
