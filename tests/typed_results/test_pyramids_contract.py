@@ -12,9 +12,9 @@ The typed result classes in P1 (`FlowDirection` / `Accumulation` /
 3. The same classmethods, when called from a subclass with a single-arg
    `__init__` (like `DEM`), return an instance of the subclass — not a
    plain `Dataset`. This is the regression guard for the
-   `Dataset(...)`-returning paths at pyramids `dataset.py` lines 1152 /
-   1539 / 2076 / 3472; if any release routes `dataset_like` through one of
-   those paths, this test fails first.
+   `Dataset(...)`-returning paths inside pyramids; if any release routes
+   `dataset_like` through one of those instead of `cls(...)`, this test
+   fails first.
 
 `DEM` is used rather than `FlowDirection` in test (3) because the typed
 subclasses require a `routing` kwarg that pyramids' inner
@@ -85,7 +85,7 @@ def test_dem_dataset_like_preserves_subclass():
 
 
 def test_dem_from_array_preserves_subclass():
-    """Same regression guard, for `from_array` (pyramids line 4539)."""
+    """Same regression guard, for `Dataset.from_array`."""
     arr = np.array([[1.0, 2.0]], dtype=np.float32)
     out = DEM.from_array(
         arr,

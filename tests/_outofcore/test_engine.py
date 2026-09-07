@@ -54,7 +54,6 @@ class TestResolveEngine:
 
 
 def _dem(arr: np.ndarray, path: str | None = None) -> DEM:
-    driver = "GTiff" if path else "MEM"
     ds = Dataset.from_array(
         arr,
         geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
