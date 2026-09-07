@@ -2,7 +2,7 @@
 
 Covers `Terrain.roughness` / `.tpi` / `.tri` (PB-3 — `gdal.DEMProcessing`
 ruggedness modes) and `Terrain.viewshed` (PD-1 — `gdal.ViewshedGenerate`).
-All fixtures are built in-memory with `Dataset.create_from_array`, are
+All fixtures are built in-memory with `Dataset.from_array`, are
 deterministic, and touch no network or external files (except the explicit
 `path=` write-to-GeoTIFF tests, which use pytest's `tmp_path`).
 """
@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.terrain import Terrain
 
@@ -32,11 +32,13 @@ def _make_terrain(
     Returns:
         Terrain: Dataset wrapping `arr` with no-data set to `-9999.0`.
     """
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         arr.astype(np.float32, copy=True),
-        top_left_corner=(0.0, 0.0),
-        cell_size=cell_size,
-        epsg=epsg,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=epsg,
+        ),
         no_data_value=NO_DATA,
     )
     return Terrain(ds.raster)
@@ -150,11 +152,9 @@ class TestRoughness:
         rough_band = np.zeros((5, 5), dtype=np.float32)
         rough_band[2, 2] = 50.0
         flat_band = np.full((5, 5), 7.0, dtype=np.float32)
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             np.stack([rough_band, flat_band]),
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=32636,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=32636),
             no_data_value=NO_DATA,
         )
         out = Terrain(ds.raster).roughness(band=1).read_array()

@@ -1,9 +1,10 @@
 """Tests for `DEM.hand` (P11)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
 from digitalrivers._streams.hand import hand_d8
@@ -13,8 +14,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -29,6 +35,7 @@ def _build_pipeline(z: np.ndarray, threshold: int):
 
 
 # ----- Kernel-level -----------------------------------------------------------------------
+
 
 class TestHandD8:
     def test_stream_cells_are_zero(self):
@@ -95,6 +102,7 @@ class TestHandD8:
 
 
 # ----- DEM.hand end-to-end ---------------------------------------------------------------
+
 
 class TestDEMHand:
     def test_returns_dataset(self):
@@ -251,16 +259,18 @@ class TestHandOrphanMemoisation:
             ],
             dtype=np.float32,
         )
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
         sm = np.zeros((3, 5), dtype=bool)
         sm[1, :] = True
-        sm_ds = Dataset.create_from_array(
-            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
-            epsg=4326, no_data_value=0,
+        sm_ds = Dataset.from_array(
+            sm.astype(np.uint8),
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+            no_data_value=0,
         )
         sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
         out = dem.hand(sr, method="euclidean")
@@ -278,6 +288,7 @@ class TestHandOrphanMemoisation:
             corrupt the output.
         """
         import warnings
+
         z = np.array(
             [
                 [10.0, 10.0, np.nan, 10.0],
@@ -285,8 +296,9 @@ class TestHandOrphanMemoisation:
             ],
             dtype=np.float32,
         )
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
@@ -294,18 +306,19 @@ class TestHandOrphanMemoisation:
         sm = np.zeros((2, 4), dtype=bool)
         sm[0, 0] = True
         sm[0, 2] = True
-        sm_ds = Dataset.create_from_array(
-            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
-            epsg=4326, no_data_value=0,
+        sm_ds = Dataset.from_array(
+            sm.astype(np.uint8),
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+            no_data_value=0,
         )
         sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
         with warnings.catch_warnings(record=True) as caught:
             warnings.simplefilter("always")
             out = dem.hand(sr, method="euclidean")
             arr = out.read_array()
-        assert any(issubclass(w.category, UserWarning) for w in caught), (
-            f"Expected a UserWarning; got: {[str(w.message) for w in caught]}"
-        )
+        assert any(
+            issubclass(w.category, UserWarning) for w in caught
+        ), f"Expected a UserWarning; got: {[str(w.message) for w in caught]}"
         # Non-stream, non-nodata cells must have finite HAND (no NaN
         # propagation from the bad stream cell).
         no_val = float(dem.no_data_value[0])
@@ -320,15 +333,17 @@ class TestHandOrphanMemoisation:
             than emit zeros or NaN silently.
         """
         z = np.array([[5, 5], [5, 5]], dtype=np.float32)
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
         sm = np.zeros((2, 2), dtype=bool)
-        sm_ds = Dataset.create_from_array(
-            sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
-            epsg=4326, no_data_value=0,
+        sm_ds = Dataset.from_array(
+            sm.astype(np.uint8),
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+            no_data_value=0,
         )
         sr = StreamRaster.from_dataset(sm_ds, threshold=1, routing="d8")
         with pytest.raises(ValueError, match="no stream cells"):
@@ -364,9 +379,7 @@ class TestHandOrphanMemoisation:
         )
         # Row 0 walks east (6) into the stream at col 3.
         # Row 1 walks east (6) but the rightmost cell is a sink (-1).
-        fdir = np.array(
-            [[6, 6, 6, -1], [6, 6, 6, -1]], dtype=np.int32
-        )
+        fdir = np.array([[6, 6, 6, -1], [6, 6, 6, -1]], dtype=np.int32)
         stream_mask = np.zeros((2, 4), dtype=bool)
         stream_mask[0, 3] = True
         out = hand_d8(elev, fdir, stream_mask)

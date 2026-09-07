@@ -57,12 +57,16 @@ def resolve_no_val(dataset: Dataset) -> float | int | None:
           sentinel:
 
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers._metadata import resolve_no_val
-            >>> ds = Dataset.create_from_array(
+            >>> ds = Dataset.from_array(
             ...     np.ones((2, 2), dtype=np.float32),
-            ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-            ...     epsg=4326, no_data_value=-9999.0,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0),
+            ...         cell_size=1.0,
+            ...         epsg=4326,
+            ...     ),
+            ...     no_data_value=-9999.0,
             ... )
             >>> float(resolve_no_val(ds))
             -9999.0

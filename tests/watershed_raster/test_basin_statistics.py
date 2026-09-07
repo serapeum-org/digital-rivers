@@ -1,10 +1,11 @@
 """Tests for `WatershedRaster.statistics` (P17)."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers import DEM
@@ -14,8 +15,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -62,8 +68,7 @@ def test_elevation_stats_match_basin_dem_values():
     assert "max_elev" in df.columns
     assert "mean_elev" in df.columns
     # Hypsometric integral is in [0, 1].
-    assert ((df["hypsometric_integral"] >= 0)
-            & (df["hypsometric_integral"] <= 1)).all()
+    assert ((df["hypsometric_integral"] >= 0) & (df["hypsometric_integral"] <= 1)).all()
 
 
 def test_drainage_density_uses_stream_length():
@@ -131,9 +136,7 @@ class TestBasinCountCachingAndCentroid:
     """Lazy-property and centroid-always coverage (N5, I4)."""
 
     def _build_ws(self):
-        z = np.array(
-            [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
-        )
+        z = np.array([[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32)
         dem, fd = _build(z)
         return fd.basins()
 

@@ -1,9 +1,10 @@
 """Tests for the biharmonic mode of `DEM.anudem_interpolate` (P32 backfill)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -11,8 +12,9 @@ from digitalrivers import DEM
 def _make_dem(arr: np.ndarray) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     disk[np.isnan(arr)] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -22,8 +24,7 @@ def test_biharmonic_fills_central_hole():
     """A single NaN at the centre of a smooth tilted plane is filled close
     to the analytic linear value."""
     n = 9
-    xs, ys = np.meshgrid(np.arange(n, dtype=np.float32),
-                         np.arange(n, dtype=np.float32))
+    xs, ys = np.meshgrid(np.arange(n, dtype=np.float32), np.arange(n, dtype=np.float32))
     z = xs + 2.0 * ys
     truth_centre = float(z[n // 2, n // 2])
     z_holed = z.copy()
@@ -79,9 +80,7 @@ def test_biharmonic_high_tol_stops_immediately():
         dtype=np.float32,
     )
     dem = _make_dem(z)
-    filled = dem.anudem_interpolate(
-        method="biharmonic", max_iter=200, tol=1e9
-    )
+    filled = dem.anudem_interpolate(method="biharmonic", max_iter=200, tol=1e9)
     # The convergence-check branch fires; output should still be finite.
     assert np.all(np.isfinite(filled.values))
 
@@ -100,7 +99,10 @@ def test_biharmonic_with_explicit_mask_treats_cells_as_fixed():
         dtype=bool,
     )
     filled = dem.anudem_interpolate(
-        method="biharmonic", max_iter=200, tol=1e-5, mask=extra,
+        method="biharmonic",
+        max_iter=200,
+        tol=1e-5,
+        mask=extra,
     )
     out = filled.values
     known = np.isfinite(z)
@@ -110,9 +112,7 @@ def test_biharmonic_with_explicit_mask_treats_cells_as_fixed():
 def test_biharmonic_all_known_returns_input():
     """A DEM with no NaN holes should return the same surface (anchors
     cover every cell)."""
-    z = np.array(
-        [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]], dtype=np.float32
-    )
+    z = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]], dtype=np.float32)
     dem = _make_dem(z)
     filled = dem.anudem_interpolate(method="biharmonic", max_iter=50)
     np.testing.assert_allclose(filled.values, z, atol=1e-6)
@@ -133,8 +133,6 @@ def test_biharmonic_inplace_returns_none():
         dtype=np.float32,
     )
     dem = _make_dem(z)
-    result = dem.anudem_interpolate(
-        method="biharmonic", max_iter=50, inplace=True
-    )
+    result = dem.anudem_interpolate(method="biharmonic", max_iter=50, inplace=True)
     assert result is None
     assert np.all(np.isfinite(dem.values))

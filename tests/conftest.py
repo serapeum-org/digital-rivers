@@ -46,5 +46,3 @@ def coello_flow_accumulation_4000() -> gdal.Dataset:
 def coello_outfall() -> GeoDataFrame:
     """Point Geometry of the Coello river outfall"""
     return gpd.read_file("tests/data/coello/coello-outfall.geojson")
-
-

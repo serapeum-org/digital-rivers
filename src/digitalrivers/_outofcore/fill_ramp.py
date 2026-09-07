@@ -35,7 +35,7 @@ import os
 import tempfile
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.fill import (
     _nodata_mask,
@@ -141,11 +141,9 @@ def fill_depressions_ramp_tiled(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
         dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
         path=out_path,
     )
     scratch = tempfile.mkdtemp(prefix="dr_monotone_")
@@ -165,11 +163,9 @@ def fill_depressions_ramp_tiled(
         g_ds = Dataset.create_empty(
             rows,
             cols,
+            geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
             dtype="int32",
-            geo=dem.geotransform,
-            epsg=dem.epsg,
             no_data_value=-1,
-            driver_type="GTiff",
             path=os.path.join(scratch, "g.tif"),
         )
         for s in specs:

@@ -1,9 +1,10 @@
 """Tests for `FlowDirection.subbasins_pfafstetter` (P16)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, WatershedRaster
 
@@ -12,8 +13,9 @@ def _make_dem(arr: np.ndarray) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -82,18 +84,14 @@ def test_level_2_produces_two_digit_codes():
 
 
 def test_level_below_one_rejected():
-    z = np.array(
-        [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
     dem, fd, acc, sr = _build(z)
     with pytest.raises(ValueError, match="level"):
         fd.subbasins_pfafstetter(acc, sr, level=0)
 
 
 def test_unsupported_encoding_raises():
-    z = np.array(
-        [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
     dem, fd, acc, sr = _build(z)
     with pytest.raises(NotImplementedError, match="encoding"):
         fd.subbasins_pfafstetter(acc, sr, encoding="string")

@@ -21,7 +21,7 @@ from __future__ import annotations
 import os
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.fill import (
     _edge_strips,
@@ -128,11 +128,9 @@ def fill_depressions_dask(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
         dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
         path=out_path,
     )
 
@@ -334,11 +332,9 @@ def flow_accumulation_dask(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=fdir.geotransform, epsg=fdir.epsg),
         dtype="float32",
-        geo=fdir.geotransform,
-        epsg=fdir.epsg,
         no_data_value=-1.0,
-        driver_type="GTiff",
         path=out_path,
     )
 

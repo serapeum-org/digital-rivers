@@ -1,9 +1,10 @@
 """Tests for `FlowDirection.upscale_ihu` (P19)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, FlowDirection
 
@@ -12,8 +13,9 @@ def _make_dem(arr: np.ndarray) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -31,9 +33,7 @@ def test_ihu_scale_one_is_noop():
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    up_dem, up_fd, metrics = fd.upscale_ihu(
-        scale_factor=1, accumulation=acc, dem=dem
-    )
+    up_dem, up_fd, metrics = fd.upscale_ihu(scale_factor=1, accumulation=acc, dem=dem)
     assert isinstance(up_fd, FlowDirection)
     assert metrics == {}
 
@@ -76,9 +76,7 @@ def test_ihu_metrics_empty_when_report_false():
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    _, _, metrics = fd.upscale_ihu(
-        scale_factor=2, accumulation=acc, dem=dem
-    )
+    _, _, metrics = fd.upscale_ihu(scale_factor=2, accumulation=acc, dem=dem)
     assert metrics == {}
 
 
@@ -97,7 +95,10 @@ def test_ihu_converges_with_swap_count():
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
     _, _, metrics = fd.upscale_ihu(
-        scale_factor=2, accumulation=acc, dem=dem, report=True,
+        scale_factor=2,
+        accumulation=acc,
+        dem=dem,
+        report=True,
         max_iter=50,
     )
     assert metrics["converged"] is True
@@ -118,9 +119,7 @@ def test_upscale_dispatch_ihu_routes_to_ihu():
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
-    up_dem, up_fd = fd.upscale(
-        scale_factor=2, method="ihu", accumulation=acc, dem=dem
-    )
+    up_dem, up_fd = fd.upscale(scale_factor=2, method="ihu", accumulation=acc, dem=dem)
     assert isinstance(up_fd, FlowDirection)
 
 

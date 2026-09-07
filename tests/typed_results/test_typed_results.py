@@ -5,6 +5,7 @@ type discipline, required-routing safety property, no-silent-fallback on
 open, explicit-routing override, cross-type rejection at construction
 (the ismulti guard), and metadata round-trip.
 """
+
 from __future__ import annotations
 
 import os
@@ -12,18 +13,16 @@ import os
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation, FlowDirection, StreamRaster
 
 
 def _make_plain_dataset(arr: np.ndarray) -> Dataset:
     """Helper: build an in-memory Dataset from a small int array."""
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         arr.astype(np.int32),
-        top_left_corner=(0.0, 0.0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999,
     )
 
@@ -51,12 +50,17 @@ class TestRequiredRouting:
         with pytest.raises(TypeError):
             FlowDirection.from_dataset(ds)
 
-    def test_inherited_create_from_array_raises(self, fd_array: np.ndarray):
+    def test_inherited_from_array_raises(self, fd_array: np.ndarray):
         # Pyramids' classmethod calls cls(dst, access="write") with no routing,
         # so this must raise on the typed subclass. That is the safety property.
         with pytest.raises(TypeError):
-            FlowDirection.create_from_array(
-                fd_array, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            FlowDirection.from_array(
+                fd_array,
+                geo_ref=GeoReference(
+                    top_left_corner=(0.0, 0.0),
+                    cell_size=1.0,
+                    epsg=4326,
+                ),
             )
 
     def test_inherited_dataset_like_raises(self, fd_array: np.ndarray):
@@ -66,13 +70,10 @@ class TestRequiredRouting:
 
     def test_inherited_read_file_raises(self, tmp_path, fd_array: np.ndarray):
         path = str(tmp_path / "fd.tif")
-        Dataset.create_from_array(
+        Dataset.from_array(
             fd_array,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
-            driver_type="GTiff",
             path=path,
         )
         with pytest.raises(TypeError):
@@ -101,7 +102,7 @@ class TestStrictType:
         self, coello_dem_4000: gdal.Dataset
     ):
         # Today (pre-P1) this returns a DEM by accident because
-        # pyramids' create_from_array uses cls(...). The strict-type
+        # pyramids' from_array uses cls(...). The strict-type
         # check is the regression test that locks the new behaviour in.
         dem = DEM(coello_dem_4000)
         fd = dem.flow_direction()
@@ -116,13 +117,10 @@ class TestMetadataPersistence:
     def test_round_trip_via_geotiff(self, tmp_path, fd_array: np.ndarray):
         path = str(tmp_path / "fd.tif")
         # Materialise to GeoTIFF so the metadata setter has somewhere to live.
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             fd_array,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
-            driver_type="GTiff",
             path=path,
         )
         fd = FlowDirection.from_dataset(plain, routing="dinf", encoding="taudem")
@@ -141,13 +139,10 @@ class TestOpenFallbackPolicy:
 
     def test_open_without_tags_or_routing_raises(self, tmp_path, fd_array: np.ndarray):
         path = str(tmp_path / "no_tags.tif")
-        Dataset.create_from_array(
+        Dataset.from_array(
             fd_array,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
-            driver_type="GTiff",
             path=path,
         )
         # No persist_metadata call — file has no DR_ROUTING tag.
@@ -158,13 +153,10 @@ class TestOpenFallbackPolicy:
         self, tmp_path, fd_array: np.ndarray
     ):
         path = str(tmp_path / "no_tags.tif")
-        Dataset.create_from_array(
+        Dataset.from_array(
             fd_array,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
-            driver_type="GTiff",
             path=path,
         )
         fd = FlowDirection.open(path, routing="d8")
@@ -172,13 +164,10 @@ class TestOpenFallbackPolicy:
 
     def test_open_explicit_routing_overrides_tag(self, tmp_path, fd_array: np.ndarray):
         path = str(tmp_path / "with_tags.tif")
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             fd_array,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
-            driver_type="GTiff",
             path=path,
         )
         fd_written = FlowDirection.from_dataset(plain, routing="d8")

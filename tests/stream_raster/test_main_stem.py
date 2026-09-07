@@ -1,9 +1,10 @@
 """Tests for `StreamRaster.main_stem` (W-4)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, StreamRaster
 
@@ -12,8 +13,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -28,9 +34,10 @@ def _build_pipeline(z: np.ndarray, threshold: int):
 
 
 def _stream_raster_from_mask(sm: np.ndarray) -> StreamRaster:
-    ds = Dataset.create_from_array(
-        sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
-        epsg=4326, no_data_value=0,
+    ds = Dataset.from_array(
+        sm.astype(np.uint8),
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=0,
     )
     return StreamRaster.from_dataset(ds, threshold=1, routing="d8")
 
@@ -71,14 +78,16 @@ class TestStreamRasterMainStem:
         sm[0, 0] = sm[0, 2] = True
         sm[1, 1] = sm[2, 1] = sm[3, 1] = True
         from digitalrivers import FlowDirection
+
         fdir = np.array(
             [[7, -1, 1], [-1, 0, -1], [-1, 0, -1], [-1, -1, -1]],
             dtype=np.int32,
         )
         # Wrap the raw mask + fdir into typed objects.
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
@@ -119,10 +128,12 @@ class TestStreamRasterMainStem:
         sm = np.zeros((3, 3), dtype=bool)
         sm[0, :] = True
         from digitalrivers import FlowDirection
+
         fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
@@ -139,10 +150,12 @@ class TestStreamRasterMainStem:
         sm = np.zeros((3, 3), dtype=bool)
         sm[0, :] = True
         from digitalrivers import FlowDirection
+
         fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
@@ -196,11 +209,13 @@ class TestStreamRasterMainStem:
             input shape.
         """
         from digitalrivers import FlowDirection
+
         sm = np.zeros((2, 3), dtype=bool)
         fdir = np.full((2, 3), -1, dtype=np.int32)
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")

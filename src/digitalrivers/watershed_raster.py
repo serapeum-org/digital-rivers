@@ -49,8 +49,10 @@ class WatershedRaster(Dataset):
         *,
         routing: str,
         outlets,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
-        super().__init__(src, access)
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -80,14 +82,19 @@ class WatershedRaster(Dataset):
               tie-breaking and any flat-area sinks):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
                 >>> z[0, 0] = 0.0
                 >>> z[4, 4] = 0.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> ws = DEM(ds.raster).flow_direction(method="d8").basins()
                 >>> ws.basin_count >= 2
@@ -101,7 +108,7 @@ class WatershedRaster(Dataset):
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str, outlets) -> "WatershedRaster":
         """Promote a plain `Dataset` into a `WatershedRaster`."""
-        return cls(ds.raster, routing=routing, outlets=outlets)
+        return cls(ds.raster, ds.access, routing=routing, outlets=outlets)
 
     def persist_metadata(self) -> None:
         """Persist the routing and class tags to the raster metadata."""
@@ -166,14 +173,19 @@ class WatershedRaster(Dataset):
               area and centroid columns:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> ws = DEM(ds.raster).flow_direction(method="d8").basins()
                 >>> df = ws.statistics()
@@ -184,14 +196,19 @@ class WatershedRaster(Dataset):
               actual D8 path lengths:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")

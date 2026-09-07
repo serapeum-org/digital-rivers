@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from digitalrivers.terrain import Terrain
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 rng = np.random.default_rng(42)
 
@@ -18,11 +18,9 @@ def _terrain(arr: np.ndarray, cell_size: float = 0.05, epsg: int = 4326) -> Terr
     Returns:
         Terrain: Dataset wrapping ``arr`` with no-data set to ``-9999.0``.
     """
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         arr,
-        top_left_corner=(0, 0),
-        cell_size=cell_size,
-        epsg=epsg,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=cell_size, epsg=epsg),
         no_data_value=-9999.0,
     )
     return Terrain(ds.raster)
@@ -33,8 +31,9 @@ class TestHillShade:
     def test_int_parameters(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -46,15 +45,16 @@ class TestHillShade:
             scale=1,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_list_parameters(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -66,15 +66,16 @@ class TestHillShade:
             scale=[1, 1],
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_multi_directional(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -87,15 +88,16 @@ class TestHillShade:
             multi_directional=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_combined(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -108,15 +110,16 @@ class TestHillShade:
             combined=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_igor(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -129,7 +132,7 @@ class TestHillShade:
             igor=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
@@ -241,8 +244,9 @@ class TestSlope:
     def test_default_parameters(self):
         arr = rng.integers(0, 50, size=(100, 100)).astype(np.float32)
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         slope = dataset.slope()
@@ -326,8 +330,9 @@ class TestAspect:
     def test_default_parameters(self):
         arr = rng.integers(0, 50, size=(100, 100)).astype(np.float32)
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         aspect = dataset.aspect()
@@ -391,11 +396,9 @@ class TestTerrainInit:
             Passing a ``gdal.Dataset`` yields a Terrain that is also a
             Dataset and preserves the raster shape.
         """
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             rng.integers(0, 15, size=(8, 8)),
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         )
         terrain = Terrain(ds.raster)
         assert isinstance(terrain, Dataset), "Terrain must subclass Dataset"
@@ -409,11 +412,9 @@ class TestTerrainInit:
             yields a Terrain (the supported path-based constructor; the bare
             ``Terrain(<path>)`` ctor only accepts a ``gdal.Dataset``).
         """
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             np.arange(16, dtype=np.float32).reshape(4, 4),
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         path = tmp_path / "dem.tif"
@@ -487,8 +488,9 @@ class TestColorRelief:
         )
         arr = rng.integers(0, 15, size=(10, 10))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         color_relief = dataset.color_relief(band=0, color_table=color_df)

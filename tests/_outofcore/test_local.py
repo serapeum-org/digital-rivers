@@ -7,15 +7,17 @@ import tempfile
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.local import max_slope_2d
 from digitalrivers.dem import DEM
 
 
 def _dem(arr: np.ndarray) -> DEM:
-    ds = Dataset.create_from_array(
-        arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326, no_data_value=-9999.0
+    ds = Dataset.from_array(
+        arr,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
+        no_data_value=-9999.0,
     )
     return DEM(ds.raster)
 

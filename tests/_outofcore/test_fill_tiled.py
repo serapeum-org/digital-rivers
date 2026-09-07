@@ -7,7 +7,7 @@ import tempfile
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32, priority_flood_numba
 from digitalrivers._outofcore.fill import fill_depressions_tiled
@@ -35,13 +35,10 @@ def _dem_with_seam_pit(seed: int, shape=(13, 17), nodata_patch=False) -> np.ndar
 
 def _run_tiled(arr: np.ndarray, tile, cache="evict", scratch=None) -> np.ndarray:
     with tempfile.TemporaryDirectory() as tmp:
-        dem = Dataset.create_from_array(
+        dem = Dataset.from_array(
             arr,
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=NODATA,
-            driver_type="GTiff",
             path=os.path.join(tmp, "dem.tif"),
         )
         out = fill_depressions_tiled(
@@ -99,13 +96,10 @@ class TestDtypePreservation:
         base = priority_flood_numba(arr, arr == NODATA, 0.0, _DIR_DR_I32, _DIR_DC_I32)
         base = np.where(np.isnan(base), NODATA, base)  # float64
         with tempfile.TemporaryDirectory() as tmp:
-            dem = Dataset.create_from_array(
+            dem = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=NODATA,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "d.tif"),
             )
             out = fill_depressions_tiled(
@@ -125,13 +119,10 @@ class TestGuards:
         # epsilon>0 with eps_fill='barnes' (classic step-count) is not tileable -> NotImplementedError.
         arr = _dem_with_seam_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
-            dem = Dataset.create_from_array(
+            dem = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=NODATA,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "d.tif"),
             )
             try:
@@ -151,13 +142,10 @@ class TestGuards:
         # L2: workers>1 is ignored for the serial monotone (epsilon>0) path -> a warning, not silence.
         arr = _dem_with_seam_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
-            dem = Dataset.create_from_array(
+            dem = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=NODATA,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "d.tif"),
             )
             try:
@@ -178,13 +166,10 @@ class TestGuards:
         # epsilon>0 with the default eps_fill='monotone' produces a result (does not raise).
         arr = _dem_with_seam_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
-            dem = Dataset.create_from_array(
+            dem = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=NODATA,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "d.tif"),
             )
             out = fill_depressions_tiled(

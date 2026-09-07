@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import geopandas as gpd
 import numpy as np
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString
 
 from digitalrivers._metadata import (
@@ -71,6 +71,8 @@ class StreamRaster(Dataset):
         *,
         threshold: float | int,
         routing: str,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
         if routing not in VALID_ROUTING:
             raise ValueError(
@@ -82,7 +84,7 @@ class StreamRaster(Dataset):
                 f"({sorted(self._SUPPORTED_ROUTING)}); got {routing!r}. "
                 f"Convert the FlowDirection to D8 first."
             )
-        super().__init__(src, access)
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         self.threshold = threshold
         self.routing = routing
 
@@ -95,7 +97,7 @@ class StreamRaster(Dataset):
         routing: str,
     ) -> StreamRaster:
         """Promote a plain `Dataset` into a `StreamRaster`."""
-        return cls(ds.raster, threshold=threshold, routing=routing)
+        return cls(ds.raster, ds.access, threshold=threshold, routing=routing)
 
     def to_dataset(self) -> Dataset:
         """Drop the typed wrapper and return the underlying `Dataset`."""
@@ -272,10 +274,9 @@ class StreamRaster(Dataset):
                     for pr, pc in path:
                         out[pr, pc] = tail_id
 
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
 
@@ -376,10 +377,9 @@ class StreamRaster(Dataset):
             arr = hack(stream_mask, fdir)
         else:
             arr = topological(stream_mask, fdir)
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
@@ -474,10 +474,9 @@ class StreamRaster(Dataset):
                 for pr, pc in path:
                     sm[pr, pc] = False
 
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             sm.astype(np.uint8),
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(

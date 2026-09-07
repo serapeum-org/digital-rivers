@@ -12,13 +12,14 @@
        only one outlet candidate) exercises the no-improvement branch
        and converges in zero swaps.
 """
+
 from __future__ import annotations
 
 import os
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0):
@@ -26,8 +27,9 @@ def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0):
 
     disk = arr.astype(np.float32, copy=True)
     disk[np.isnan(disk)] = no_data_value
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
@@ -50,7 +52,9 @@ def test_anudem_laplacian_no_periodic_wrap_at_top_row():
     )
     dem = _make_dem(z)
     filled = dem.anudem_interpolate(
-        method="laplacian", max_iter=300, tol=1e-6,
+        method="laplacian",
+        max_iter=300,
+        tol=1e-6,
     )
     # The filled NaN cell should sit between its three actual neighbours
     # (left=10, right=10, below=10) — close to 10, NOT pulled toward
@@ -72,7 +76,9 @@ def test_anudem_biharmonic_no_periodic_wrap_at_left_column():
     )
     dem = _make_dem(z)
     filled = dem.anudem_interpolate(
-        method="biharmonic", max_iter=300, tol=1e-5,
+        method="biharmonic",
+        max_iter=300,
+        tol=1e-5,
     )
     out = filled.values
     # NaN at (1, 0); left edge has no right-edge contamination, so the
@@ -93,8 +99,13 @@ def test_grid_lidar_mean_isolates_per_cell():
     ys = np.array([0.1, 0.4, 0.1, 0.4])
     zs = np.array([1.0, 3.0, 100.0, 200.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-        aggregate="mean", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 1.0),
+        aggregate="mean",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == pytest.approx(2.0)  # mean({1, 3})
@@ -109,8 +120,13 @@ def test_grid_lidar_median_isolates_per_cell():
     ys = np.array([0.1, 0.2, 0.3, 0.1, 0.2, 0.3])
     zs = np.array([1.0, 2.0, 3.0, 100.0, 200.0, 300.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-        aggregate="median", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 1.0),
+        aggregate="median",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == pytest.approx(2.0)
@@ -126,8 +142,9 @@ def test_write_cog_output_is_tiled_geotiff(tmp_path):
     from digitalrivers.cloud_io import write_cog
 
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
-    ds = Dataset.create_from_array(
-        z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        z,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     out = tmp_path / "out.tif"
     written = write_cog(ds, str(out))
@@ -169,7 +186,10 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
     acc[0, 0] = acc[0, 2] = acc[2, 0] = acc[2, 2] = 1.0
 
     coarse_fdir, metrics, outlets = ihu_upscale(
-        fdir, acc, scale_factor=2, max_iter=20,
+        fdir,
+        acc,
+        scale_factor=2,
+        max_iter=20,
     )
     assert metrics["swaps"] == 0
     assert metrics["converged"] is True
@@ -184,19 +204,17 @@ def test_topobathy_fusion_min_blend_picks_lower():
     """The new `"min"` blend mode (I3 fix) returns `np.fmin(topo, bathy)`."""
     from digitalrivers.fusion import topobathy_fusion
 
-    topo = Dataset.create_from_array(
+    topo = Dataset.from_array(
         np.array([[5.0, -1.0], [3.0, -2.0]], dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
-    bathy = Dataset.create_from_array(
+    bathy = Dataset.from_array(
         np.array([[-3.0, -5.0], [-4.0, -6.0]], dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
     fused = topobathy_fusion(topo, bathy, blend="min")
     arr = fused.read_array()
-    expected = np.array(
-        [[-3.0, -5.0], [-4.0, -6.0]], dtype=np.float32
-    )
+    expected = np.array([[-3.0, -5.0], [-4.0, -6.0]], dtype=np.float32)
     np.testing.assert_allclose(arr, expected, atol=1e-3)
 
 
@@ -274,7 +292,9 @@ def test_anudem_corner_nan_pulls_toward_local_neighbours():
     z[0, 0] = np.nan
     dem = _make_dem(z)
     filled = dem.anudem_interpolate(
-        method="laplacian", max_iter=300, tol=1e-6,
+        method="laplacian",
+        max_iter=300,
+        tol=1e-6,
     )
     val = float(filled.values[0, 0])
     # Local neighbours are 10.0; the wrap would have biased toward -100.
@@ -302,7 +322,12 @@ def test_grid_lidar_mean_5000_points_matches_naive():
 
     t0 = time.perf_counter()
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=cell_size, bounds=bounds, aggregate="mean",
+        xs,
+        ys,
+        zs,
+        cell_size=cell_size,
+        bounds=bounds,
+        aggregate="mean",
     )
     elapsed = time.perf_counter() - t0
     out = ds.read_array()
@@ -320,9 +345,7 @@ def test_grid_lidar_mean_5000_points_matches_naive():
         counts[r, c] += 1
     nodata = -9999.0
     with np.errstate(invalid="ignore", divide="ignore"):
-        expected = np.where(
-            counts > 0, sums / counts, nodata
-        ).astype(np.float32)
+        expected = np.where(counts > 0, sums / counts, nodata).astype(np.float32)
     np.testing.assert_allclose(out, expected, atol=1e-3)
 
 
@@ -333,13 +356,13 @@ def test_topobathy_min_blend_nan_picks_other_operand():
     """When one operand is NaN, `np.fmin` returns the non-NaN value."""
     from digitalrivers.fusion import topobathy_fusion
 
-    topo = Dataset.create_from_array(
+    topo = Dataset.from_array(
         np.array([[np.nan, 5.0]], dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
-    bathy = Dataset.create_from_array(
+    bathy = Dataset.from_array(
         np.array([[-3.0, np.nan]], dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
     fused = topobathy_fusion(topo, bathy, blend="min")
     arr = fused.read_array()
@@ -353,8 +376,9 @@ def test_topobathy_invalid_blend_now_mentions_min():
     from digitalrivers.fusion import topobathy_fusion
 
     arr = np.zeros((2, 2), dtype=np.float32)
-    ds = Dataset.create_from_array(
-        arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        arr,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
     with pytest.raises(ValueError, match="min") as exc_info:
         topobathy_fusion(ds, ds, blend="bogus")
@@ -369,8 +393,13 @@ def test_package_all_carries_mesh_in_sorted_order():
     import digitalrivers
 
     expected = [
-        "Accumulation", "DEM", "FlowDirection", "Mesh",
-        "StreamRaster", "Terrain", "WatershedRaster",
+        "Accumulation",
+        "DEM",
+        "FlowDirection",
+        "Mesh",
+        "StreamRaster",
+        "Terrain",
+        "WatershedRaster",
     ]
     assert digitalrivers.__all__ == expected
 

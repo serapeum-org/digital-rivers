@@ -1,10 +1,11 @@
 """Tests for `Accumulation.snap_pour_points` (P12)."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers import DEM, Accumulation
@@ -14,8 +15,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -60,7 +66,9 @@ def test_snap_radius_one_leaves_point_unchanged_if_no_higher_acc_nearby():
 def test_snap_radius_m_matches_radius_cells_at_unit_cell_size():
     z = np.full((9, 9), 10.0, dtype=np.float32)
     z[:, 4] = 1.0
-    dem, acc = _build_acc(z, )
+    dem, acc = _build_acc(
+        z,
+    )
     pts = gpd.GeoDataFrame({"id": [0]}, geometry=[Point(6.5, -4.5)], crs=4326)
     out_cells = acc.snap_pour_points(pts, radius_cells=3)
     out_m = acc.snap_pour_points(pts, radius_m=3.0)
@@ -127,9 +135,7 @@ def test_unknown_method_raises():
 def test_point_outside_envelope_returns_nan():
     z = np.full((4, 4), 5.0, dtype=np.float32)
     dem, acc = _build_acc(z)
-    pts = gpd.GeoDataFrame(
-        {"id": [0]}, geometry=[Point(1000.0, -1000.0)], crs=4326
-    )
+    pts = gpd.GeoDataFrame({"id": [0]}, geometry=[Point(1000.0, -1000.0)], crs=4326)
     out = acc.snap_pour_points(pts, radius_cells=1)
     assert np.isnan(out.iloc[0]["snap_distance_m"])
 
@@ -137,9 +143,7 @@ def test_point_outside_envelope_returns_nan():
 def test_jenson_method_nan_when_snap_target_is_input_cell():
     """I2 regression for the `method='jenson'` path: an unmoved snap
     also reports `snap_distance_m == NaN`."""
-    z = np.array(
-        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32)
     dem, acc = _build_acc(z)
     fd = dem.flow_direction(method="d8")
     sr = acc.streams(threshold=1)
@@ -149,6 +153,9 @@ def test_jenson_method_nan_when_snap_target_is_input_cell():
     y = geo[3] + (1 + 0.5) * geo[5]
     pts = gpd.GeoDataFrame({"id": [1]}, geometry=[Point(x, y)], crs=4326)
     out = acc.snap_pour_points(
-        pts, radius_cells=1, method="jenson", streams=sr,
+        pts,
+        radius_cells=1,
+        method="jenson",
+        streams=sr,
     )
     assert np.isnan(out.iloc[0]["snap_distance_m"])

@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 import geopandas as gpd
 import numpy as np
 import shapely
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 
@@ -653,10 +653,9 @@ def grid_lidar_points(
             copy=False,
         )
         geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=geo,
-            epsg=epsg,
+            geo_ref=GeoReference(geo=geo, epsg=epsg),
             no_data_value=nodata,
         )
 
@@ -696,9 +695,8 @@ def grid_lidar_points(
             out[r, c] = float(np.median(np.asarray(vals, dtype=np.float64)))
 
     geo = (x_min, cell_size, 0.0, y_max, 0.0, -cell_size)
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         out.astype(np.float32, copy=False),
-        geo=geo,
-        epsg=epsg,
+        geo_ref=GeoReference(geo=geo, epsg=epsg),
         no_data_value=nodata,
     )

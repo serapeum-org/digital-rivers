@@ -7,7 +7,7 @@ import tempfile
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 pytest.importorskip("dask")
 
@@ -52,13 +52,10 @@ class TestDaskFill:
         arr = _dem_array()
         base = _fill_baseline(arr)
         with tempfile.TemporaryDirectory() as tmp:
-            dem = Dataset.create_from_array(
+            dem = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=NODATA,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "d.tif"),
             )
             out = fill_depressions_tiled(
@@ -79,8 +76,9 @@ class TestDaskFill:
 
     def test_dask_fill_rejects_mem_source(self):
         arr = _dem_array()
-        dem = Dataset.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326
+        dem = Dataset.from_array(
+            arr,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         )  # MEM
         with tempfile.TemporaryDirectory() as tmp:
             with pytest.raises(ValueError):
@@ -96,13 +94,10 @@ class TestDaskAccumulation:
         fd = _fdir_array()
         base = kahn_accumulate_d8_numba(fd, np.ones(fd.shape), DR, DC)
         with tempfile.TemporaryDirectory() as tmp:
-            fdds = Dataset.create_from_array(
+            fdds = Dataset.from_array(
                 fd.astype(np.float32),
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=-1,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "fd.tif"),
             )
             out = flow_accumulation_tiled(

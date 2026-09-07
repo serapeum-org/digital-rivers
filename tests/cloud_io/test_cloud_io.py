@@ -1,11 +1,12 @@
 """Tests for `digitalrivers.cloud_io` (tile_windows, write_cog, umbrellas)."""
+
 from __future__ import annotations
 
 import os
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import cloud_io
 
@@ -24,9 +25,9 @@ def test_cloud_storage_umbrella_raises():
 
 def test_tile_windows_partitions_dataset_into_tiles():
     """`tile_windows` yields edge-clipped `(row, col, h, w)` windows."""
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         np.zeros((10, 10), dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
     wins = list(cloud_io.tile_windows(ds, tile_rows=4, tile_cols=4))
     # 10 / 4 = 3 row stripes (4, 4, 2) and 3 col stripes (4, 4, 2) = 9 tiles.
@@ -35,9 +36,9 @@ def test_tile_windows_partitions_dataset_into_tiles():
 
 
 def test_tile_windows_invalid_sizes_raise():
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         np.zeros((4, 4), dtype=np.float32),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
     with pytest.raises(ValueError, match="tile_rows"):
         list(cloud_io.tile_windows(ds, tile_rows=0, tile_cols=2))
@@ -48,8 +49,9 @@ def test_tile_windows_invalid_sizes_raise():
 def test_write_cog_writes_a_file(tmp_path):
     """`write_cog` writes a COG via GDAL's COG driver."""
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
-    ds = Dataset.create_from_array(
-        z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        z,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     out = tmp_path / "out.tif"
     written = cloud_io.write_cog(ds, str(out))
@@ -61,8 +63,9 @@ def test_write_cog_output_is_internally_tiled(tmp_path):
     from osgeo import gdal
 
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
-    ds = Dataset.create_from_array(
-        z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        z,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     written = cloud_io.write_cog(ds, str(tmp_path / "out.tif"))
     handle = gdal.Open(written)

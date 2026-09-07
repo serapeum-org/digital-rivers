@@ -53,11 +53,15 @@ def tile_windows(
         - Iterate a 5x5 dataset in 3x3 tiles with no overlap:
 
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers.cloud_io import tile_windows
-            >>> ds = Dataset.create_from_array(
+            >>> ds = Dataset.from_array(
             ...     np.zeros((5, 5), dtype=np.float32),
-            ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=4326,
+            ...     ),
             ... )
             >>> windows = list(tile_windows(ds, tile_rows=3, tile_cols=3))
             >>> [(w[0], w[1], w[2], w[3]) for w in windows]
@@ -114,8 +118,9 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
         dataset: Any `pyramids.Dataset` (or subclass — DEM,
             FlowDirection, Accumulation, etc.).
         path: Output `.tif` path.
-        compress: GDAL compression option (`"deflate"` default,
-            `"lzw"`, `"zstd"`, `"none"`). Case-insensitive.
+        compress: Named pyramids COG compression profile (`"deflate"`
+            default, `"lzw"`, `"zstd"`, `"packbits"`, `"lerc"`,
+            `"raw"` for no compression). Case-insensitive.
 
     Returns:
         The output path on success.
@@ -129,12 +134,17 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
         - Write a 5x5 DEM as a COG:
 
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers.cloud_io import write_cog
             >>> import tempfile, os
             >>> arr = np.arange(25, dtype=np.float32).reshape(5, 5)
-            >>> ds = Dataset.create_from_array(
-            ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            >>> ds = Dataset.from_array(
+            ...     arr,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=4326,
+            ...     ),
             ... )
             >>> with tempfile.TemporaryDirectory() as tmpdir:
             ...     out_path = os.path.join(tmpdir, "out.tif")
@@ -142,7 +152,7 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
             ...     os.path.exists(result)
             True
     """
-    return str(dataset.to_cog(path, compress=compress.upper()))
+    return str(dataset.to_cog(path, compression=compress.lower()))
 
 
 def cloud_storage(*args, **kwargs):

@@ -26,26 +26,27 @@ classifiers = [
 
 requires-python = ">= 3.11, <4"
 
-# pyramids-gis is pinned to the GitHub `main` branch (not a released PyPI version)
-# to pick up unreleased APIs (e.g. `Dataset.create_empty` / `empty_like`, pyramids
-# #473). A git/sdist build does NOT vendor osgeo (only pyramids' cibuildwheel
-# platform wheel does), so GDAL is supplied from conda-forge via
-# [tool.pixi.dependencies] for the pixi environments.
-# NOTE: a direct git URL here cannot be uploaded to PyPI — before publishing
-# digital-rivers to PyPI, re-pin to a released `pyramids-gis >=x.y` floor (the
-# floor must stay >=0.29.0, the first pyramids-gis whose bundled GDAL exposes
-# gdal.ViewshedGenerate + the GVM_* viewshed enums used by Terrain.viewshed).
+# pyramids-gis is floored at a released PyPI version. 0.60.0 is the floor because
+# that release carries the georeferencing rename this package builds against —
+# `Dataset.from_array(geo_ref=GeoReference(...))` (was `create_from_array` with
+# flat `geo` / `epsg` / `top_left_corner` / `cell_size` keywords), the grouped
+# `to_cog(compression=...)` options, the unified x-first `Window`, and the typed
+# `plot(color=ColorScaling...)` render groups. The floor must also stay >=0.29.0,
+# the first pyramids-gis whose bundled GDAL exposes gdal.ViewshedGenerate + the
+# GVM_* viewshed enums used by Terrain.viewshed.
 dependencies = [
-    "pyramids-gis >=0.32.0",
+    "pyramids-gis >=0.60.0",
     "geopandas >=1.0.0",
     "numba >=0.60.0,<1",
     "numpy >=2.0.0",
 ]
 
 [project.optional-dependencies]
-viz = ["pyramids-gis[viz] >=0.32.0"]
-distributed = ["pyramids-gis[lazy] >=0.32.0"]
+viz = ["pyramids-gis[viz] >=0.60.0"]
+distributed = ["pyramids-gis[lazy] >=0.60.0"]
 all = ["digital-rivers[viz,distributed]"]
+
+[dependency-groups]
 dev = [
     "nbval >=0.11.0",
     "pre-commit >=3.7.1",
@@ -173,9 +174,9 @@ macos = "14.0"
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
-# pyramids-gis is pinned to git `main` directly in [project.dependencies] (and the
-# `viz` extra), so no override is needed here. GDAL for that from-source build is
-# supplied from conda-forge — see [tool.pixi.dependencies] below.
+# pyramids-gis is floored in [project.dependencies] (and the `viz` / `distributed`
+# extras), so no override is needed here. GDAL is supplied from conda-forge — see
+# [tool.pixi.dependencies] below.
 
 [tool.pixi.tasks]
 main = { cmd = "pytest -vvv --cov=src/digitalrivers -sv -m 'not plot' --cov-report=xml", description = "Run the main test suite" }
@@ -205,10 +206,10 @@ python = "3.14.*"
 
 [tool.pixi.dependencies]
 numba = ">=0.60.0,<1"
-# pyramids-gis is built from git `main` (sdist) per [project.dependencies], which
-# does NOT vendor osgeo; provide GDAL from conda-forge so `from osgeo import gdal`
-# works. Pin matches pyramids' own gdal feature (>=3.12,<3.13).
-gdal = ">=3.12,<3.13"
+# Provide GDAL from conda-forge so `from osgeo import gdal` resolves to one
+# libgdal shared with the rest of the environment. Pin matches pyramids' own
+# gdal feature (>=3.13.3,<3.13.4) — pyramids 0.59 moved to GDAL 3.13.
+gdal = ">=3.13.3,<3.13.4"
 
 # Force the standard (GIL) CPython build for the unpinned `default`
 # solve-group (default / dev / docs). Without this, conda-forge's solver

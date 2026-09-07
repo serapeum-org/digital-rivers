@@ -1,10 +1,11 @@
 """Tests for `FlowDirection.watershed` and `WatershedRaster` (P13)."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers import DEM, FlowDirection, WatershedRaster
@@ -14,8 +15,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -39,7 +45,9 @@ def test_single_pour_point_captures_chain():
     fd = dem.flow_direction(method="d8")
     # Pour point at (row=1, col=5) — the outlet.
     pts = gpd.GeoDataFrame(
-        {"id": [1]}, geometry=[Point(*_world_xy(1, 5))], crs=4326,
+        {"id": [1]},
+        geometry=[Point(*_world_xy(1, 5))],
+        crs=4326,
     )
     ws = fd.watershed(pts)
     assert type(ws) is WatershedRaster
@@ -135,7 +143,9 @@ def test_to_polygons_emits_one_geometry_per_basin():
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     pts = gpd.GeoDataFrame(
-        {"id": [1]}, geometry=[Point(*_world_xy(1, 5))], crs=4326,
+        {"id": [1]},
+        geometry=[Point(*_world_xy(1, 5))],
+        crs=4326,
     )
     ws = fd.watershed(pts)
     poly = ws.to_polygons()
@@ -155,7 +165,9 @@ def test_multi_direction_routing_rejected():
     dem = _make_dem(z)
     fd_dinf = dem.flow_direction(method="dinf")
     pts = gpd.GeoDataFrame(
-        {"id": [1]}, geometry=[Point(*_world_xy(1, 3))], crs=4326,
+        {"id": [1]},
+        geometry=[Point(*_world_xy(1, 3))],
+        crs=4326,
     )
     with pytest.raises(ValueError, match="single-direction"):
         fd_dinf.watershed(pts)
@@ -202,7 +214,9 @@ class TestWatershedD8ReversedOrder:
 
         fdir = np.array([[6, 6, 6, 6, 6, -1]], dtype=np.int32)
         out = watershed_d8(
-            fdir, [(0, 1), (0, 3), (0, 5)], [1, 2, 3],
+            fdir,
+            [(0, 1), (0, 3), (0, 5)],
+            [1, 2, 3],
             require_unique_basins=True,
         )
         assert int(out[0, 0]) == 1

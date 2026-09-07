@@ -1,9 +1,10 @@
 """Tests for `FlowDirection.basins` (P14)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, WatershedRaster
 
@@ -12,8 +13,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -146,9 +152,7 @@ class TestMergeToNeighbour8Adjacency:
 
     def test_min_area_zero_keeps_all_basins(self):
         """With `min_area_cells=None` (default) no merging happens."""
-        z = np.array(
-            [[0, 5, 5], [5, 5, 5], [5, 5, 0]], dtype=np.float32
-        )
+        z = np.array([[0, 5, 5], [5, 5, 5], [5, 5, 0]], dtype=np.float32)
         dem = _make_dem(z)
         ws = dem.flow_direction(method="d8").basins()
         # No merge applied → original basin count.

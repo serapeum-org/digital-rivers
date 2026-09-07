@@ -1,17 +1,18 @@
 """Tests for `digitalrivers.fusion.topobathy_fusion`."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.fusion import topobathy_fusion
 
 
 def _make_ds(arr: np.ndarray) -> Dataset:
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         arr.astype(np.float32, copy=False),
-        top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
     )
 
 
@@ -38,7 +39,10 @@ def test_topo_above_branch():
     topo = _make_ds(np.array([[5.0, -1.0]]))
     bathy = _make_ds(np.array([[-3.0, -5.0]]))
     fused = topobathy_fusion(
-        topo, bathy, blend="topo_above", shoreline_elev=0.0,
+        topo,
+        bathy,
+        blend="topo_above",
+        shoreline_elev=0.0,
     )
     # Cell 0: topo=5 >= 0 → topo wins (5). Cell 1: topo=-1 < 0 → bathy (-5).
     np.testing.assert_allclose(fused.read_array()[0], [5.0, -5.0], atol=1e-3)

@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.tiling import (
     plan_tiles,
@@ -109,11 +109,9 @@ def flow_accumulation_tiled(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=fdir.geotransform, epsg=fdir.epsg),
         dtype="float32",
-        geo=fdir.geotransform,
-        epsg=fdir.epsg,
         no_data_value=-1.0,
-        driver_type="GTiff",
         path=out_path,
     )
 

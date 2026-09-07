@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 
 def topobathy_fusion(
@@ -57,15 +57,23 @@ def topobathy_fusion(
           pessimistic-bathymetry baseline:
 
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers.fusion import topobathy_fusion
-            >>> topo = Dataset.create_from_array(
+            >>> topo = Dataset.from_array(
             ...     np.array([[5.0, -1.0]], dtype=np.float32),
-            ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=4326,
+            ...     ),
             ... )
-            >>> bathy = Dataset.create_from_array(
+            >>> bathy = Dataset.from_array(
             ...     np.array([[-3.0, -5.0]], dtype=np.float32),
-            ...     top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=4326,
+            ...     ),
             ... )
             >>> fused = topobathy_fusion(topo, bathy, blend="min")
             >>> fused.read_array().tolist()
@@ -106,9 +114,8 @@ def topobathy_fusion(
 
     out_no_val = topo_no_val if topo_no_val is not None else -9999.0
     fused = np.where(np.isnan(fused), out_no_val, fused)
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         fused.astype(np.float32, copy=False),
-        geo=topo.geotransform,
-        epsg=topo.epsg,
+        geo_ref=GeoReference(geo=topo.geotransform, epsg=topo.epsg),
         no_data_value=out_no_val,
     )

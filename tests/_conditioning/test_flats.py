@@ -4,12 +4,13 @@ Covers plateau detection, LEC/HEC classification, BFS-level computation, and the
 gradient lift on synthetic single-outlet, two-outlet, HEC-less, and LEC-less plateaus,
 plus an end-to-end fill→resolve_flats→flow_direction check on the Coello basin.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 from digitalrivers._conditioning.flats import (
@@ -26,11 +27,9 @@ def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
     disk[nan_mask] = no_data_value
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         disk,
-        top_left_corner=(0.0, 0.0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
@@ -83,13 +82,12 @@ def _has_internal_flats(z: np.ndarray, nodata_mask: np.ndarray | None = None) ->
 
 # ----- plateau labelling ------------------------------------------------------------------
 
+
 class TestLabelPlateaus:
     def test_no_plateaus_in_strict_slope(self):
         # Every cell uniquely valued so no two 8-neighbours can share an elevation.
         z = np.arange(9, dtype=np.float64).reshape(3, 3)
-        labels, n = _label_plateaus(
-            z, np.zeros_like(z, dtype=bool), _NEIGHBOURS_8
-        )
+        labels, n = _label_plateaus(z, np.zeros_like(z, dtype=bool), _NEIGHBOURS_8)
         assert n == 0
         assert not labels.any()
 
@@ -115,9 +113,9 @@ class TestLabelPlateaus:
         z = np.array(
             [
                 [10, 11, 12, 13],
-                [14,  5,  5, 15],
-                [16,  5,  5, 17],
-                [18, 19,  3,  3],
+                [14, 5, 5, 15],
+                [16, 5, 5, 17],
+                [18, 19, 3, 3],
             ],
             dtype=np.float64,
         )
@@ -132,7 +130,7 @@ class TestLabelPlateaus:
         z = np.array(
             [
                 [10, 11, 12],
-                [13,  5, 14],
+                [13, 5, 14],
                 [15, 16, 17],
             ],
             dtype=np.float64,
@@ -142,6 +140,7 @@ class TestLabelPlateaus:
 
 
 # ----- LEC/HEC classification ------------------------------------------------------------
+
 
 class TestClassifyLecHec:
     def test_single_outlet_plateau_has_one_lec(self):
@@ -171,6 +170,7 @@ class TestClassifyLecHec:
 
 # ----- BFS levels ------------------------------------------------------------------------
 
+
 class TestBfsLevels:
     def test_bfs_assigns_increasing_levels(self):
         labels, _ = _label_plateaus(
@@ -196,6 +196,7 @@ class TestBfsLevels:
 
 # ----- gradient inversion ----------------------------------------------------------------
 
+
 class TestInvertPerPlateau:
     def test_max_becomes_zero_after_invert(self):
         # Use a plateau with a non-trivial internal structure so the BFS from HECs has
@@ -204,10 +205,10 @@ class TestInvertPerPlateau:
         z = np.array(
             [
                 [10, 11, 12, 13, 14],
-                [15,  5,  5,  5, 16],
-                [17,  5,  5,  5, 18],
-                [19,  5,  5,  5, 20],
-                [21, 22, 23, 24,  1],
+                [15, 5, 5, 5, 16],
+                [17, 5, 5, 5, 18],
+                [19, 5, 5, 5, 20],
+                [21, 22, 23, 24, 1],
             ],
             dtype=np.float64,
         )
@@ -225,6 +226,7 @@ class TestInvertPerPlateau:
 
 
 # ----- end-to-end resolve_flats ---------------------------------------------------------
+
 
 class TestResolveFlats:
     def test_single_outlet_plateau_is_resolved(self):
@@ -310,6 +312,7 @@ class TestNodataHandling:
 
 # ----- validation -----------------------------------------------------------------------
 
+
 class TestValidation:
     def test_invalid_connectivity_raises(self):
         z = SINGLE_OUTLET_PLATEAU.copy()
@@ -318,6 +321,7 @@ class TestValidation:
 
 
 # ----- DEM-level integration -----------------------------------------------------------
+
 
 class TestDEMResolveFlats:
     def test_returns_typed_dem(self):

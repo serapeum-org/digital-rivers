@@ -1,10 +1,11 @@
 """Tests for `DEM.tpi` / `.deviation_from_mean` / `.elev_std` / `.ruggedness`
 (W-21 / W-22 / W-23 / W-24)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -13,8 +14,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -87,7 +93,7 @@ class TestTPI:
         """Test the output Dataset carries the DEM's geotransform and EPSG.
 
         Test scenario:
-            Pyramids `Dataset.create_from_array` round-trips geotransform
+            Pyramids `Dataset.from_array` round-trips geotransform
             and projection; the returned TPI raster must align spatially
             with the input DEM.
         """
@@ -140,9 +146,9 @@ class TestTPINoDataBoundary:
         # after the no-data-aware fix it stays at 0.
         for col in (0, 1, 2):
             for row in range(5):
-                assert tpi[row, col] == 0.0, (
-                    f"Cell ({row}, {col}) TPI must be 0, got {tpi[row, col]}"
-                )
+                assert (
+                    tpi[row, col] == 0.0
+                ), f"Cell ({row}, {col}) TPI must be 0, got {tpi[row, col]}"
         # No-data cells (columns 3-5) emit the sentinel.
         assert (tpi[:, 3:] == no_val).all()
 
@@ -722,6 +728,7 @@ class TestHorizonWalkKernel:
             same `π/2` everywhere.
         """
         from digitalrivers._numba import horizon_walk_kernel
+
         z = np.full((5, 5), 10.0, dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 0)
         assert np.allclose(out, np.pi / 2.0, atol=1e-5)
@@ -733,6 +740,7 @@ class TestHorizonWalkKernel:
             On flat terrain, mode=1 must return 1.0 at every cell.
         """
         from digitalrivers._numba import horizon_walk_kernel
+
         z = np.full((5, 5), 10.0, dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 1)
         assert np.allclose(out, 1.0, atol=1e-5)
@@ -745,6 +753,7 @@ class TestHorizonWalkKernel:
             same-shape raster.
         """
         from digitalrivers._numba import horizon_walk_kernel
+
         z = np.zeros((3, 7), dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 0)
         assert out.shape == z.shape

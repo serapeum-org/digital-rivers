@@ -10,15 +10,10 @@ The building blocks every tiled algorithm shares:
 * :func:`gid` — an overflow-safe global cell id (``int64``) for keying perimeter graphs past 2³¹ cells.
 
 .. note::
-   `pyramids` uses **two different** window conventions, so callers must not pass a window tuple from one API to
-   the other:
-
-   * ``Dataset.read_array(window=...)`` takes GDAL order ``(xoff, yoff, xsize, ysize)`` = ``(col, row, n_cols,
-     n_rows)``.
-   * ``Dataset.write_array(window=...)`` takes ``(row_off, col_off, n_rows, n_cols)``.
-
-   :func:`read_tile` and :func:`write_core` encapsulate that asymmetry so the rest of the package can think purely
-   in ``(row, col, n_rows, n_cols)``.
+   `pyramids` names a window with ``pyramids.dataset.Window(col_off, row_off, cols, rows)`` — **x-first**, and the
+   same on ``Dataset.read_array`` and ``Dataset.write_array``. (The bare tuples those two used to take disagreed
+   about axis order and are deprecated.) :func:`read_tile` and :func:`write_core` build the ``Window`` so the rest
+   of the package can think purely in ``(row, col, n_rows, n_cols)``.
 """
 
 from __future__ import annotations
@@ -26,6 +21,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
+from pyramids.dataset import Window
 
 
 @dataclass(frozen=True)
@@ -136,9 +132,9 @@ def plan_tiles(
 def read_tile(dataset, spec: TileSpec, full_rows: int, full_cols: int):
     """Read a tile's halo-expanded window and return ``(array, core_slice)``.
 
-    Issues one bounded ``Dataset.read_array(window=...)`` over the halo window, translating to the GDAL
-    ``(xoff, yoff, xsize, ysize)`` order that `read_array` expects. The returned ``core_slice`` selects the
-    tile's core back out of the halo-expanded ``array``.
+    Issues one bounded ``Dataset.read_array(window=...)`` over the halo window, expressed as the x-first
+    ``Window`` that `read_array` expects. The returned ``core_slice`` selects the tile's core back out of the
+    halo-expanded ``array``.
 
     Args:
         dataset: A `pyramids` ``Dataset`` (or subclass) to read from.
@@ -152,16 +148,15 @@ def read_tile(dataset, spec: TileSpec, full_rows: int, full_cols: int):
     """
     r0, c0, r1, c1 = spec.halo_bounds(full_rows, full_cols)
     n_r, n_c = r1 - r0, c1 - c0
-    # read_array uses GDAL order: (xoff, yoff, xsize, ysize) == (col, row, n_cols, n_rows)
-    arr = np.asarray(dataset.read_array(window=(c0, r0, n_c, n_r)))
+    window = Window(col_off=c0, row_off=r0, cols=n_c, rows=n_r)
+    arr = np.asarray(dataset.read_array(window=window))
     return arr, spec.core_slice(full_rows, full_cols)
 
 
 def write_core(dataset, spec: TileSpec, core_array: np.ndarray) -> None:
     """Write a tile's core region back into ``dataset`` at the tile's core offset.
 
-    Translates to the ``(row_off, col_off, n_rows, n_cols)`` order that ``Dataset.write_array`` expects (note:
-    this differs from the order :func:`read_tile` passes to ``read_array``).
+    Names the core region with the same x-first ``Window`` :func:`read_tile` passes to ``read_array``.
 
     Args:
         dataset: A disk-backed `pyramids` ``Dataset`` (e.g. from ``Dataset.create_empty``).
@@ -175,10 +170,10 @@ def write_core(dataset, spec: TileSpec, core_array: np.ndarray) -> None:
         raise ValueError(
             f"core_array shape {core_array.shape} != tile core ({spec.n_rows}, {spec.n_cols})"
         )
-    # write_array uses (row_off, col_off, n_rows, n_cols)
-    dataset.write_array(
-        core_array, window=(spec.row_off, spec.col_off, spec.n_rows, spec.n_cols)
+    window = Window(
+        col_off=spec.col_off, row_off=spec.row_off, cols=spec.n_cols, rows=spec.n_rows
     )
+    dataset.write_array(core_array, window=window)
 
 
 def require_single_band(dataset) -> None:

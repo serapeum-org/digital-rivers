@@ -1,10 +1,11 @@
 """Tests for `StreamRaster.to_vector` (P9)."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
@@ -14,8 +15,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -41,8 +47,16 @@ def test_returns_geodataframe_with_expected_columns():
     dem, fd, sr = _build_pipeline(z, threshold=1)
     gdf = sr.to_vector(fd, dem=dem)
     assert isinstance(gdf, gpd.GeoDataFrame)
-    for col in ("link_id", "from_node", "to_node", "length_m", "drop_m",
-                "mean_slope", "sinuosity", "geometry"):
+    for col in (
+        "link_id",
+        "from_node",
+        "to_node",
+        "length_m",
+        "drop_m",
+        "mean_slope",
+        "sinuosity",
+        "geometry",
+    ):
         assert col in gdf.columns
 
 
@@ -181,9 +195,9 @@ def test_straight_chain_has_sinuosity_one():
     )
     dem, fd, sr = _build_pipeline(z, threshold=2)
     gdf = sr.to_vector(fd, dem=dem)
-    assert (gdf["sinuosity"] == 1.0).all(), (
-        f"Straight chain must yield sinuosity 1.0, got {gdf['sinuosity'].tolist()}"
-    )
+    assert (
+        gdf["sinuosity"] == 1.0
+    ).all(), f"Straight chain must yield sinuosity 1.0, got {gdf['sinuosity'].tolist()}"
 
 
 def test_sinuosity_at_least_one_for_non_degenerate_links():
@@ -203,9 +217,9 @@ def test_sinuosity_at_least_one_for_non_degenerate_links():
     )
     dem, fd, sr = _build_pipeline(z, threshold=1)
     gdf = sr.to_vector(fd, dem=dem)
-    assert (gdf["sinuosity"] >= 1.0 - 1e-9).all(), (
-        f"sinuosity must be ≥ 1.0; got {gdf['sinuosity'].tolist()}"
-    )
+    assert (
+        gdf["sinuosity"] >= 1.0 - 1e-9
+    ).all(), f"sinuosity must be ≥ 1.0; got {gdf['sinuosity'].tolist()}"
 
 
 def test_links_are_linestrings():

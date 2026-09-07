@@ -1,11 +1,12 @@
 """Tests for `DEM.export` (P26) and `DEM.subgrid_bathymetry` (P27)."""
+
 from __future__ import annotations
 
 import os
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -14,14 +15,16 @@ def _make_dem(arr: np.ndarray) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
 
 
 # ----- P26 export ------------------------------------------------------------
+
 
 def test_lisflood_fp_export_writes_arc_ascii_header(tmp_path):
     z = np.arange(9, dtype=np.float32).reshape(3, 3)
@@ -52,8 +55,7 @@ def test_hec_ras_export_now_writes_geotiff(tmp_path):
     the writer succeeds and the path is returned."""
     z = np.arange(4, dtype=np.float32).reshape(2, 2)
     dem = _make_dem(z)
-    paths = dem.export(str(tmp_path / "out.tif"), target="hec_ras",
-                       validate=False)
+    paths = dem.export(str(tmp_path / "out.tif"), target="hec_ras", validate=False)
     assert "dem_tif" in paths
 
 
@@ -78,11 +80,11 @@ def test_validate_rejects_dem_with_sinks(tmp_path):
     )
     dem = _make_dem(z)
     with pytest.raises(RuntimeError, match="internal sinks"):
-        dem.export(str(tmp_path / "dem.asc"), target="lisflood_fp",
-                   validate=True)
+        dem.export(str(tmp_path / "dem.asc"), target="lisflood_fp", validate=True)
 
 
 # ----- P27 sub-grid bathymetry ----------------------------------------------
+
 
 def test_subgrid_returns_one_row_per_coarse_cell():
     z = np.arange(16, dtype=np.float32).reshape(4, 4)

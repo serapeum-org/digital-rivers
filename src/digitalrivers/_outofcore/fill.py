@@ -19,7 +19,7 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
 from digitalrivers._outofcore.tiling import (
@@ -256,11 +256,9 @@ def fill_depressions_tiled(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
         dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
         path=out_path,
     )
     graph = GlobalSpillGraph()

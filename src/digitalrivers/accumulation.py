@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers._metadata import (
@@ -119,8 +119,10 @@ class Accumulation(Dataset):
         access: str = "read_only",
         *,
         routing: str,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
-        super().__init__(src, access)
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -130,7 +132,7 @@ class Accumulation(Dataset):
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str) -> Accumulation:
         """Promote a plain `Dataset` into an `Accumulation`."""
-        return cls(ds.raster, routing=routing)
+        return cls(ds.raster, ds.access, routing=routing)
 
     def to_dataset(self) -> Dataset:
         """Drop the typed wrapper and return the underlying `Dataset`."""
@@ -221,15 +223,20 @@ class Accumulation(Dataset):
               one-cell accumulation threshold:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> sr = dem.flow_direction(method="d8").accumulate().streams(threshold=1)
@@ -239,15 +246,20 @@ class Accumulation(Dataset):
             - Apply an envelope mask to exclude the first row from the result:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> acc = DEM(ds.raster).flow_direction(method="d8").accumulate()
                 >>> env = np.ones(acc.read_array().shape, dtype=bool)
@@ -307,10 +319,9 @@ class Accumulation(Dataset):
             mask = valid & (acc_arr >= cells_threshold)
 
         stream_mask = mask.astype(np.uint8, copy=False)
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             stream_mask,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
@@ -373,15 +384,20 @@ class Accumulation(Dataset):
                 >>> import numpy as np
                 >>> import geopandas as gpd
                 >>> from shapely.geometry import Point
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> acc = dem.flow_direction(method="d8").accumulate()
@@ -399,15 +415,20 @@ class Accumulation(Dataset):
                 >>> import numpy as np
                 >>> import geopandas as gpd
                 >>> from shapely.geometry import Point
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> acc = dem.flow_direction(method="d8").accumulate()

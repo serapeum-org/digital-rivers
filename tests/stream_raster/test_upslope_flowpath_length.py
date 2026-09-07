@@ -1,9 +1,10 @@
 """Tests for `FlowDirection.upslope_flowpath_length` (W-9)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -12,8 +13,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -31,11 +37,13 @@ class TestUpslopeFlowpathLength:
             the rightmost cell sits 4 cell widths downstream.
         """
         fdir = np.array([[6, 6, 6, 6, -1]], dtype=np.int32)
-        fd_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fd_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         from digitalrivers import FlowDirection
+
         fd = FlowDirection.from_dataset(fd_ds, routing="d8")
         out = fd.upslope_flowpath_length()
         arr = out.read_array()
@@ -55,15 +63,17 @@ class TestUpslopeFlowpathLength:
             [[7, -1, -1], [-1, 7, -1], [-1, -1, -1]],
             dtype=np.int32,
         )
-        fd_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fd_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         from digitalrivers import FlowDirection
+
         fd = FlowDirection.from_dataset(fd_ds, routing="d8")
         out = fd.upslope_flowpath_length()
         arr = out.read_array()
-        sqrt2 = float(2.0 ** 0.5)
+        sqrt2 = float(2.0**0.5)
         assert abs(arr[1, 1] - sqrt2) < 1e-5, f"Single-diag length {arr[1, 1]}"
         assert abs(arr[2, 2] - 2 * sqrt2) < 1e-5, f"Two-diag length {arr[2, 2]}"
 
@@ -75,11 +85,13 @@ class TestUpslopeFlowpathLength:
             a source and must hold 0.0.
         """
         fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
-        fd_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fd_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         from digitalrivers import FlowDirection
+
         fd = FlowDirection.from_dataset(fd_ds, routing="d8")
         out = fd.upslope_flowpath_length()
         arr = out.read_array()

@@ -15,6 +15,7 @@ The on-disk LAS round-trip is gated on `laspy` being installed. The
 ground-classifier, gridders, clip/merge, and tree-detect pass run
 unconditionally on the in-memory LasPoints.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -34,6 +35,7 @@ from digitalrivers.lidar import (
 
 try:
     import laspy  # noqa: F401
+
     HAS_LASPY = True
 except ImportError:  # pragma: no cover — environment-specific
     HAS_LASPY = False
@@ -96,8 +98,11 @@ class TestLidarPipeline:
             of the expected type.
         """
         classes = classify_ground(
-            synthetic_cloud, method="zhang", cell_size=1.0,
-            window_cells=3, slope_threshold=1.0,
+            synthetic_cloud,
+            method="zhang",
+            cell_size=1.0,
+            window_cells=3,
+            slope_threshold=1.0,
         )
         assert classes.shape == (len(synthetic_cloud),)
         # Replace input classification with computed labels and keep ground.
@@ -110,9 +115,14 @@ class TestLidarPipeline:
         ground_only = filter_classes(ground, {2})
         assert len(ground_only) > 0
         ds = grid_lidar_points(
-            ground_only.x, ground_only.y, ground_only.z,
-            cell_size=1.0, bounds=(0.0, 0.0, 10.0, 10.0),
-            aggregate="idw", epsg=3857, idw_k=4,
+            ground_only.x,
+            ground_only.y,
+            ground_only.z,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 10.0, 10.0),
+            aggregate="idw",
+            epsg=3857,
+            idw_k=4,
         )
         arr = ds.read_array()
         assert arr.shape == (10, 10)
@@ -126,9 +136,13 @@ class TestLidarPipeline:
             peaks must be reported.
         """
         chm = grid_lidar_points(
-            synthetic_cloud.x, synthetic_cloud.y, synthetic_cloud.z,
-            cell_size=1.0, bounds=(0.0, 0.0, 10.0, 10.0),
-            aggregate="max", epsg=3857,
+            synthetic_cloud.x,
+            synthetic_cloud.y,
+            synthetic_cloud.z,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 10.0, 10.0),
+            aggregate="max",
+            epsg=3857,
         )
         tops = detect_trees(chm, min_height_m=1.5)
         assert len(tops) >= 1
@@ -145,6 +159,7 @@ class TestLidarPipeline:
             shared boundary, which `contains_xy` excludes from both halves).
         """
         from shapely.geometry import box
+
         left = clip(synthetic_cloud, box(0, 0, 5, 10))
         right = clip(synthetic_cloud, box(5, 0, 10, 10), inverse=False)
         # Points with x == 5.0 sit on the boundary and may be excluded from
@@ -168,6 +183,7 @@ class TestLidarPipeline:
             scale-offset quantisation).
         """
         from digitalrivers.lidar import read_las, write_las
+
         path = str(tmp_path / "cloud.las")
         write_las(synthetic_cloud, path)
         back = read_las(path)
@@ -195,19 +211,30 @@ class TestLidarPipeline:
             return ~0.0.
         """
         ground = LasPoints(
-            x=synthetic_cloud.x, y=synthetic_cloud.y, z=synthetic_cloud.z,
+            x=synthetic_cloud.x,
+            y=synthetic_cloud.y,
+            z=synthetic_cloud.z,
             classification=synthetic_cloud.classification,
         )
         ground_only = filter_classes(ground, {2})
         idw = grid_lidar_points(
-            ground_only.x, ground_only.y, ground_only.z,
-            cell_size=1.0, bounds=(0.0, 0.0, 10.0, 10.0),
-            aggregate="idw", epsg=3857, idw_k=6,
+            ground_only.x,
+            ground_only.y,
+            ground_only.z,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 10.0, 10.0),
+            aggregate="idw",
+            epsg=3857,
+            idw_k=6,
         ).read_array()
         tin = grid_lidar_points(
-            ground_only.x, ground_only.y, ground_only.z,
-            cell_size=1.0, bounds=(0.0, 0.0, 10.0, 10.0),
-            aggregate="tin", epsg=3857,
+            ground_only.x,
+            ground_only.y,
+            ground_only.z,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 10.0, 10.0),
+            aggregate="tin",
+            epsg=3857,
         ).read_array()
         # The interior 6×6 block (away from the convex-hull edge) must
         # match closely: both methods should return ~0.0 (ground level).

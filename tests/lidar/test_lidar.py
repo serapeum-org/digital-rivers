@@ -1,4 +1,5 @@
 """Tests for `digitalrivers.lidar` (grid_lidar_points + umbrella stub)."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -10,6 +11,7 @@ from digitalrivers.lidar import LasPoints, grid_lidar_points
 # `requires_laspy` marker) skip when it's missing.
 try:
     import laspy  # noqa: F401
+
     HAS_LASPY = True
 except ImportError:  # pragma: no cover — environment-specific
     HAS_LASPY = False
@@ -26,8 +28,13 @@ def test_grid_min_picks_lowest_per_cell():
     ys = np.array([0.1, 0.2, 0.1])
     zs = np.array([5.0, 2.0, 4.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-        aggregate="min", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 1.0),
+        aggregate="min",
+        epsg=3857,
     )
     arr = ds.read_array()
     # Row 0 contains both cells; min in cell (0,0)=2, cell (0,1)=4.
@@ -41,8 +48,13 @@ def test_grid_max_picks_highest_per_cell():
     ys = np.array([0.1, 0.2, 0.1])
     zs = np.array([5.0, 2.0, 4.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-        aggregate="max", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 1.0),
+        aggregate="max",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == 5.0
@@ -53,8 +65,13 @@ def test_grid_mean_averages_per_cell():
     ys = np.array([0.1, 0.2])
     zs = np.array([4.0, 6.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="mean", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="mean",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == 5.0
@@ -65,8 +82,13 @@ def test_grid_median_per_cell():
     ys = np.array([0.1, 0.2, 0.3])
     zs = np.array([1.0, 5.0, 9.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="median", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="median",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == 5.0
@@ -78,8 +100,13 @@ def test_grid_empty_cells_get_nodata():
     ys = np.array([0.1])
     zs = np.array([3.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
-        aggregate="min", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 2.0),
+        aggregate="min",
+        epsg=3857,
     )
     arr = ds.read_array()
     no_data = ds.no_data_value[0]
@@ -96,7 +123,9 @@ def test_grid_invalid_aggregate_rejected():
 def test_grid_mismatched_lengths_rejected():
     with pytest.raises(ValueError, match="same length"):
         grid_lidar_points(
-            np.array([0.0, 1.0]), np.array([0.0]), np.array([0.0]),
+            np.array([0.0, 1.0]),
+            np.array([0.0]),
+            np.array([0.0]),
             cell_size=1.0,
         )
 
@@ -118,8 +147,13 @@ def test_grid_min_keeps_first_when_second_higher():
     ys = np.array([0.1, 0.2])
     zs = np.array([1.0, 5.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="min", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="min",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == 1.0
@@ -131,8 +165,13 @@ def test_grid_max_keeps_first_when_second_lower():
     ys = np.array([0.1, 0.2])
     zs = np.array([5.0, 1.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="max", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="max",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert float(arr[0, 0]) == 5.0
@@ -144,8 +183,13 @@ def test_grid_single_point_input():
     ys = np.array([0.5])
     zs = np.array([42.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="min", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="min",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert arr.shape == (1, 1)
@@ -158,8 +202,13 @@ def test_grid_points_exactly_on_bounds_clipped_into_grid():
     ys = np.array([0.0])
     zs = np.array([3.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-        aggregate="min", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 1.0),
+        aggregate="min",
+        epsg=3857,
     )
     arr = ds.read_array()
     # Bounded grid is 1x2; the point (x=2, y=0) at the SE corner clips to
@@ -174,7 +223,11 @@ def test_grid_returns_no_data_sentinel():
     ys = np.array([0.5])
     zs = np.array([1.0])
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 2.0, 2.0),
         aggregate="min",
     )
     assert float(ds.no_data_value[0]) == -9999.0
@@ -187,8 +240,13 @@ def test_grid_dense_cell_aggregates_many_points():
     ys = rng.uniform(0.1, 0.9, size=1000)
     zs = rng.uniform(-100.0, 100.0, size=1000)
     ds = grid_lidar_points(
-        xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-        aggregate="mean", epsg=3857,
+        xs,
+        ys,
+        zs,
+        cell_size=1.0,
+        bounds=(0.0, 0.0, 1.0, 1.0),
+        aggregate="mean",
+        epsg=3857,
     )
     arr = ds.read_array()
     assert abs(float(arr[0, 0]) - float(zs.mean())) < 0.5
@@ -208,8 +266,14 @@ class TestInterpolationGridders:
         ys = np.array([0.0, 0.0, 1.0])
         zs = np.array([10.0, 20.0, 15.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
-            aggregate="idw", epsg=3857, idw_k=3,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 2.0, 2.0),
+            aggregate="idw",
+            epsg=3857,
+            idw_k=3,
         )
         arr = ds.read_array()
         assert arr.shape == (2, 2)
@@ -230,8 +294,14 @@ class TestInterpolationGridders:
         ys = np.array([0.5, 0.5])
         zs = np.array([42.0, 5.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-            aggregate="idw", epsg=3857, idw_k=2,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 2.0, 1.0),
+            aggregate="idw",
+            epsg=3857,
+            idw_k=2,
         )
         arr = ds.read_array()
         assert abs(float(arr[0, 0]) - 42.0) < 1e-5
@@ -247,8 +317,13 @@ class TestInterpolationGridders:
         ys = np.array([0.5, 0.5])
         zs = np.array([100.0, 200.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),
-            aggregate="nn", epsg=3857,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 2.0, 1.0),
+            aggregate="nn",
+            epsg=3857,
         )
         arr = ds.read_array()
         assert float(arr[0, 0]) == 100.0
@@ -265,8 +340,13 @@ class TestInterpolationGridders:
         ys = np.array([0.0, 0.0, 2.0])
         zs = np.array([0.0, 0.0, 6.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),
-            aggregate="tin", epsg=3857,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 2.0, 2.0),
+            aggregate="tin",
+            epsg=3857,
         )
         arr = ds.read_array()
         # The cell-centre (1, 1) is at the centroid of the triangle; the
@@ -284,8 +364,13 @@ class TestInterpolationGridders:
         ys = np.array([0.0, 0.0, 2.0, 2.0, 1.0])
         zs = np.array([0.0, 10.0, 10.0, 0.0, 5.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 3.0, 3.0),
-            aggregate="rbf", epsg=3857,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 3.0, 3.0),
+            aggregate="rbf",
+            epsg=3857,
         )
         arr = ds.read_array()
         assert np.isfinite(arr).all()
@@ -302,8 +387,13 @@ class TestInterpolationGridders:
         ys = np.array([0.1, 0.2, 0.3])
         zs = np.array([1.0, 2.0, 3.0])
         ds = grid_lidar_points(
-            xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),
-            aggregate="count", epsg=3857,
+            xs,
+            ys,
+            zs,
+            cell_size=1.0,
+            bounds=(0.0, 0.0, 1.0, 1.0),
+            aggregate="count",
+            epsg=3857,
         )
         arr = ds.read_array()
         assert float(arr[0, 0]) == 3.0
@@ -313,10 +403,16 @@ class TestDetectTrees:
     """Tests for `lidar.detect_trees` (local-maxima on a CHM)."""
 
     def _make_chm(self, arr: np.ndarray, cell_size: float = 1.0):
-        from pyramids.dataset import Dataset
-        ds = Dataset.create_from_array(
-            arr.astype(np.float32), top_left_corner=(0.0, 0.0),
-            cell_size=cell_size, epsg=3857, no_data_value=-9999.0,
+        from pyramids.dataset import Dataset, GeoReference
+
+        ds = Dataset.from_array(
+            arr.astype(np.float32),
+            geo_ref=GeoReference(
+                top_left_corner=(0.0, 0.0),
+                cell_size=cell_size,
+                epsg=3857,
+            ),
+            no_data_value=-9999.0,
         )
         return ds
 
@@ -328,6 +424,7 @@ class TestDetectTrees:
             should return exactly one top at that cell.
         """
         from digitalrivers.lidar import detect_trees
+
         z = np.zeros((5, 5), dtype=np.float32)
         z[2, 2] = 15.0
         chm = self._make_chm(z)
@@ -345,6 +442,7 @@ class TestDetectTrees:
             empty GeoDataFrame.
         """
         from digitalrivers.lidar import detect_trees
+
         z = np.zeros((3, 3), dtype=np.float32)
         z[1, 1] = 1.5
         chm = self._make_chm(z)
@@ -359,6 +457,7 @@ class TestDetectTrees:
             (2, 2) maps to world coordinates (2.5, -2.5).
         """
         from digitalrivers.lidar import detect_trees
+
         z = np.zeros((5, 5), dtype=np.float32)
         z[2, 2] = 10.0
         chm = self._make_chm(z)
@@ -376,13 +475,16 @@ class TestDetectTrees:
             overlap.
         """
         from digitalrivers.lidar import detect_trees
+
         z = np.zeros((15, 15), dtype=np.float32)
         z[2, 2] = 5.0
         z[10, 10] = 5.0
         chm = self._make_chm(z)
         # radius_fn keeps the window tiny so the two peaks don't compete.
         gdf = detect_trees(
-            chm, min_height_m=2.0, radius_fn=lambda h: 1.0,
+            chm,
+            min_height_m=2.0,
+            radius_fn=lambda h: 1.0,
         )
         assert len(gdf) == 2
 
@@ -398,6 +500,7 @@ class TestClassifyGround:
             so every point sits at the opening height and is ground (class 2).
         """
         from digitalrivers.lidar import classify_ground
+
         n = 50
         rng = np.random.default_rng(42)
         xs = rng.uniform(0, 10, size=n)
@@ -416,6 +519,7 @@ class TestClassifyGround:
             exceeds the threshold and gets class 1 (non-ground).
         """
         from digitalrivers.lidar import classify_ground
+
         rng = np.random.default_rng(42)
         xs = np.concatenate([rng.uniform(0, 10, size=200), [5.0]])
         ys = np.concatenate([rng.uniform(0, 10, size=200), [5.0]])
@@ -432,8 +536,11 @@ class TestClassifyGround:
             unimplemented branch rather than fall through silently.
         """
         from digitalrivers.lidar import classify_ground
+
         pts = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
         )
         with pytest.raises(NotImplementedError, match="Axelsson"):
             classify_ground(pts, method="axelsson")
@@ -445,8 +552,11 @@ class TestClassifyGround:
             method='bogus' must be rejected with a clear error.
         """
         from digitalrivers.lidar import classify_ground
+
         pts = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
         )
         with pytest.raises(ValueError, match="method must be"):
             classify_ground(pts, method="bogus")
@@ -459,8 +569,11 @@ class TestClassifyGround:
             must all be rejected.
         """
         from digitalrivers.lidar import classify_ground
+
         pts = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
         )
         with pytest.raises(ValueError, match="cell_size"):
             classify_ground(pts, cell_size=0)
@@ -552,6 +665,7 @@ class TestLasIO:
             must match the source within laspy's quantisation precision.
         """
         from digitalrivers.lidar import read_las, write_las
+
         pts = LasPoints(
             x=np.array([100.0, 101.5, 103.25]),
             y=np.array([200.0, 200.5, 201.0]),
@@ -586,6 +700,7 @@ class TestClipMergeFilter:
         """
         from shapely.geometry import box
         from digitalrivers.lidar import clip
+
         pts = LasPoints(
             x=np.array([0.5, 2.0]),
             y=np.array([0.5, 2.0]),
@@ -605,6 +720,7 @@ class TestClipMergeFilter:
         """
         from shapely.geometry import box
         from digitalrivers.lidar import clip
+
         pts = LasPoints(
             x=np.array([0.5, 2.0]),
             y=np.array([0.5, 2.0]),
@@ -623,11 +739,16 @@ class TestClipMergeFilter:
             the inputs' order.
         """
         from digitalrivers.lidar import merge
+
         a = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
         )
         b = LasPoints(
-            x=np.array([1.0]), y=np.array([1.0]), z=np.array([1.0]),
+            x=np.array([1.0]),
+            y=np.array([1.0]),
+            z=np.array([1.0]),
         )
         out = merge(a, b)
         assert len(out) == 2
@@ -640,6 +761,7 @@ class TestClipMergeFilter:
             Calling merge() with no arguments must raise.
         """
         from digitalrivers.lidar import merge
+
         with pytest.raises(ValueError, match="at least one"):
             merge()
 
@@ -651,12 +773,17 @@ class TestClipMergeFilter:
             cloud's intensity must be empty (size 0).
         """
         from digitalrivers.lidar import merge
+
         a = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
             intensity=np.array([100], dtype=np.uint16),
         )
         b = LasPoints(
-            x=np.array([1.0]), y=np.array([1.0]), z=np.array([1.0]),
+            x=np.array([1.0]),
+            y=np.array([1.0]),
+            z=np.array([1.0]),
         )
         out = merge(a, b)
         assert out.intensity.size == 0
@@ -669,6 +796,7 @@ class TestClipMergeFilter:
             only the ground subset when filtered on {2}.
         """
         from digitalrivers.lidar import filter_classes
+
         pts = LasPoints(
             x=np.array([0.0, 1.0, 2.0]),
             y=np.array([0.0, 1.0, 2.0]),
@@ -686,8 +814,11 @@ class TestClipMergeFilter:
             A cloud with no classification data cannot be filtered; raise.
         """
         from digitalrivers.lidar import filter_classes
+
         pts = LasPoints(
-            x=np.array([0.0]), y=np.array([0.0]), z=np.array([0.0]),
+            x=np.array([0.0]),
+            y=np.array([0.0]),
+            z=np.array([0.0]),
         )
         with pytest.raises(ValueError, match="no classification"):
             filter_classes(pts, {2})
@@ -708,6 +839,7 @@ class TestLasIORoundTrip:
             with the expected length.
         """
         from digitalrivers.lidar import read_las, write_las
+
         pts = LasPoints(
             x=np.array([0.0, 1.0]),
             y=np.array([0.0, 1.0]),

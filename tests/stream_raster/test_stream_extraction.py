@@ -1,9 +1,10 @@
 """Tests for `Accumulation.streams` threshold-based stream extraction (P8)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation, StreamRaster
 
@@ -12,8 +13,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -25,6 +31,7 @@ def _build_acc(dem: DEM) -> Accumulation:
 
 
 # ----- Cell-count threshold ----------------------------------------------------------------
+
 
 def test_threshold_one_returns_every_non_headwater_cell():
     z = np.array(
@@ -84,6 +91,7 @@ def test_monotonic_decrease_in_stream_count_as_threshold_grows():
 
 # ----- Area-unit conversion ----------------------------------------------------------------
 
+
 def test_km2_threshold_with_unit_cell_size():
     # With cell_size = 1000 m, one cell is 1 km². threshold_km2=2 → cells_threshold=2.
     z = np.array(
@@ -120,6 +128,7 @@ def test_m2_threshold_with_unit_cell_size():
 
 # ----- Slope-area criterion ----------------------------------------------------------------
 
+
 def test_slope_area_criterion_filters_by_support():
     z = np.array(
         [
@@ -135,12 +144,12 @@ def test_slope_area_criterion_filters_by_support():
     # the area-slope support varies: low-slope cells need higher accumulation.
     slope_arr = np.full(z.shape, 0.5, dtype=np.float32)
     slope_arr[1, 5] = 0.1
-    slope_ds = Dataset.create_from_array(
-        slope_arr, geo=dem.geotransform, epsg=4326, no_data_value=-9999.0,
+    slope_ds = Dataset.from_array(
+        slope_arr,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=4326),
+        no_data_value=-9999.0,
     )
-    sr = acc.streams(
-        threshold=1.0, slope_dem=slope_ds, area_slope_exponent=1.0
-    )
+    sr = acc.streams(threshold=1.0, slope_dem=slope_ds, area_slope_exponent=1.0)
     assert type(sr) is StreamRaster
     # The outlet, despite high accumulation, has low slope and may drop out.
     # Just verify the result is well-formed.
@@ -150,6 +159,7 @@ def test_slope_area_criterion_filters_by_support():
 
 
 # ----- Validation --------------------------------------------------------------------------
+
 
 def test_unknown_units_raises():
     z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
@@ -163,9 +173,9 @@ def test_only_slope_dem_without_exponent_raises():
     z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
     dem = _make_dem(z)
     acc = _build_acc(dem)
-    slope_ds = Dataset.create_from_array(
+    slope_ds = Dataset.from_array(
         np.zeros(z.shape, dtype=np.float32),
-        top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     with pytest.raises(ValueError, match="both be supplied or both omitted"):
         acc.streams(threshold=1, slope_dem=slope_ds)
@@ -192,9 +202,7 @@ def test_returns_typed_stream_raster():
 
 
 def _simple_acc() -> Accumulation:
-    z = np.array(
-        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32)
     return _build_acc(_make_dem(z))
 
 
@@ -208,9 +216,10 @@ class TestStreamsEnvelopeKwarg:
         rows, cols = acc.read_array().shape
         env_arr = np.ones((rows, cols), dtype=np.float32)
         env_arr[0, :] = -9999.0  # entire row marked no-data
-        env_ds = Dataset.create_from_array(
-            env_arr, top_left_corner=(0.0, 0.0), cell_size=1.0,
-            epsg=4326, no_data_value=-9999.0,
+        env_ds = Dataset.from_array(
+            env_arr,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+            no_data_value=-9999.0,
         )
         sr = acc.streams(threshold=1, envelope=env_ds)
         arr = sr.read_array()
@@ -240,8 +249,9 @@ class TestStreamsEnvelopeKwarg:
         rows, cols = acc.read_array().shape
         env_arr = np.ones((rows, cols), dtype=np.float32)
         env_arr[0, 0] = np.nan  # NaN should be excluded
-        env_ds = Dataset.create_from_array(
-            env_arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        env_ds = Dataset.from_array(
+            env_arr,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         )
         sr = acc.streams(threshold=1, envelope=env_ds)
         assert int(sr.read_array()[0, 0]) == 0
@@ -267,11 +277,10 @@ class TestResolveEnvelopeDirect:
     def test_dataset_no_data_excludes_sentinel_cells(self):
         from digitalrivers.accumulation import _resolve_envelope
 
-        arr = np.array(
-            [[1.0, -9999.0], [2.0, 3.0]], dtype=np.float32
-        )
-        ds = Dataset.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        arr = np.array([[1.0, -9999.0], [2.0, 3.0]], dtype=np.float32)
+        ds = Dataset.from_array(
+            arr,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         mask = _resolve_envelope(ds, (2, 2))
@@ -281,11 +290,10 @@ class TestResolveEnvelopeDirect:
     def test_dataset_without_no_data_uses_finite_filter(self):
         from digitalrivers.accumulation import _resolve_envelope
 
-        arr = np.array(
-            [[1.0, np.nan], [2.0, 3.0]], dtype=np.float32
-        )
-        ds = Dataset.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+        arr = np.array([[1.0, np.nan], [2.0, 3.0]], dtype=np.float32)
+        ds = Dataset.from_array(
+            arr,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         )
         mask = _resolve_envelope(ds, (2, 2))
         # NaN at (0, 1) is excluded by isfinite.

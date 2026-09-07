@@ -8,7 +8,7 @@ import types
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.tiling import (
     TileSpec,
@@ -44,8 +44,9 @@ class TestPlanTiles:
     def test_cores_match_cloud_io_tile_windows_when_halo_zero(self):
         # plan_tiles cores must tile identically to cloud_io.tile_windows
         arr = np.zeros((37, 53), dtype=np.float32)
-        ds = Dataset.create_from_array(
-            arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326
+        ds = Dataset.from_array(
+            arr,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         )
         win = list(tile_windows(ds, tile_rows=16, tile_cols=16, overlap=0))
         specs = plan_tiles(37, 53, 16, 16, halo=0)
@@ -97,12 +98,9 @@ def _valued_raster(rows: int, cols: int, path: str) -> Dataset:
     arr = (np.arange(rows)[:, None] * 1000 + np.arange(cols)[None, :]).astype(
         np.float32
     )
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         arr,
-        top_left_corner=(0, 0),
-        cell_size=1.0,
-        epsg=4326,
-        driver_type="GTiff",
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         path=path,
     )
 
@@ -140,11 +138,9 @@ class TestReadWriteRoundTrip:
             out = Dataset.create_empty(
                 rows,
                 cols,
+                geo_ref=GeoReference(geo=src.geotransform, epsg=src.epsg),
                 dtype="float32",
-                geo=src.geotransform,
-                epsg=src.epsg,
                 no_data_value=-9999.0,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "out.tif"),
             )
             try:
@@ -164,11 +160,9 @@ class TestReadWriteRoundTrip:
             out = Dataset.create_empty(
                 6,
                 6,
+                geo_ref=GeoReference(geo=(0, 1, 0, 0, 0, -1), epsg=4326),
                 dtype="float32",
-                geo=(0, 1, 0, 0, 0, -1),
-                epsg=4326,
                 no_data_value=-9999.0,
-                driver_type="GTiff",
                 path=os.path.join(tmp, "o.tif"),
             )
             try:

@@ -3,11 +3,12 @@
 Covers per-routing-scheme dispatch (D8, Rho8, D∞, MFD), weighted accumulation,
 mass conservation, and the typed Accumulation return.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation
 from digitalrivers._flow.accumulation import (
@@ -23,14 +24,20 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
     disk[nan_mask] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
 
 
 # ----- Kahn primitive --------------------------------------------------------------------
+
 
 class TestKahn:
     def test_linear_chain_d8(self):
@@ -67,6 +74,7 @@ class TestKahn:
 
 # ----- D8 dispatch -----------------------------------------------------------------------
 
+
 def test_d8_dispatch_matches_legacy_count():
     # A 3-row strip flowing east; the bottom and top rows are higher so the middle
     # row drains eastward. The eastern outlet at z=1 has no further downhill
@@ -97,6 +105,7 @@ def test_d8_dispatch_matches_legacy_count():
 
 # ----- D∞ dispatch -----------------------------------------------------------------------
 
+
 def test_dinf_dispatch_mass_conservation():
     # Planar east-tilted surface, all cells drain east. Sum over outlet column should
     # equal total interior cells.
@@ -117,6 +126,7 @@ def test_dinf_dispatch_mass_conservation():
 
 # ----- MFD dispatch ---------------------------------------------------------------------
 
+
 def test_mfd_quinn_dispatch_returns_accumulation():
     # Conical hilltop.
     size = 7
@@ -135,6 +145,7 @@ def test_mfd_quinn_dispatch_returns_accumulation():
 
 # ----- Weight handling -------------------------------------------------------------------
 
+
 def test_uniform_weights_match_unweighted():
     # weights=1.0 raster must equal weights=None.
     z = np.array([[5, 4, 3, 2, 1]], dtype=np.float32)
@@ -142,8 +153,9 @@ def test_uniform_weights_match_unweighted():
     fd = dem.flow_direction(method="d8")
     acc_unweighted = fd.accumulate().read_array()
 
-    weights = Dataset.create_from_array(
-        np.ones_like(z), top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    weights = Dataset.from_array(
+        np.ones_like(z),
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     acc_weighted = fd.accumulate(weights=weights).read_array()
     np.testing.assert_allclose(acc_unweighted, acc_weighted)
@@ -153,15 +165,16 @@ def test_weights_mismatch_shape_raises():
     z = np.array([[5, 4, 3], [3, 2, 1]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
-    bad_weights = Dataset.create_from_array(
+    bad_weights = Dataset.from_array(
         np.ones((4, 4), dtype=np.float32),
-        top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     with pytest.raises(ValueError, match="weights shape"):
         fd.accumulate(weights=bad_weights)
 
 
 # ----- Receivers helpers -----------------------------------------------------------------
+
 
 class TestReceivers:
     def test_d8_decoder_pass_through(self):
@@ -194,6 +207,7 @@ class TestReceivers:
 
 
 # ----- Array-level dispatcher ---------------------------------------------------------
+
 
 def test_dispatcher_rejects_unknown_routing():
     arr = np.zeros((3, 3), dtype=np.int32)

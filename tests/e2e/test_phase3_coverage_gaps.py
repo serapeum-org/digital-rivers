@@ -11,6 +11,7 @@ Each test pins behaviour that was previously asserted weakly or not at all:
 * C7: `enforce_culverts` with multiple roads crossing the same stream.
 * C8: `enforce_breaklines(inplace=True)` and per-feature attribute hint.
 """
+
 from __future__ import annotations
 
 import os
@@ -18,7 +19,7 @@ import os
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString, MultiLineString
 
 from digitalrivers import DEM
@@ -27,8 +28,9 @@ from digitalrivers import DEM
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     disk[np.isnan(disk)] = no_data_value
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
@@ -62,11 +64,10 @@ def test_burn_streams_accepts_multilinestring():
 def test_enforce_breaklines_accepts_multilinestring():
     z = np.full((5, 5), 10.0, dtype=np.float32)
     dem = _make_dem(z)
-    mls = MultiLineString(
-        [_line([(0, 0), (0, 2)]), _line([(4, 0), (4, 2)])]
-    )
+    mls = MultiLineString([_line([(0, 0), (0, 2)]), _line([(4, 0), (4, 2)])])
     lifted = dem.enforce_breaklines(
-        gpd.GeoDataFrame(geometry=[mls], crs=4326), lift=5.0,
+        gpd.GeoDataFrame(geometry=[mls], crs=4326),
+        lift=5.0,
     )
     out = lifted.values
     # First and last rows along col 0..2 should be lifted.
@@ -84,7 +85,8 @@ def test_burn_streams_stream_exiting_raster_is_clipped():
     dem = _make_dem(z)
     # Line goes from inside (col=2, row=2) to far outside (col=20, row=2).
     streams = gpd.GeoDataFrame(
-        geometry=[_line([(2, 2), (2, 20)])], crs=4326,
+        geometry=[_line([(2, 2), (2, 20)])],
+        crs=4326,
     )
     burnt = dem.burn_streams(streams, constant_drop=2.0)
     out = burnt.values
@@ -102,7 +104,8 @@ def test_burn_streams_reprojects_mismatched_crs():
     # Streams in a metric CRS — at this small scale near the equator the
     # reprojection lands inside the raster.
     streams = gpd.GeoDataFrame(
-        geometry=[_line([(2, 0), (2, 4)])], crs=4326,
+        geometry=[_line([(2, 0), (2, 4)])],
+        crs=4326,
     ).to_crs(3857)
     burnt = dem.burn_streams(streams, constant_drop=2.0)
     out = burnt.values
@@ -167,13 +170,16 @@ def test_enforce_culverts_multiple_roads_at_same_stream():
     z = np.full((5, 5), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
-        geometry=[_line([(2, 0), (2, 4)])], crs=4326,
+        geometry=[_line([(2, 0), (2, 4)])],
+        crs=4326,
     )
     road1 = _line([(0, 1), (4, 1)])
     road2 = _line([(0, 3), (4, 3)])
     roads = gpd.GeoDataFrame(geometry=[road1, road2], crs=4326)
     out = dem.enforce_culverts(
-        roads=roads, streams=streams, culvert_drop=2.0,
+        roads=roads,
+        streams=streams,
+        culvert_drop=2.0,
     )
     arr = out.values
     # Both road/stream crossing cells are lowered.
@@ -229,7 +235,10 @@ class TestPolygonCellIndices:
         # Polygon far outside the raster's world extent.
         far = Polygon([(100, 100), (101, 100), (101, 101), (100, 101)])
         rs, cs = dem._polygon_cell_indices(
-            far, dem.geotransform, 5, 5,
+            far,
+            dem.geotransform,
+            5,
+            5,
         )
         assert rs.size == 0
         assert cs.size == 0
@@ -241,7 +250,10 @@ class TestPolygonCellIndices:
         # Polygon entirely inside cell (row=2, col=2): center is (2.5, -2.5).
         poly = Polygon([(2.4, -2.6), (2.6, -2.6), (2.6, -2.4), (2.4, -2.4)])
         rs, cs = dem._polygon_cell_indices(
-            poly, dem.geotransform, 5, 5,
+            poly,
+            dem.geotransform,
+            5,
+            5,
         )
         assert rs.tolist() == [2]
         assert cs.tolist() == [2]
@@ -252,7 +264,10 @@ class TestPolygonCellIndices:
         dem = self._dem()
         poly = Polygon([(0, 0), (3, 0), (3, -3), (0, -3)])
         rs, cs = dem._polygon_cell_indices(
-            poly, dem.geotransform, 5, 5,
+            poly,
+            dem.geotransform,
+            5,
+            5,
         )
         assert np.issubdtype(rs.dtype, np.integer)
         assert np.issubdtype(cs.dtype, np.integer)
@@ -266,7 +281,8 @@ class TestPolygonCellIndices:
         a = Polygon([(0, 0), (1, 0), (1, -1), (0, -1)])
         b = Polygon([(3, -3), (4, -3), (4, -4), (3, -4)])
         layer = gpd.GeoDataFrame(
-            geometry=[MultiPolygon([a, b])], crs=4326,
+            geometry=[MultiPolygon([a, b])],
+            crs=4326,
         )
         # Shapely 2.x makes MultiPolygon iterable via .geoms — the
         # vectorised helper still runs on the outer geometry's bounds,
@@ -322,14 +338,17 @@ def test_export_non_lisflood_target_skips_sink_scan(tmp_path):
     dem = _make_dem(z)
     # hec_ras succeeds (no sink scan).
     paths = dem.export(
-        str(tmp_path / "out.tif"), target="hec_ras", validate=True,
+        str(tmp_path / "out.tif"),
+        target="hec_ras",
+        validate=True,
     )
     assert "dem_tif" in paths
     # lisflood_fp still rejects the same DEM under validate=True.
     with pytest.raises(RuntimeError, match="internal sinks"):
         dem.export(
             str(tmp_path / "out.asc"),
-            target="lisflood_fp", validate=True,
+            target="lisflood_fp",
+            validate=True,
         )
 
 
@@ -341,10 +360,13 @@ def test_enforce_culverts_empty_layer_is_no_op():
     dem = _make_dem(z)
     empty = gpd.GeoDataFrame(geometry=[], crs=4326)
     streams = gpd.GeoDataFrame(
-        geometry=[_line([(2, 0), (2, 3)])], crs=4326,
+        geometry=[_line([(2, 0), (2, 3)])],
+        crs=4326,
     )
     out = dem.enforce_culverts(
-        roads=empty, streams=streams, culvert_drop=2.0,
+        roads=empty,
+        streams=streams,
+        culvert_drop=2.0,
     )
     np.testing.assert_array_equal(out.values, z)
 
@@ -370,7 +392,8 @@ class TestReprojectIfNeeded:
         z = np.full((3, 3), 0.0, dtype=np.float32)
         dem = _make_dem(z)
         layer = gpd.GeoDataFrame(
-            geometry=[_line([(0, 0), (1, 1)])], crs=4326,
+            geometry=[_line([(0, 0), (1, 1)])],
+            crs=4326,
         )
         out = _reproject_if_needed(layer, dem.epsg)
         # Same CRS → exact same object (no defensive copy needed).
@@ -380,7 +403,8 @@ class TestReprojectIfNeeded:
         from digitalrivers.dem import _reproject_if_needed
 
         layer = gpd.GeoDataFrame(
-            geometry=[_line([(0, 0), (1, 1)])], crs=4326,
+            geometry=[_line([(0, 0), (1, 1)])],
+            crs=4326,
         ).to_crs(3857)
         out = _reproject_if_needed(layer, 4326)
         # Reprojected → new geodataframe in target CRS.
@@ -390,7 +414,8 @@ class TestReprojectIfNeeded:
         from digitalrivers.dem import _reproject_if_needed
 
         layer = gpd.GeoDataFrame(
-            geometry=[_line([(0, 0), (1, 1)])], crs=4326,
+            geometry=[_line([(0, 0), (1, 1)])],
+            crs=4326,
         )
         out = _reproject_if_needed(layer, None)
         assert out is layer

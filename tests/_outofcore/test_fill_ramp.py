@@ -15,7 +15,7 @@ import tempfile
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32, priority_flood_numba
 from digitalrivers._outofcore.fill_ramp import (
@@ -62,13 +62,10 @@ def _interior_minima(surface):
 
 def _run_tiled(arr, tile, epsilon):
     with tempfile.TemporaryDirectory() as tmp:
-        dem = Dataset.create_from_array(
+        dem = Dataset.from_array(
             arr,
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=NODATA,
-            driver_type="GTiff",
             path=os.path.join(tmp, "d.tif"),
         )
         out = fill_depressions_ramp_tiled(
@@ -91,9 +88,7 @@ class TestTiledEqualsReference:
     @pytest.mark.parametrize("epsilon", [0.5, 0.01])
     def test_tiled_matches_whole_array_reference(self, seed, tile, epsilon):
         arr = _noisy_pit(seed)
-        ref = ramp_fill_reference(
-            arr.astype(np.float64), _fill0(arr), epsilon, NODATA
-        )
+        ref = ramp_fill_reference(arr.astype(np.float64), _fill0(arr), epsilon, NODATA)
         np.testing.assert_allclose(_run_tiled(arr, tile, epsilon), ref)
 
     def test_epsilon_zero_reduces_to_fill0(self):
@@ -125,11 +120,13 @@ class TestGuards:
         arr = _noisy_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = DEM(
-                Dataset.create_from_array(
+                Dataset.from_array(
                     arr,
-                    top_left_corner=(0, 0),
-                    cell_size=1.0,
-                    epsg=4326,
+                    geo_ref=GeoReference(
+                        top_left_corner=(0, 0),
+                        cell_size=1.0,
+                        epsg=4326,
+                    ),
                     no_data_value=NODATA,
                 ).raster
             )
@@ -145,11 +142,13 @@ class TestGuards:
         arr = _noisy_pit(0)
         with tempfile.TemporaryDirectory() as tmp:
             dem = DEM(
-                Dataset.create_from_array(
+                Dataset.from_array(
                     arr,
-                    top_left_corner=(0, 0),
-                    cell_size=1.0,
-                    epsg=4326,
+                    geo_ref=GeoReference(
+                        top_left_corner=(0, 0),
+                        cell_size=1.0,
+                        epsg=4326,
+                    ),
                     no_data_value=NODATA,
                 ).raster
             )
@@ -165,11 +164,13 @@ class TestGuards:
         arr = _smooth_bowl()
         with tempfile.TemporaryDirectory() as tmp:
             dem = DEM(
-                Dataset.create_from_array(
+                Dataset.from_array(
                     arr,
-                    top_left_corner=(0, 0),
-                    cell_size=1.0,
-                    epsg=4326,
+                    geo_ref=GeoReference(
+                        top_left_corner=(0, 0),
+                        cell_size=1.0,
+                        epsg=4326,
+                    ),
                     no_data_value=NODATA,
                 ).raster
             )

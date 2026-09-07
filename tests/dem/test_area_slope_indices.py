@@ -1,9 +1,10 @@
 """Tests for `DEM.twi` / `DEM.spi` / `DEM.sti` (W-12 / W-13 / W-14)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -12,8 +13,13 @@ def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan = np.isnan(disk)
     disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -189,9 +195,10 @@ class TestSlopeShapeMismatch:
         )
         dem, fd, acc = _build_pipeline(z)
         bad_slope_arr = np.zeros((2, 2), dtype=np.float32)
-        bad_slope = Dataset.create_from_array(
-            bad_slope_arr, top_left_corner=(0.0, 0.0), cell_size=1.0,
-            epsg=4326, no_data_value=-9999.0,
+        bad_slope = Dataset.from_array(
+            bad_slope_arr,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+            no_data_value=-9999.0,
         )
         with pytest.raises(ValueError, match="shape"):
             dem.twi(acc, slope_deg=bad_slope)

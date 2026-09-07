@@ -13,7 +13,7 @@ directly instead of dask's ``map_overlap``.
 from __future__ import annotations
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.tiling import (
     plan_tiles,
@@ -118,11 +118,9 @@ def tiled_stencil(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=dataset.geotransform, epsg=dataset.epsg),
         dtype=dtype,
-        geo=dataset.geotransform,
-        epsg=dataset.epsg,
         no_data_value=out_nodata,
-        driver_type="GTiff",
         path=out_path,
     )
     for spec in specs:

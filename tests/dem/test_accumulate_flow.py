@@ -5,10 +5,11 @@ draining into a given cell using D8 flow direction.  Includes unit
 tests for every edge case and end-to-end integration tests with the
 Coello dataset.
 """
+
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.dem import DEM, DIR_OFFSETS
 
@@ -22,11 +23,9 @@ def make_dem():
     """
 
     def _make(elev: np.ndarray) -> DEM:
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             elev.astype(np.float32),
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=-9999,
         )
         return DEM(ds.raster)
@@ -152,14 +151,19 @@ class TestAccumulateFlowNoUpstream:
               - (2,2) flows SE (dir 7): offset (1,1),   away from center
         """
         dem = make_dem(np.ones((3, 3), dtype=np.float32) * 100)
-        flow_dir = np.array([
-            [3, 4, 5],
-            [2, 0, 6],
-            [1, 0, 7],
-        ], dtype=np.int32)
+        flow_dir = np.array(
+            [
+                [3, 4, 5],
+                [2, 0, 6],
+                [1, 0, 7],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(1, 1, flow_dir, acc, DIR_OFFSETS)
-        assert result == 0, f"Expected 0 upstream when all neighbours flow away, got {result}"
+        assert (
+            result == 0
+        ), f"Expected 0 upstream when all neighbours flow away, got {result}"
 
 
 class TestAccumulateFlowSingleUpstream:
@@ -270,11 +274,14 @@ class TestAccumulateFlowMultipleUpstream:
             Total: 8 upstream cells.
         """
         dem = make_dem(np.ones((3, 3), dtype=np.float32) * 100)
-        flow_dir = np.array([
-            [7, 0, 0],
-            [0, 0, 0],
-            [6, 0, 2],
-        ], dtype=np.int32)
+        flow_dir = np.array(
+            [
+                [7, 0, 0],
+                [0, 0, 0],
+                [6, 0, 2],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(2, 1, flow_dir, acc, DIR_OFFSETS)
         assert result == 8, f"Expected 8 upstream cells, got {result}"
@@ -290,16 +297,23 @@ class TestAccumulateFlowMultipleUpstream:
             Full drainage: (0,0)→(1,0)→(2,0), (0,1)→(1,1)→(2,1)→(2,0).
             Target (2,0) gets 5 upstream cells.
         """
-        dem = make_dem(np.array([
-            [300.0, 100.0],
-            [200.0, 100.0],
-            [100.0, 150.0],
-        ]))
-        flow_dir = np.array([
-            [0, 0],
-            [0, 0],
-            [0, 2],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [300.0, 100.0],
+                    [200.0, 100.0],
+                    [100.0, 150.0],
+                ]
+            )
+        )
+        flow_dir = np.array(
+            [
+                [0, 0],
+                [0, 0],
+                [0, 2],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 2), -1, dtype=np.int32)
         result = dem.accumulate_flow(2, 0, flow_dir, acc, DIR_OFFSETS)
         assert result == 5, f"Expected 5 upstream cells, got {result}"
@@ -331,14 +345,21 @@ class TestAccumulateFlowBoundaryConditions:
                 (1,0) dir=0       (1,1) dir=0
             Target (0,1) on right edge receives from (0,0).
         """
-        dem = make_dem(np.array([
-            [200.0, 100.0],
-            [200.0, 100.0],
-        ]))
-        flow_dir = np.array([
-            [6, 0],
-            [0, 0],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [200.0, 100.0],
+                    [200.0, 100.0],
+                ]
+            )
+        )
+        flow_dir = np.array(
+            [
+                [6, 0],
+                [0, 0],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((2, 2), -1, dtype=np.int32)
         result = dem.accumulate_flow(0, 1, flow_dir, acc, DIR_OFFSETS)
         assert result == 1, f"Expected 1 upstream from interior, got {result}"
@@ -360,9 +381,9 @@ class TestAccumulateFlowCaching:
 
         result1 = dem.accumulate_flow(1, 0, flow_dir, acc, DIR_OFFSETS)
         result2 = dem.accumulate_flow(1, 0, flow_dir, acc, DIR_OFFSETS)
-        assert result1 == result2 == 1, (
-            f"Both calls should return 1, got {result1} and {result2}"
-        )
+        assert (
+            result1 == result2 == 1
+        ), f"Both calls should return 1, got {result1} and {result2}"
 
     def test_upstream_cells_cached_after_processing(self, make_dem):
         """After processing outlet, all upstream cells should be cached.
@@ -397,16 +418,23 @@ class TestAccumulateFlowDiagonal:
             and transitively (0,0)→(1,1), (0,1)→(1,1), (0,2)→(1,2).
             Total: 5 upstream cells.
         """
-        dem = make_dem(np.array([
-            [300.0, 0.0, 0.0],
-            [0.0, 200.0, 0.0],
-            [0.0, 0.0, 100.0],
-        ]))
-        flow_dir = np.array([
-            [7, 0, 0],
-            [0, 7, 0],
-            [0, 0, 0],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [300.0, 0.0, 0.0],
+                    [0.0, 200.0, 0.0],
+                    [0.0, 0.0, 100.0],
+                ]
+            )
+        )
+        flow_dir = np.array(
+            [
+                [7, 0, 0],
+                [0, 7, 0],
+                [0, 0, 0],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(2, 2, flow_dir, acc, DIR_OFFSETS)
         assert result == 5, f"Expected 5 upstream cells, got {result}"
@@ -421,14 +449,21 @@ class TestAccumulateFlowDiagonal:
             (1,1) flows NW into (0,0), and (0,1) flows S into (1,1).
             Target (0,0) gets 2 upstream: (1,1) and (0,1)→(1,1).
         """
-        dem = make_dem(np.array([
-            [100.0, 200.0],
-            [200.0, 300.0],
-        ]))
-        flow_dir = np.array([
-            [0, 0],
-            [0, 3],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [100.0, 200.0],
+                    [200.0, 300.0],
+                ]
+            )
+        )
+        flow_dir = np.array(
+            [
+                [0, 0],
+                [0, 3],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((2, 2), -1, dtype=np.int32)
         result = dem.accumulate_flow(0, 0, flow_dir, acc, DIR_OFFSETS)
         assert result == 2, f"Expected 2 upstream cells, got {result}"
@@ -459,18 +494,25 @@ class TestAccumulateFlowComplexTopology:
             (0,1)→(1,1)→(2,1)→(3,1), (0,2)→(1,1)→(2,1)→(3,1),
             (1,1)→(2,1)→(3,1), (2,1)→(3,1) = 5 upstream cells.
         """
-        dem = make_dem(np.array([
-            [400.0, 400.0, 400.0],
-            [300.0, 300.0, 300.0],
-            [200.0, 200.0, 200.0],
-            [100.0, 100.0, 100.0],
-        ]))
-        flow_dir = np.array([
-            [7, 0, 1],
-            [0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [400.0, 400.0, 400.0],
+                    [300.0, 300.0, 300.0],
+                    [200.0, 200.0, 200.0],
+                    [100.0, 100.0, 100.0],
+                ]
+            )
+        )
+        flow_dir = np.array(
+            [
+                [7, 0, 1],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((4, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(3, 1, flow_dir, acc, DIR_OFFSETS)
         assert result == 5, f"Expected 5 upstream cells in Y-network, got {result}"
@@ -495,17 +537,20 @@ class TestAccumulateFlowCustomDirOffsets:
             Total: 6 upstream.  Compare to 8 with full DIR_OFFSETS.
         """
         cardinal_only = {
-            0: (0, 1),   # South
+            0: (0, 1),  # South
             2: (-1, 0),  # West
             4: (0, -1),  # North
-            6: (1, 0),   # East
+            6: (1, 0),  # East
         }
         dem = make_dem(np.ones((3, 3), dtype=np.float32) * 100)
-        flow_dir = np.array([
-            [7, 0, 0],
-            [7, 0, 0],
-            [6, 0, 2],
-        ], dtype=np.int32)
+        flow_dir = np.array(
+            [
+                [7, 0, 0],
+                [7, 0, 0],
+                [6, 0, 2],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(2, 1, flow_dir, acc, cardinal_only)
         assert result == 6, f"Expected 6 cardinal upstream, got {result}"
@@ -513,9 +558,9 @@ class TestAccumulateFlowCustomDirOffsets:
         # Verify fewer upstream than with full DIR_OFFSETS
         acc_full = np.full((3, 3), -1, dtype=np.int32)
         result_full = dem.accumulate_flow(2, 1, flow_dir, acc_full, DIR_OFFSETS)
-        assert result_full > result, (
-            f"Full offsets ({result_full}) should find more upstream than cardinal ({result})"
-        )
+        assert (
+            result_full > result
+        ), f"Full offsets ({result_full}) should find more upstream than cardinal ({result})"
 
 
 class TestFlowAccumulationEndToEnd:
@@ -548,16 +593,24 @@ class TestFlowAccumulationEndToEnd:
               (2,0)→E→(2,1)  (2,1) target     (2,2)→W→(2,1)
             Total upstream of (2,1): all 8 other cells = 8.
         """
-        dem = make_dem(np.array([
-            [200, 100, 200],
-            [200, 50, 200],
-            [200, 25, 200],
-        ], dtype=np.float32))
-        flow_dir = np.array([
-            [6, 0, 2],
-            [6, 0, 2],
-            [6, 0, 2],
-        ], dtype=np.int32)
+        dem = make_dem(
+            np.array(
+                [
+                    [200, 100, 200],
+                    [200, 50, 200],
+                    [200, 25, 200],
+                ],
+                dtype=np.float32,
+            )
+        )
+        flow_dir = np.array(
+            [
+                [6, 0, 2],
+                [6, 0, 2],
+                [6, 0, 2],
+            ],
+            dtype=np.int32,
+        )
         acc = np.full((3, 3), -1, dtype=np.int32)
         result = dem.accumulate_flow(2, 1, flow_dir, acc, DIR_OFFSETS)
         assert result == 8, f"Valley outlet should accumulate 8, got {result}"
@@ -592,13 +645,15 @@ class TestFlowAccumulationCoello:
         valid_mask = arr != no_data
         valid_cells = arr[valid_mask]
 
-        assert np.all(valid_cells >= 0), "All valid cells should have non-negative accumulation"
+        assert np.all(
+            valid_cells >= 0
+        ), "All valid cells should have non-negative accumulation"
 
         n_valid = valid_cells.size
         max_acc = valid_cells.max()
-        assert max_acc < n_valid, (
-            f"Max accumulation ({max_acc}) should be less than total valid cells ({n_valid})"
-        )
+        assert (
+            max_acc < n_valid
+        ), f"Max accumulation ({max_acc}) should be less than total valid cells ({n_valid})"
 
     def test_coello_accumulation_no_data_matches_dem(
         self,
@@ -622,9 +677,9 @@ class TestFlowAccumulationCoello:
         dem_nodata_mask = np.isnan(elev)
         acc_nodata_mask = acc_arr == no_data
 
-        assert np.array_equal(dem_nodata_mask, acc_nodata_mask), (
-            "No-data pattern in accumulation should match DEM no-data pattern"
-        )
+        assert np.array_equal(
+            dem_nodata_mask, acc_nodata_mask
+        ), "No-data pattern in accumulation should match DEM no-data pattern"
 
     def test_coello_headwater_cells_are_zero(
         self,
@@ -645,9 +700,9 @@ class TestFlowAccumulationCoello:
         no_data = Dataset.default_no_data_value
         valid = arr[arr != no_data]
         headwaters = np.sum(valid == 0)
-        assert headwaters > 0, (
-            f"Expected at least some headwater cells (acc=0), found {headwaters}"
-        )
+        assert (
+            headwaters > 0
+        ), f"Expected at least some headwater cells (acc=0), found {headwaters}"
 
     def test_coello_accumulation_sum_consistency(
         self,
@@ -673,6 +728,6 @@ class TestFlowAccumulationCoello:
         n_valid = valid.size
         total_acc = int(valid.sum())
 
-        assert total_acc >= n_valid - 1, (
-            f"Total accumulation ({total_acc}) should be >= N-1 ({n_valid - 1})"
-        )
+        assert (
+            total_acc >= n_valid - 1
+        ), f"Total accumulation ({total_acc}) should be >= N-1 ({n_valid - 1})"
