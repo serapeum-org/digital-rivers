@@ -214,7 +214,7 @@ class Terrain(Dataset):
             - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices
                 with the alpha index as the fourth index, otherwise the alpha band will be missing.
                 ```python
-                >>> fig, ax = color_relief.plot(
+                >>> glyph = color_relief.plot(
                 ...     rgb_options={"rgb": [0, 1, 2, 3]}
                 ... ) # doctest: +SKIP
 
@@ -544,7 +544,7 @@ class Terrain(Dataset):
             - Now let's create the slope for the dataset.
                 ```python
                 >>> slope = Terrain(dataset.raster).slope()
-                >>> fig, ax = slope.plot() # doctest: +SKIP
+                >>> glyph = slope.plot() # doctest: +SKIP
 
                 ```
                 ![slope](./../_images/dataset/slope.png)
@@ -638,7 +638,7 @@ class Terrain(Dataset):
             - Compute the aspect raster.
                 ```python
                 >>> aspect = Terrain(dataset.raster).aspect()
-                >>> fig, ax = aspect.plot() # doctest: +SKIP
+                >>> glyph = aspect.plot() # doctest: +SKIP
 
                 ```
                 ![aspect](./../_images/dataset/aspect.png)
