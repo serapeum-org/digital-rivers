@@ -24,11 +24,16 @@ jobs:
           fetch-depth: 0
 
       - name: Set up Python
-        uses: serapeum-org/github-actions/actions/python-setup/pixi@0894988f30f270ee8e0d9369f1f62a0deb8d5233 # pixi/v1.1.1
+        uses: serapeum-org/github-actions/actions/python-setup/pixi@38c111084f99d5ff5f4a1e63bedce48fe33a10c0 # pixi/v1.2.1
         with:
           environments: ${{ matrix.environment }}
           activate-environment: ${{ matrix.environment }}
           cache: true
+          # pixi.lock is lock-file format v7, which pixi 0.65 (the version the
+          # action pinned before it exposed this input) refuses to read. Pin the
+          # same pixi that writes the lock so CI and local stay in lockstep —
+          # bump both together when the lock format moves again.
+          version: v0.73.0
 
       - name: Run main tests
         run: |
