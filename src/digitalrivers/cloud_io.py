@@ -19,6 +19,8 @@ Deferred (umbrella raises `NotImplementedError` with a deferral note):
 
 from __future__ import annotations
 
+from pyramids.dataset.cog import Compression
+
 
 def tile_windows(
     dataset,
@@ -118,9 +120,10 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
         dataset: Any `pyramids.Dataset` (or subclass — DEM,
             FlowDirection, Accumulation, etc.).
         path: Output `.tif` path.
-        compress: Named pyramids COG compression profile (`"deflate"`
-            default, `"lzw"`, `"zstd"`, `"packbits"`, `"lerc"`,
-            `"raw"` for no compression). Case-insensitive.
+        compress: GDAL compression method (`"deflate"` default, `"lzw"`,
+            `"zstd"`, `"none"`). Case-insensitive. The method alone is set;
+            the compression *level* is left at GDAL's default, and the
+            predictor is resolved from the band dtype by pyramids.
 
     Returns:
         The output path on success.
@@ -152,7 +155,10 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
             ...     os.path.exists(result)
             True
     """
-    return str(dataset.to_cog(path, compression=compress.lower()))
+    # `Compression(compress=...)` sets the method only. Passing the bare string
+    # would select a named pyramids *profile* instead, and the "deflate" profile
+    # pins LEVEL=9 — maximum effort on a helper meant for continental DEMs.
+    return str(dataset.to_cog(path, compression=Compression(compress=compress.upper())))
 
 
 def cloud_storage(*args, **kwargs):
