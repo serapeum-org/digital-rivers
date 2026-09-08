@@ -31,6 +31,11 @@ class Terrain(Dataset):
         raster: A `gdal.Dataset` to wrap. To open a terrain raster from a file
             path, use the inherited `Terrain.read_file(path)` classmethod.
         access: `"read_only"` (default) or `"write"`.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Examples:
         - Wrap an in-memory DEM and compute a ruggedness derivative:

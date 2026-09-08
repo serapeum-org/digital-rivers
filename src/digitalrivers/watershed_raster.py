@@ -33,6 +33,11 @@ class WatershedRaster(Dataset):
             keyword-only.
         outlets: `GeoDataFrame` with one row per pour point used to build the
             raster; required keyword-only.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Attributes:
         routing: Routing scheme tag.

@@ -70,6 +70,11 @@ class FlowDirection(Dataset):
             `"taudem"`, `"esri"`, `"whitebox"`. Defaults to
             `"digitalrivers"` (the convention defined by `DIR_OFFSETS` in
             `dem.py`).
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Raises:
         ValueError: If `routing` or `encoding` is not a recognised value.

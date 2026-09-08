@@ -52,6 +52,11 @@ class StreamRaster(Dataset):
         routing: Routing scheme of the `FlowDirection` that produced the
             upstream accumulation. Required keyword-only. Must be in
             `_SUPPORTED_ROUTING`.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Raises:
         ValueError: If `routing` is not a recognised value at all.
