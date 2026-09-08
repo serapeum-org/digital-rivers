@@ -26,14 +26,18 @@ classifiers = [
 
 requires-python = ">= 3.11, <4"
 
-# pyramids-gis is floored at a released PyPI version. 0.60.0 is the floor because
-# that release carries the georeferencing rename this package builds against —
-# `Dataset.from_array(geo_ref=GeoReference(...))` (was `create_from_array` with
-# flat `geo` / `epsg` / `top_left_corner` / `cell_size` keywords), the grouped
-# `to_cog(compression=...)` options, the unified x-first `Window`, and the typed
-# `plot(color=ColorScaling...)` render groups. The floor must also stay >=0.29.0,
-# the first pyramids-gis whose bundled GDAL exposes gdal.ViewshedGenerate + the
-# GVM_* viewshed enums used by Terrain.viewshed.
+# pyramids-gis is floored at a released PyPI version. The hard requirement is
+# >=0.59.0, the release that renamed `create_from_array` (flat `geo` / `epsg` /
+# `top_left_corner` / `cell_size` keywords) to
+# `Dataset.from_array(geo_ref=GeoReference(...))` with no compatibility alias —
+# every raster this package builds goes through that call. The other APIs it
+# uses landed earlier: `plot(color=ColorScaling...)` in 0.51.0, the x-first
+# `Window` and the grouped `to_cog(compression=...)` options before that.
+# 0.60.0 rather than 0.59.0 is the floor simply because that is the release the
+# port was written and verified against, and the one pinned in pixi.lock.
+# The floor must also stay >=0.29.0, the first pyramids-gis whose bundled GDAL
+# exposes gdal.ViewshedGenerate + the GVM_* viewshed enums used by
+# Terrain.viewshed.
 dependencies = [
     "pyramids-gis >=0.60.0",
     "geopandas >=1.0.0",

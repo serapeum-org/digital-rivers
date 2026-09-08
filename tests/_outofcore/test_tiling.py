@@ -109,7 +109,7 @@ def _valued_raster(rows: int, cols: int, path: str) -> Dataset:
 
 
 class TestReadWriteRoundTrip:
-    """The crux: read_tile + write_core must bridge pyramids' two window conventions correctly."""
+    """The crux: read_tile + write_core must build pyramids' x-first `Window` correctly."""
 
     @pytest.mark.parametrize("halo", [0, 1, 2])
     @pytest.mark.parametrize("tile", [(8, 8), (5, 7), (16, 16)])

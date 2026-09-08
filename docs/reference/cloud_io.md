@@ -19,7 +19,7 @@ dependency outright.
 
 | Function | Purpose |
 |----------|---------|
-| `tile_windows(dataset, tile_rows=1024, tile_cols=1024, overlap=0)` | Generator yielding `pyramids.dataset.Window` tiles for chunked I/O |
+| `tile_windows(dataset, tile_rows, tile_cols, overlap=0)` | Generator yielding `Window` tiles for chunked I/O |
 | `write_cog(dataset, path, compress="deflate")` | Write a pyramids `Dataset` as a Cloud-Optimized GeoTIFF (overviews + tile layout) |
 | `dask_backend(*args, **kwargs)` | Umbrella stub — raises `NotImplementedError` with a pointer to `tile_windows` for current Dask interop |
 | `cloud_storage(*args, **kwargs)` | Umbrella stub — raises `NotImplementedError` for cloud-storage adapters (`s3://`, `gs://`, …) |

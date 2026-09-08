@@ -11,9 +11,10 @@ The building blocks every tiled algorithm shares:
 
 .. note::
    `pyramids` names a window with ``pyramids.dataset.Window(col_off, row_off, cols, rows)`` — **x-first**, and the
-   same on ``Dataset.read_array`` and ``Dataset.write_array``. (The bare tuples those two used to take disagreed
-   about axis order and are deprecated.) :func:`read_tile` and :func:`write_core` build the ``Window`` so the rest
-   of the package can think purely in ``(row, col, n_rows, n_cols)``.
+   same on ``Dataset.read_array`` and ``Dataset.write_array``. (The bare sequences those two used to take
+   disagreed about axis order: ``write_array``'s y-first tuple is deprecated and warns, while ``read_array``'s
+   x-first list is still supported.) :func:`read_tile` and :func:`write_core` build the ``Window`` so the rest of
+   the package can think purely in ``(row, col, n_rows, n_cols)``.
 """
 
 from __future__ import annotations
