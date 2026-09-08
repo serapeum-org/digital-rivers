@@ -30,7 +30,12 @@ from digitalrivers._outofcore.fill import (
     out_dtype,
 )
 from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
-from digitalrivers._outofcore.tiling import plan_tiles, write_core
+from digitalrivers._outofcore.tiling import (
+    allocate_tiled_output,
+    perimeter_cells,
+    plan_tiles,
+    write_core,
+)
 
 
 def _source_path(dataset) -> str:
@@ -120,19 +125,14 @@ def fill_depressions_dask(
 
     path = _source_path(dem)
     rows, cols = dem.rows, dem.columns
-    nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = dtype or out_dtype(dem)
-    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
-    by_grid = {(s.row, s.col): s for s in specs}
-
-    out = Dataset.create_empty(
-        rows,
-        cols,
-        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
-        dtype=dtype,
-        no_data_value=-9999.0 if nodata is None else nodata,
-        path=out_path,
+    out, specs, nodata = allocate_tiled_output(
+        dem,
+        out_path,
+        dtype=dtype or out_dtype(dem),
+        tile_rows=tile_rows,
+        tile_cols=tile_cols,
     )
+    by_grid = {(s.row, s.col): s for s in specs}
 
     # stage 1: parallel map -> local payloads
     consumed = _compute(
@@ -253,15 +253,7 @@ def _accum_exports(spec, fd, w, acc, rows, cols, dr, dc):
         spec.row_off + n_rows,
         spec.col_off + n_cols,
     )
-    cells = []
-    for j in range(n_cols):
-        cells.append((0, j))
-        cells.append((n_rows - 1, j))
-    for i in range(n_rows):
-        cells.append((i, 0))
-        cells.append((i, n_cols - 1))
-    # dict.fromkeys dedups deterministically (order-stable) so the export-sum order is reproducible.
-    for i, j in dict.fromkeys(cells):
+    for i, j in perimeter_cells(n_rows, n_cols):
         d = int(fd[i, j])
         if d < 0 or d > 7:
             continue

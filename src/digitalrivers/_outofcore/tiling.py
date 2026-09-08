@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import numpy as np
-from pyramids.dataset import Window
+from pyramids.dataset import Dataset, GeoReference, Window
 
 
 @dataclass(frozen=True)
@@ -175,6 +175,78 @@ def write_core(dataset, spec: TileSpec, core_array: np.ndarray) -> None:
         col_off=spec.col_off, row_off=spec.row_off, cols=spec.n_cols, rows=spec.n_rows
     )
     dataset.write_array(core_array, window=window)
+
+
+def allocate_tiled_output(
+    dem,
+    out_path: str,
+    *,
+    dtype: str,
+    tile_rows: int,
+    tile_cols: int,
+    halo: int = 1,
+):
+    """Plan the tile grid and allocate the disk-backed output raster.
+
+    The prologue every tiled driver shares: the output takes the source's grid,
+    geotransform and CRS, and its no-data is the source's sentinel — falling back
+    to ``-9999.0`` when the source declares none, since a tiled write must have a
+    sentinel to leave in the cells it has not reached yet.
+
+    Args:
+        dem: Source raster, read for its shape, georeference and no-data value.
+        out_path: Destination path. The raster is created on disk, not in memory,
+            because the point of the tiled path is never to hold the full grid.
+        dtype: Band dtype for the output.
+        tile_rows: Tile height in cells.
+        tile_cols: Tile width in cells.
+        halo: Halo ring passed to :func:`plan_tiles`. Defaults to 1.
+
+    Returns:
+        Tuple ``(out, specs, nodata)`` — the allocated `Dataset`, the row-major
+        :class:`TileSpec` list, and the source's no-data value (`None` when it
+        declared none, before the ``-9999.0`` fallback is applied to the output).
+    """
+    rows, cols = dem.rows, dem.columns
+    nodata = dem.no_data_value[0] if dem.no_data_value else None
+    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=halo)
+    out = Dataset.create_empty(
+        rows,
+        cols,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
+        dtype=dtype,
+        no_data_value=-9999.0 if nodata is None else nodata,
+        path=out_path,
+    )
+    return out, specs, nodata
+
+
+def perimeter_cells(n_rows: int, n_cols: int) -> list[tuple[int, int]]:
+    """Return a tile's border cells, each once, in a deterministic order.
+
+    Only the perimeter can route flow out of a tile, so the tiled drivers walk it
+    to build their export lists. Corner cells belong to both an edge row and an
+    edge column, so the raw walk repeats them; ``dict.fromkeys`` drops the repeats
+    while preserving insertion order. Order matters and a ``set`` will not do:
+    the callers sum floats over these cells, and float addition is not
+    associative, so an unstable order makes the result irreproducible.
+
+    Args:
+        n_rows: Tile height in cells.
+        n_cols: Tile width in cells.
+
+    Returns:
+        ``(row, col)`` pairs on the tile border, deduplicated, top and bottom
+        edges first and then the left and right edges.
+    """
+    cells: list[tuple[int, int]] = []
+    for j in range(n_cols):
+        cells.append((0, j))
+        cells.append((n_rows - 1, j))
+    for i in range(n_rows):
+        cells.append((i, 0))
+        cells.append((i, n_cols - 1))
+    return list(dict.fromkeys(cells))
 
 
 def require_single_band(dataset) -> None:

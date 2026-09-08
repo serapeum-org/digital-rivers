@@ -19,12 +19,11 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
-from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
 from digitalrivers._outofcore.tiling import (
     TileSpec,
-    plan_tiles,
+    allocate_tiled_output,
     read_tile,
     require_single_band,
     write_core,
@@ -248,19 +247,14 @@ def fill_depressions_tiled(
     from digitalrivers._outofcore.cache import TileStore  # noqa: PLC0415
 
     rows, cols = dem.rows, dem.columns
-    nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = dtype or out_dtype(dem)
-    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
-    by_grid = {(s.row, s.col): s for s in specs}
-
-    out = Dataset.create_empty(
-        rows,
-        cols,
-        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
-        dtype=dtype,
-        no_data_value=-9999.0 if nodata is None else nodata,
-        path=out_path,
+    out, specs, nodata = allocate_tiled_output(
+        dem,
+        out_path,
+        dtype=dtype or out_dtype(dem),
+        tile_rows=tile_rows,
+        tile_cols=tile_cols,
     )
+    by_grid = {(s.row, s.col): s for s in specs}
     graph = GlobalSpillGraph()
     store = TileStore(cache, scratch_dir)
     strips: dict[int, dict[str, tuple[np.ndarray, np.ndarray]]] = {}

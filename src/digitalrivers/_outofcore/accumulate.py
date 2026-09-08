@@ -22,6 +22,7 @@ import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.tiling import (
+    perimeter_cells,
     plan_tiles,
     read_tile,
     require_single_band,
@@ -147,16 +148,7 @@ def flow_accumulation_tiled(
         n_rows, n_cols = fd.shape
         r0, r1 = spec.row_off, spec.row_off + n_rows
         c0, c1 = spec.col_off, spec.col_off + n_cols
-        cells = []
-        for j in range(n_cols):
-            cells.append((0, j))
-            cells.append((n_rows - 1, j))
-        for i in range(n_rows):
-            cells.append((i, 0))
-            cells.append((i, n_cols - 1))
-        # dict.fromkeys dedups while preserving insertion order, so the export-sum order is deterministic
-        # (unlike set() iteration) — float addition is not associative.
-        for i, j in dict.fromkeys(cells):
+        for i, j in perimeter_cells(n_rows, n_cols):
             d = int(fd[i, j])
             if d < 0 or d > 7:
                 continue
@@ -174,8 +166,8 @@ def flow_accumulation_tiled(
     # tile at progressively lower cells, so the number of hops is bounded by the total perimeter cell count, not by
     # len(specs); cap accordingly and RAISE on non-convergence rather than ever returning a silently-wrong result.
     inflow: dict[int, float] = {}
-    perimeter_cells = sum(2 * (s.n_rows + s.n_cols) for s in specs)
-    max_rounds = max(64, perimeter_cells + 2)
+    perimeter_cell_count = sum(2 * (s.n_rows + s.n_cols) for s in specs)
+    max_rounds = max(64, perimeter_cell_count + 2)
     converged = False
     for _ in range(max_rounds):
         buckets = bucket_inflow(inflow)

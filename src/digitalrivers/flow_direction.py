@@ -612,6 +612,7 @@ class FlowDirection(Dataset):
                 np.int32(Dataset.default_no_data_value),
             )
             z = None
+            coarse_z = None
             if dem is not None:
                 z = dem.read_array().astype(np.float64, copy=False)
                 coarse_z = np.full(
@@ -629,37 +630,7 @@ class FlowDirection(Dataset):
                         fr = br * scale_factor + idx // scale_factor
                         fc = bc * scale_factor + idx % scale_factor
                         coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
-            gt = self.geotransform
-            coarse_gt = (
-                gt[0],
-                gt[1] * scale_factor,
-                gt[2],
-                gt[3],
-                gt[4],
-                gt[5] * scale_factor,
-            )
-            plain_fdir = Dataset.from_array(
-                coarse_fdir,
-                geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
-                no_data_value=Dataset.default_no_data_value,
-            )
-            upscaled_fdir = FlowDirection.from_dataset(
-                plain_fdir,
-                routing="d8",
-                encoding=self.encoding,
-            )
-            if z is not None:
-                from digitalrivers.dem import DEM as _DEM
-
-                plain_dem = Dataset.from_array(
-                    coarse_z,
-                    geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
-                    no_data_value=Dataset.default_no_data_value,
-                )
-                upscaled_dem = _DEM(plain_dem.raster)
-            else:
-                upscaled_dem = None
-            return upscaled_dem, upscaled_fdir
+            return self._wrap_upscaled(coarse_fdir, scale_factor, coarse_z)
 
         coarse_fdir = np.full(
             (out_rows, out_cols),
@@ -668,6 +639,7 @@ class FlowDirection(Dataset):
         )
 
         z = None
+        coarse_z = None
         if dem is not None:
             z = dem.read_array().astype(np.float64, copy=False)
             coarse_z = np.full(
@@ -728,38 +700,61 @@ class FlowDirection(Dataset):
                         break
                     r, c = nr, nc
 
-        # Build coarse geotransform.
+        return self._wrap_upscaled(coarse_fdir, scale_factor, coarse_z)
+
+    def _wrap_upscaled(
+        self,
+        coarse_fdir: np.ndarray,
+        scale_factor: int,
+        coarse_z: np.ndarray | None = None,
+    ):
+        """Wrap the coarse arrays as typed rasters on the upscaled grid.
+
+        The tail every upscaling method shares: derive the coarse geotransform by
+        stretching the source cell size, then wrap the flow-direction array — and
+        the coarse elevation array when there is one — as typed results.
+
+        Args:
+            coarse_fdir: Upscaled D8 codes, shaped to the coarse grid.
+            scale_factor: Cells of the source grid per coarse cell.
+            coarse_z: Upscaled elevations, or `None` when the caller upscaled no
+                DEM. Decides whether a `DEM` comes back.
+
+        Returns:
+            `(upscaled_dem, upscaled_fdir)`, the first `None` when `coarse_z` is.
+        """
         gt = self.geotransform
-        coarse_gt = (
-            gt[0],
-            gt[1] * scale_factor,
-            gt[2],
-            gt[3],
-            gt[4],
-            gt[5] * scale_factor,
-        )
-        plain_fdir = Dataset.from_array(
-            coarse_fdir,
-            geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
-            no_data_value=Dataset.default_no_data_value,
+        geo_ref = GeoReference(
+            geo=(
+                gt[0],
+                gt[1] * scale_factor,
+                gt[2],
+                gt[3],
+                gt[4],
+                gt[5] * scale_factor,
+            ),
+            epsg=self.epsg,
         )
         upscaled_fdir = FlowDirection.from_dataset(
-            plain_fdir,
+            Dataset.from_array(
+                coarse_fdir,
+                geo_ref=geo_ref,
+                no_data_value=Dataset.default_no_data_value,
+            ),
             routing="d8",
             encoding=self.encoding,
         )
-        if z is not None:
-            from digitalrivers.dem import DEM as _DEM
+        if coarse_z is None:
+            return None, upscaled_fdir
+        # Circular-import break: dem imports flow_direction at module load.
+        from digitalrivers.dem import DEM as _DEM
 
-            plain_dem = Dataset.from_array(
-                coarse_z,
-                geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
-                no_data_value=Dataset.default_no_data_value,
-            )
-            upscaled_dem = _DEM(plain_dem.raster)
-        else:
-            upscaled_dem = None
-        return upscaled_dem, upscaled_fdir
+        plain_dem = Dataset.from_array(
+            coarse_z,
+            geo_ref=geo_ref,
+            no_data_value=Dataset.default_no_data_value,
+        )
+        return _DEM(plain_dem.raster), upscaled_fdir
 
     def _upscale_eam_or_dmm(
         self,
