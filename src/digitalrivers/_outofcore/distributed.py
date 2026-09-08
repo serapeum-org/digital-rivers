@@ -2,17 +2,17 @@
 
 The Barnes design is "two MapReduce operations": the per-tile **map** passes are embarrassingly parallel and the
 edge **reduce** is a cheap serial graph solve on the producer. This module runs the map passes through
-``dask.delayed`` (any scheduler, or a ``distributed.Client``) while the reduce stays in-process — reusing the same
+`dask.delayed` (any scheduler, or a `distributed.Client`) while the reduce stays in-process — reusing the same
 kernels and graph as the serial path, so the result is identical.
 
 Design notes:
 
 * Workers reopen the source **by path** (`Dataset.read_file`), so the source must be file-backed; pyramids'
-  ``CachingFileManager`` makes repeated re-opens cheap and a GDAL handle is never pickled.
+  `CachingFileManager` makes repeated re-opens cheap and a GDAL handle is never pickled.
 * Per-tile *interiors* never leave the worker: stage 1 returns only perimeter-sized payloads (label count, local
   spill edges, outlet edges, border strips). Stage 3 returns the finished **core tile array**, which the producer
   writes sequentially — avoiding concurrent writes to one GeoTIFF entirely.
-* When a real ``distributed.Client`` is supplied, ``pyramids.configure(client=...)`` replays the GDAL/cloud env on
+* When a real `distributed.Client` is supplied, `pyramids.configure(client=...)` replays the GDAL/cloud env on
   every worker.
 """
 
@@ -43,10 +43,10 @@ from digitalrivers._outofcore.tiling import (
 
 
 def _source_path(dataset) -> str:
-    """Return a reopenable path for ``dataset``, or raise if it is not file-backed.
+    """Return a reopenable path for `dataset`, or raise if it is not file-backed.
 
     Workers reopen the source by path, so an in-memory MEM dataset (empty description) or a description that is
-    neither an on-disk file nor a GDAL ``/vsi`` virtual path cannot be used by the dask backend.
+    neither an on-disk file nor a GDAL `/vsi` virtual path cannot be used by the dask backend.
     """
     path = dataset.raster.GetDescription()
     if not path:
@@ -117,7 +117,7 @@ def fill_depressions_dask(
 ):
     """Dask-distributed Barnes-2016 tiled fill (epsilon=0). Result identical to the serial engine.
 
-    ``dtype`` overrides the output band dtype (``None`` uses the source band dtype), matching the serial
+    `dtype` overrides the output band dtype (`None` uses the source band dtype), matching the serial
     :func:`digitalrivers._outofcore.fill.fill_depressions_tiled`.
     """
     import dask  # noqa: PLC0415

@@ -97,7 +97,7 @@ class TestGid:
 
 
 def _valued_raster(rows: int, cols: int, path: str) -> Dataset:
-    """A GTiff whose cell value is ``row * 1000 + col`` (unique per cell)."""
+    """A GTiff whose cell value is `row * 1000 + col` (unique per cell)."""
     arr = (np.arange(rows)[:, None] * 1000 + np.arange(cols)[None, :]).astype(
         np.float32
     )

@@ -57,6 +57,23 @@ class WatershedRaster(Dataset):
         gdal_env: dict[str, str] | None = None,
         open_options: tuple[str, ...] | list[str] | None = None,
     ):
+        """Wrap a GDAL dataset as a labelled basin raster.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+            routing: Routing scheme of the source flow direction. Required
+                keyword-only.
+            outlets: `GeoDataFrame` of the pour points the basins were grown from,
+                one row each. Required keyword-only.
+
+        Raises:
+            ValueError: If `routing` is not a recognised value.
+        """
         super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(

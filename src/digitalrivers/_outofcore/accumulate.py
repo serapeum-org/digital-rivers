@@ -5,8 +5,8 @@ flow only crosses tile seams at boundary cells. We exploit the linearity of accu
 
     acc_tile = kahn(fdir, weights + inflow) + inflow
 
-where ``inflow`` is the external flow arriving at the tile's inlet cells. A tile's **export** at a boundary cell
-``e`` whose receiver lies in a neighbour tile is ``acc[e] + weight[e]``, delivered to that receiver (an inlet).
+where `inflow` is the external flow arriving at the tile's inlet cells. A tile's **export** at a boundary cell
+`e` whose receiver lies in a neighbour tile is `acc[e] + weight[e]`, delivered to that receiver (an inlet).
 Inlet inflows therefore depend on neighbour exports, which depend on inlet inflows — a fixed point that converges
 because global D8 flow over a filled DEM is acyclic. We iterate the perimeter exchange to convergence (a simpler,
 still-exact alternative to the Barnes 2017 single-pass FOLLOWPATH graph; same result).
@@ -55,24 +55,24 @@ def flow_accumulation_tiled(
     """Out-of-core D8/Rho8 flow accumulation by tiled perimeter-exchange to convergence.
 
     Args:
-        fdir: A ``FlowDirection`` (or ``Dataset``) of D8 direction codes (``DIR_OFFSETS`` order; sinks / no-data
-            are values outside ``[0, 7]``). Must be D8 or Rho8 routing.
+        fdir: A `FlowDirection` (or `Dataset`) of D8 direction codes (`DIR_OFFSETS` order; sinks / no-data
+            are values outside `[0, 7]`). Must be D8 or Rho8 routing.
         out_path: Path of the GeoTIFF to create and stream the accumulation into.
-        weights: Optional per-cell weight ``Dataset``; defaults to 1.0 per cell (cell counts).
+        weights: Optional per-cell weight `Dataset`; defaults to 1.0 per cell (cell counts).
         tile_rows: Core tile height. Defaults to 2048.
         tile_cols: Core tile width. Defaults to 2048.
-        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
-        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
-        client: Optional ``distributed.Client``; when given, the dask backend is used.
+        workers: `> 1` (or a non-None `client`) runs the per-tile passes through the dask backend (B7).
+        scheduler: dask scheduler for the dask backend (`"threads"` default) when no `client` is given.
+        client: Optional `distributed.Client`; when given, the dask backend is used.
         cache: Accepted for parity with the fill API but currently ignored — the perimeter exchange re-reads
             tiles each round (bounded memory) rather than caching them.
         scratch_dir: Accepted for parity but currently ignored.
 
     Returns:
-        The accumulation `pyramids` ``Dataset`` opened on ``out_path``.
+        The accumulation `pyramids` `Dataset` opened on `out_path`.
 
     Raises:
-        NotImplementedError: If ``fdir.routing`` is not D8 / Rho8 (divergent flow has no fixed-halo closure).
+        NotImplementedError: If `fdir.routing` is not D8 / Rho8 (divergent flow has no fixed-halo closure).
     """
     require_single_band(fdir)
     routing = getattr(fdir, "routing", "d8")

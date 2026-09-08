@@ -7,11 +7,11 @@ Two MapReduce passes over a larger-than-RAM DEM:
 2. **reduce** — stitch tile perimeters into one :class:`~digitalrivers._outofcore.spillgraph.GlobalSpillGraph`
    (intra-tile saddles, cross-seam saddles, and outlet connections for true domain-edge / no-data-adjacent
    cells), then solve it for each watershed's global drainage elevation.
-3. **map** — raise every cell to ``max(local_filled, drain[label])`` and write the tile core to disk.
+3. **map** — raise every cell to `max(local_filled, drain[label])` and write the tile core to disk.
 
-For ``epsilon = 0`` this is bit-for-bit identical to a whole-array Priority-Flood, because the fill is always a
+For `epsilon = 0` this is bit-for-bit identical to a whole-array Priority-Flood, because the fill is always a
 selection among the original elevations and the master graph assigns one consistent spill level per watershed.
-``epsilon > 0`` does **not** compose across seams and is rejected (see the out-of-core plan §2.3 / B6).
+`epsilon > 0` does **not** compose across seams and is rejected (see the out-of-core plan §2.3 / B6).
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ from digitalrivers._outofcore.tiling import (
 
 
 def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
-    """Boolean no-data mask: NaN cells, plus cells equal to ``nodata`` if a sentinel is given."""
+    """Boolean no-data mask: NaN cells, plus cells equal to `nodata` if a sentinel is given."""
     mask = np.isnan(elev)
     if nodata is not None and not np.isnan(nodata):
         mask = mask | (elev == nodata)
@@ -43,13 +43,13 @@ def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
 
 
 def out_dtype(dem) -> str:
-    """Band-0 dtype string of ``dem`` (e.g. ``"float32"`` / ``"float64"``), defaulting to ``"float32"``.
+    """Band-0 dtype string of `dem` (e.g. `"float32"` / `"float64"`), defaulting to `"float32"`.
 
     The tiled fill preserves the source dtype so it stays bit-for-bit with the in-memory fill (which casts back
     to the input dtype) for float64 DEMs, not just float32.
 
     Examples:
-        - A pyramids ``Dataset`` reports its band dtypes as a list; the band-0 dtype is used:
+        - A pyramids `Dataset` reports its band dtypes as a list; the band-0 dtype is used:
             ```python
             >>> import types
             >>> from digitalrivers._outofcore.fill import out_dtype
@@ -57,7 +57,7 @@ def out_dtype(dem) -> str:
             'float64'
 
             ```
-        - Falls back to ``"float32"`` when no dtype is available:
+        - Falls back to `"float32"` when no dtype is available:
             ```python
             >>> import types
             >>> from digitalrivers._outofcore.fill import out_dtype
@@ -75,7 +75,7 @@ def out_dtype(dem) -> str:
 def _flood_tile(
     dem, spec: TileSpec, full_rows: int, full_cols: int, nodata, offset: int
 ):
-    """Run the labelled flood on one tile's core; return ``(filled, glabels, halo_arr, core)``."""
+    """Run the labelled flood on one tile's core; return `(filled, glabels, halo_arr, core)`."""
     # Lazy import keeps `import digitalrivers` numba-free (CLAUDE.md rule).
     from digitalrivers._numba import (  # noqa: PLC0415
         _DIR_DC_I32,
@@ -111,7 +111,7 @@ def _dilate8(mask: np.ndarray) -> np.ndarray:
 def collect_outlet_edges(
     spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
 ) -> list[tuple[int, float]]:
-    """Return ``(label, elevation)`` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
+    """Return `(label, elevation)` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
 
     Vectorised: an outlet cell is a labelled core cell that is on the domain boundary or 8-adjacent to no-data.
     Shared by the serial orchestrator and the dask backend (B7); the latter ships the list back from a worker
@@ -172,35 +172,35 @@ def fill_depressions_tiled(
     """Out-of-core depression fill (Barnes 2016 master-graph).
 
     Args:
-        dem: Source `pyramids` ``Dataset`` (or ``DEM``) to fill.
+        dem: Source `pyramids` `Dataset` (or `DEM`) to fill.
         out_path: Path of the GeoTIFF to create and stream the filled result into.
         tile_rows: Core tile height in cells. Defaults to 2048.
         tile_cols: Core tile width in cells. Defaults to 2048.
-        epsilon: Per-step lift. ``0.0`` (default) is exact / bit-for-bit. For ``epsilon > 0`` see ``eps_fill``.
-        cache: ``TileStore`` mode — ``"evict"`` (default), ``"retain"``, or ``"cache"``.
-        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
-            Only the ``epsilon = 0`` path is dask-parallelised; ``epsilon > 0`` runs serially.
-        scratch_dir: Scratch directory for ``cache`` mode.
-        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
-        client: Optional ``distributed.Client``; when given, the dask backend is used and
-            ``pyramids.configure(client=...)`` replays GDAL config on every worker.
-        eps_fill: Strategy for ``epsilon > 0`` (ignored for ``epsilon = 0``). ``"exact"`` (default, alias
-            ``"monotone"``) produces the exit-distance ramp (``fill_0 + epsilon * exit_distance``) — the *same*
+        epsilon: Per-step lift. `0.0` (default) is exact / bit-for-bit. For `epsilon > 0` see `eps_fill`.
+        cache: `TileStore` mode — `"evict"` (default), `"retain"`, or `"cache"`.
+        workers: `> 1` (or a non-None `client`) runs the per-tile passes through the dask backend (B7).
+            Only the `epsilon = 0` path is dask-parallelised; `epsilon > 0` runs serially.
+        scratch_dir: Scratch directory for `cache` mode.
+        scheduler: dask scheduler for the dask backend (`"threads"` default) when no `client` is given.
+        client: Optional `distributed.Client`; when given, the dask backend is used and
+            `pyramids.configure(client=...)` replays GDAL config on every worker.
+        eps_fill: Strategy for `epsilon > 0` (ignored for `epsilon = 0`). `"exact"` (default, alias
+            `"monotone"`) produces the exit-distance ramp (`fill_0 + epsilon * exit_distance`) — the *same*
             definition the in-memory engine uses, so the tiled result is **byte-for-byte identical** to
-            ``engine="in_memory"`` (flat-free for small epsilon). ``"barnes"`` (the classic Priority-Flood
+            `engine="in_memory"` (flat-free for small epsilon). `"barnes"` (the classic Priority-Flood
             step-count) is in-memory only and raises here: it depends on the global traversal order and is not
-            tileable (see issue #69 / ``docs/eps-fill-exact-feasibility.md``).
-        dtype: Optional output dtype override (e.g. ``"float64"``). ``None`` (default) uses the source band
-            dtype. The ``epsilon>0`` ramp path requests ``"float64"`` for its intermediate ``fill_0`` so the
-            ``fill_0 + epsilon * g`` arithmetic matches the in-memory engine bit-for-bit on ``float32`` sources.
+            tileable (see issue #69 / `docs/eps-fill-exact-feasibility.md`).
+        dtype: Optional output dtype override (e.g. `"float64"`). `None` (default) uses the source band
+            dtype. The `epsilon>0` ramp path requests `"float64"` for its intermediate `fill_0` so the
+            `fill_0 + epsilon * g` arithmetic matches the in-memory engine bit-for-bit on `float32` sources.
 
     Returns:
-        The filled `pyramids` ``Dataset`` opened on ``out_path``.
+        The filled `pyramids` `Dataset` opened on `out_path`.
 
     Raises:
-        NotImplementedError: If ``epsilon != 0`` and ``eps_fill="barnes"`` (not tileable).
-        ValueError: If ``eps_fill`` is not ``"exact"``, ``"monotone"`` or ``"barnes"``, or ``dem`` is multi-band.
-            Use a sane tile size (e.g. ``>= 512``): the global label count / drain vector scale with total tile
+        NotImplementedError: If `epsilon != 0` and `eps_fill="barnes"` (not tileable).
+        ValueError: If `eps_fill` is not `"exact"`, `"monotone"` or `"barnes"`, or `dem` is multi-band.
+            Use a sane tile size (e.g. `>= 512`): the global label count / drain vector scale with total tile
             perimeter.
     """
     require_single_band(dem)

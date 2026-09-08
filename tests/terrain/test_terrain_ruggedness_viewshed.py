@@ -189,8 +189,8 @@ class TestRoughness:
             tmp_path: pytest temporary directory.
 
         Test scenario:
-            Passing explicit ``creation_options`` takes the non-default branch
-            in the shared ``_ruggedness`` backend and writes a readable GeoTIFF.
+            Passing explicit `creation_options` takes the non-default branch
+            in the shared `_ruggedness` backend and writes a readable GeoTIFF.
         """
         out_path = str(tmp_path / "roughness_co.tif")
         peak_dem.roughness(path=out_path, creation_options=["COMPRESS=LZW"])
@@ -452,7 +452,7 @@ class TestViewshed:
             tmp_path: pytest temporary directory.
 
         Test scenario:
-            Passing explicit ``creation_options`` takes the non-default branch
+            Passing explicit `creation_options` takes the non-default branch
             and writes a readable 5x5 GeoTIFF viewshed.
         """
         out_path = str(tmp_path / "viewshed_co.tif")

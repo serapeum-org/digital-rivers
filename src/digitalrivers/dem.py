@@ -153,6 +153,16 @@ class DEM(Dataset):
         gdal_env: dict[str, str] | None = None,
         open_options: tuple[str, ...] | list[str] | None = None,
     ):
+        """Wrap a GDAL dataset as a digital elevation model.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+        """
         super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
 
     @property
