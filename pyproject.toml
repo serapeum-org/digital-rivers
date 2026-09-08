@@ -46,7 +46,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-viz = ["pyramids-gis[viz] >=0.60.0"]
+# cleopatra is pulled by pyramids-gis[viz], which floors it at >=0.31.0. Pin it
+# explicitly at the release this package is written against: the typed render
+# groups (`plot(color=ColorScaling...)`) are 0.31+, and 0.37 is current.
+viz = ["pyramids-gis[viz] >=0.60.0", "cleopatra[tiles] >=0.37.0"]
 distributed = ["pyramids-gis[lazy] >=0.60.0"]
 all = ["digital-rivers[viz,distributed]"]
 
@@ -68,7 +71,12 @@ dev = [
     "commitizen>=4.8.4",
     "mypy>=1.10.0",
     "types-PyYAML>=6.0.0",
-    "pytest-mock>=3.12.0"
+    "pytest-mock>=3.12.0",
+    # Same versions the pre-commit hooks pin, so `pixi run -e dev python -m black`
+    # and `-m flake8` match what CI and the hooks enforce.
+    "black==24.10.0",
+    "flake8==7.1.1",
+    "Flake8-pyproject>=1.2.3"
 ]
 docs = [
     "mkdocs >=1.5.3",
@@ -164,16 +172,13 @@ markers = [
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-arm64"]
 
-# Raise the resolution baseline so pixi picks the pre-built wheels instead of
-# falling back to sdists (which then fail / lack bundled GDAL):
-#  * pyramids-gis ships its Linux wheel as `manylinux_2_39` (glibc >= 2.39);
-#    pixi defaults to glibc 2.17 at lock time and would otherwise reject it and
-#    lock the GDAL-less sdist. See
-#    https://serapeum-org.github.io/pyramids/main/installation/
-#  * pyproj's osx-arm64 wheel is tagged `macosx_14_0_arm64`, above pixi's
-#    default macOS baseline, so raise that too (macos-latest runners are >= 14).
+# Raise the macOS baseline so pixi picks the pre-built wheel instead of falling
+# back to an sdist: pyproj's osx-arm64 wheel is tagged `macosx_14_0_arm64`,
+# above pixi's default (macos-latest runners are >= 14).
+# No `libc` entry: pyramids-gis used to ship its Linux wheel as
+# `manylinux_2_39`, which forced a raised glibc baseline. It ships
+# `manylinux_2_28` now, so the override is gone and pixi's own default applies.
 [tool.pixi.system-requirements]
-libc = "2.39"
 macos = "14.0"
 
 [tool.pixi.pypi-dependencies]

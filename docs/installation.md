@@ -25,10 +25,19 @@ This page covers installation of **digital-rivers** and its native dependencies.
 ### Optional extras
 | Extra | Purpose | Pulls |
 |---|---|---|
-| `viz` | plotting / color tables | `pyramids-gis[viz]` → `cleopatra` |
-| `dev` | tests, linting, build tooling | pytest, pre-commit, mypy, build, twine, … |
-| `docs` | documentation toolchain | mkdocs, mkdocs-material, mkdocstrings, mike, … |
-| `notebook` | Jupyter | jupyterlab, notebook, ipykernel |
+| `viz` | plotting / color tables | `pyramids-gis[viz]`, `cleopatra` |
+| `distributed` | out-of-core / Dask backend | `pyramids-gis[lazy]` |
+| `all` | both of the above | — |
+
+### Development dependency groups
+`dev`, `docs` and `notebook` are [PEP 735](https://peps.python.org/pep-0735/) dependency
+groups, not extras — they are local tooling and are deliberately not published in the
+package metadata. Pixi maps each to an environment of the same name:
+
+```bash
+pixi install -e dev      # tests, linting, build tooling
+pixi install -e docs     # mkdocs toolchain
+```
 
 ## Recommended: Pixi
 
@@ -65,42 +74,32 @@ pixi run notebooks     # validate example notebooks
 | `py313` | `py313` + `dev` | pinned Python 3.13 |
 | `py314` | `py314` + `dev` | pinned Python 3.14 |
 
-## Alternative: conda + pip
+## Alternative: conda
 
-If you'd rather use conda directly:
+If you'd rather manage the environment yourself, install the native stack from
+conda-forge and add the package from source:
 
 ```bash
-mamba create -n digital-rivers -c conda-forge \
-    python=3.12 "gdal>=3.13.3,<3.13.4" libgdal-netcdf libgdal-hdf4
+mamba create -n digital-rivers -c conda-forge     python=3.12 "gdal>=3.13.3,<3.13.4" libgdal-netcdf libgdal-hdf4
 mamba activate digital-rivers
-pip install git+https://github.com/serapeum-org/digital-rivers.git
 ```
 
-## pip-only (advanced)
-
-GDAL is hard to install via pip alone. If you must:
-
-1. Make sure `gdal` and `osgeo` are importable in your environment (system package, prebuilt wheel, etc.).
-2. Then:
-
-   ```bash
-   pip install git+https://github.com/serapeum-org/digital-rivers.git
-   ```
-
-With the `viz` extra:
-
-```bash
-pip install "digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git"
-```
+The repository's own environments are defined in `pyproject.toml` and resolved by
+pixi; `pixi install -e dev` is the supported way to reproduce them exactly, and the
+only one that honours `pixi.lock`.
 
 ## Editable / development install
 
 ```bash
 git clone https://github.com/serapeum-org/digital-rivers.git
 cd digital-rivers
-pixi install -e dev          # or: pip install -e ".[dev]"
-pre-commit install
+pixi install -e dev
+pixi run -e dev pre-commit install
 ```
+
+The package itself is registered as an editable pixi pypi-dependency, so
+`pixi install -e dev` already puts your checkout on the path — there is no separate
+editable-install step.
 
 ## Quick check
 

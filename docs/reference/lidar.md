@@ -1,7 +1,7 @@
 # LiDAR
 
 LiDAR point-cloud I/O, classification, gridding, and analysis. The LAS / LAZ I/O surface
-soft-imports `laspy` — install with `pip install laspy[lazrs]` to enable file read/write.
+soft-imports `laspy` — add `laspy[lazrs]` to the environment to enable file read/write.
 Everything else (gridding, ground filtering, clipping, tree detection) operates on the
 in-memory `LasPoints` record without any external dependency beyond NumPy / SciPy.
 
