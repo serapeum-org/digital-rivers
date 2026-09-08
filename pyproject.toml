@@ -183,9 +183,23 @@ macos = "14.0"
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
-# pyramids-gis is floored in [project.dependencies] (and the `viz` / `distributed`
-# extras), so no override is needed here. GDAL is supplied from conda-forge — see
-# [tool.pixi.dependencies] below.
+# Everything else comes from [project.dependencies] via this editable install, so
+# there are no overrides here and no [tool.pixi.dependencies] table at all — the
+# pixi environments resolve the same PyPI distributions a `pip install` would.
+#
+# Two conda overrides used to live here and are deliberately gone:
+#   * gdal — the pyramids-gis wheel vendors its own osgeo, and `import pyramids`
+#     prepends that directory to sys.path[0] (activate_vendored_osgeo). Since
+#     `digitalrivers/__init__.py` imports pyramids at load, `from osgeo import
+#     gdal` always resolves to the vendored copy, so a conda GDAL was installed
+#     and never imported. It was only needed back when pyramids-gis was pinned to
+#     a git/sdist build, which does not vendor osgeo.
+#   * numba — PyPI ships numba and llvmlite wheels for every interpreter in the
+#     CI matrix (cp311-cp314), and taking them from PyPI keeps numba, llvmlite
+#     and numpy on one ecosystem instead of splitting them.
+#
+# The conda-forge feedstock build does need a real GDAL, but that belongs in the
+# feedstock recipe, not in the environments this file defines.
 
 [tool.pixi.tasks]
 main = { cmd = "pytest -vvv --cov=src/digitalrivers -sv -m 'not plot' --cov-report=xml", description = "Run the main test suite" }
@@ -213,16 +227,6 @@ python = "3.13.*"
 [tool.pixi.feature.py314.dependencies]
 python = "3.14.*"
 
-[tool.pixi.dependencies]
-# No conda `gdal` here on purpose. The pyramids-gis wheel vendors its own
-# osgeo, and `import pyramids` prepends that directory to sys.path[0]
-# (activate_vendored_osgeo); `digitalrivers/__init__.py` imports pyramids at
-# load, so `from osgeo import gdal` always resolves to the vendored copy. A
-# conda GDAL alongside it is never imported — it was only needed back when
-# pyramids-gis was pinned to a git/sdist build, which does not vendor osgeo.
-# The conda-forge feedstock build does need a real GDAL, but that belongs in
-# the feedstock recipe, not in the pixi environments this table defines.
-
 # Force the standard (GIL) CPython build for the unpinned `default`
 # solve-group (default / dev / docs). Without this, conda-forge's solver
 # selects the free-threaded 3.14 variant (build string `*_cp314t`), for
@@ -230,7 +234,7 @@ python = "3.14.*"
 # `cp314t`) — pixi then falls back to the GDAL-less sdist and `import
 # digitalrivers` breaks. The `*cp314` build glob matches the regular ABI
 # wheel (`pyramids_gis-…-cp314-cp314-…`) and excludes the `cp314t` one.
-# Scoped to its own feature (not [tool.pixi.dependencies]) so it doesn't
+# Scoped to its own feature, not to every environment, so it does not
 # collide with the `py311` / `py312` / `py313` env python pins.
 [tool.pixi.feature.gil.dependencies]
 python = { version = "3.14.*"}
