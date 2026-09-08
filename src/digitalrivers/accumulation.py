@@ -136,7 +136,54 @@ class Accumulation(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str) -> Accumulation:
-        """Promote a plain `Dataset` into an `Accumulation`."""
+        """Promote a plain `Dataset` into a `Accumulation`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: The `Dataset` to wrap. Its raster handle is reused, not copied.
+            routing: Routing scheme that produced the accumulation. Keyword-only.
+
+        Returns:
+            A `Accumulation` over the same raster, with `ds`'s handle configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import Accumulation
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> wrapped.routing
+                'd8'
+
+                ```
+            - The source's access mode survives the promotion:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import Accumulation
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> wrapped.access == plain.access
+                True
+
+                ```
+        """
         return cls(
             ds.raster,
             ds.access,
@@ -146,7 +193,50 @@ class Accumulation(Dataset):
         )
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying `Dataset`."""
+        """Drop the typed wrapper and return the underlying `Dataset`.
+
+        Symmetric with `from_dataset`: the access mode, `gdal_env` and
+        `open_options` come back out with the raster, so a round trip does not
+        silently downgrade a writable handle to a read-only one.
+
+        Returns:
+            A plain `Dataset` over the same raster and handle configuration.
+
+        Examples:
+            - Unwrap and read the grid straight off the plain `Dataset`:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import Accumulation
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> plain_again = wrapped.to_dataset()
+                >>> plain_again.read_array().tolist()
+                [[1.0, 2.0], [3.0, 4.0]]
+
+                ```
+            - The access mode round-trips unchanged:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import Accumulation
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> wrapped.to_dataset().access == wrapped.access
+                True
+
+                ```
+        """
         return Dataset(
             self.raster,
             self.access,

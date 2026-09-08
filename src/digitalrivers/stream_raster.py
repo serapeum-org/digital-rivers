@@ -112,7 +112,50 @@ class StreamRaster(Dataset):
         )
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying `Dataset`."""
+        """Drop the typed wrapper and return the underlying `Dataset`.
+
+        Symmetric with `from_dataset`: the access mode, `gdal_env` and
+        `open_options` come back out with the raster, so a round trip does not
+        silently downgrade a writable handle to a read-only one.
+
+        Returns:
+            A plain `Dataset` over the same raster and handle configuration.
+
+        Examples:
+            - Unwrap and read the grid straight off the plain `Dataset`:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import StreamRaster
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = StreamRaster.from_dataset(plain, threshold=10, routing="d8")
+                >>> plain_again = wrapped.to_dataset()
+                >>> plain_again.read_array().tolist()
+                [[1.0, 2.0], [3.0, 4.0]]
+
+                ```
+            - The access mode round-trips unchanged:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> from digitalrivers import StreamRaster
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = StreamRaster.from_dataset(plain, threshold=10, routing="d8")
+                >>> wrapped.to_dataset().access == wrapped.access
+                True
+
+                ```
+        """
         return Dataset(
             self.raster,
             self.access,

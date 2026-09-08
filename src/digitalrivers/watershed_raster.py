@@ -112,7 +112,70 @@ class WatershedRaster(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str, outlets) -> "WatershedRaster":
-        """Promote a plain `Dataset` into a `WatershedRaster`."""
+        """Promote a plain `Dataset` into a `WatershedRaster`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: The `Dataset` to wrap. Its raster handle is reused, not copied.
+            routing: Routing scheme of the source flow direction. Keyword-only.
+            outlets: `GeoDataFrame` of the pour points the basins were grown
+                from, one row per outlet. Keyword-only.
+
+        Returns:
+            A `WatershedRaster` over the same raster, with `ds`'s handle configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers import WatershedRaster
+            >>> outlets = gpd.GeoDataFrame(
+            ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
+            ... )
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = WatershedRaster.from_dataset(
+                ...     plain, routing="d8", outlets=outlets
+                ... )
+                >>> wrapped.routing
+                'd8'
+
+                ```
+            - The source's access mode survives the promotion:
+                ```python
+            >>> import numpy as np
+            >>> from pyramids.dataset import Dataset, GeoReference
+            >>> import geopandas as gpd
+            >>> from shapely.geometry import Point
+            >>> from digitalrivers import WatershedRaster
+            >>> outlets = gpd.GeoDataFrame(
+            ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
+            ... )
+            >>> plain = Dataset.from_array(
+            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+            ...     ),
+            ... )
+                >>> wrapped = WatershedRaster.from_dataset(
+                ...     plain, routing="d8", outlets=outlets
+                ... )
+                >>> wrapped.access == plain.access
+                True
+
+                ```
+        """
         return cls(
             ds.raster,
             ds.access,
