@@ -2931,8 +2931,8 @@ and S3 / GCS read factories remain deferred pending a follow-up PR.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>tile_windows(dataset, tile_rows=1024, tile_cols=1024, overlap=0)</code></td>
-<td>Generator yielding <code>pyramids.dataset.Window</code> tiles for chunked I/O</td>
+<td><code>tile_windows(dataset, tile_rows, tile_cols, overlap=0)</code></td>
+<td>Generator yielding <code>Window</code> tiles for chunked I/O</td>
 </tr>
 <tr>
 <td><code>write_cog(dataset, path, compress="deflate")</code></td>
