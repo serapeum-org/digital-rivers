@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2724,8 +2724,10 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <h1 id="cloud-io-tile-window-iteration-cloud-optimized-geotiff">Cloud I/O — tile-window iteration + Cloud-Optimized GeoTIFF<a class="anchor-link" href="#cloud-io-tile-window-iteration-cloud-optimized-geotiff">¶</a></h1><p>Two helpers for processing continental-scale rasters without ever loading the full grid:</p>
 <ul>
 <li><strong><code>cloud_io.tile_windows(dataset, tile_rows, tile_cols, overlap)</code></strong> — generator yielding
-<code>(row_off, col_off, n_rows, n_cols)</code> windows in row-major order. Pass each window into
-<code>Dataset.read_array(window=...)</code> to stream the raster through any per-tile algorithm.</li>
+<code>pyramids.dataset.Window</code> tiles in row-major order. A <code>Window</code> is x-first
+(<code>col_off</code>, <code>row_off</code>, <code>cols</code>, <code>rows</code>) and is exactly what
+<code>Dataset.read_array(window=...)</code> takes, so each tile can be streamed straight through
+any per-tile algorithm.</li>
 <li><strong><code>cloud_io.write_cog(dataset, path, compress="deflate")</code></strong> — write a Cloud-Optimized GeoTIFF
 (tiled layout + internal overviews) ready for <code>s3://</code> / HTTP range reads.</li>
 </ul>
@@ -2870,7 +2872,7 @@ print(f"Dataset: {ds.rows}×{ds.columns} cells = {ds.rows * ds.columns:,} cells"
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"First 4 windows: </span><span class="si">{</span><span class="n">windows</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Last  window:    </span><span class="si">{</span><span class="n">windows</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 
-<span class="n">total_cells</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">w</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">w</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">)</span>
+<span class="n">total_cells</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">cols</span> <span class="o">*</span> <span class="n">w</span><span class="o">.</span><span class="n">rows</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">windows</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">total_cells</span> <span class="o">==</span> <span class="n">ds</span><span class="o">.</span><span class="n">rows</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">columns</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Sum of window cells = total raster cells: </span><span class="si">{</span><span class="n">total_cells</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
@@ -2879,7 +2881,7 @@ print(f"Tiles for a 500×500 grid at 128×128 tile size: {len(windows)}")
 print(f"First 4 windows: {windows[:4]}")
 print(f"Last  window:    {windows[-1]}")
 
-total_cells = sum(w[2] * w[3] for w in windows)
+total_cells = sum(w.cols * w.rows for w in windows)
 assert total_cells == ds.rows * ds.columns
 print(f"Sum of window cells = total raster cells: {total_cells}")</div>
 </div>
@@ -3021,8 +3023,9 @@ at a time.</p>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="n">running_sum</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="n">running_count</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="k">for</span> <span class="n">r_off</span><span class="p">,</span> <span class="n">c_off</span><span class="p">,</span> <span class="n">n_r</span><span class="p">,</span> <span class="n">n_c</span> <span class="ow">in</span> <span class="n">tile_windows</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">tile_rows</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">tile_cols</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
-    <span class="n">tile</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">read_array</span><span class="p">()[</span><span class="n">r_off</span><span class="p">:</span><span class="n">r_off</span> <span class="o">+</span> <span class="n">n_r</span><span class="p">,</span> <span class="n">c_off</span><span class="p">:</span><span class="n">c_off</span> <span class="o">+</span> <span class="n">n_c</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">win</span> <span class="ow">in</span> <span class="n">tile_windows</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">tile_rows</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span> <span class="n">tile_cols</span><span class="o">=</span><span class="mi">128</span><span class="p">):</span>
+    <span class="c1"># The window reads its own tile — no full-grid load, no manual slicing.</span>
+    <span class="n">tile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">read_array</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="n">win</span><span class="p">))</span>
     <span class="n">valid</span> <span class="o">=</span> <span class="n">tile</span> <span class="o">!=</span> <span class="o">-</span><span class="mf">9999.0</span>
     <span class="n">running_sum</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">tile</span><span class="p">[</span><span class="n">valid</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
     <span class="n">running_count</span> <span class="o">+=</span> <span class="nb">int</span><span class="p">(</span><span class="n">valid</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
@@ -3035,8 +3038,9 @@ at a time.</p>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">running_sum = 0.0
 running_count = 0
-for r_off, c_off, n_r, n_c in tile_windows(ds, tile_rows=128, tile_cols=128):
-    tile = ds.read_array()[r_off:r_off + n_r, c_off:c_off + n_c]
+for win in tile_windows(ds, tile_rows=128, tile_cols=128):
+    # The window reads its own tile — no full-grid load, no manual slicing.
+    tile = np.asarray(ds.read_array(window=win))
     valid = tile != -9999.0
     running_sum += float(tile[valid].sum())
     running_count += int(valid.sum())
