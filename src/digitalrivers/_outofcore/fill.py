@@ -20,7 +20,11 @@ import warnings
 
 import numpy as np
 
-from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
+from digitalrivers._outofcore.spillgraph import (
+    GlobalSpillGraph,
+    solve_drain_levels,
+    stitch_seams,
+)
 from digitalrivers._outofcore.tiling import (
     TileSpec,
     allocate_tiled_output,
@@ -275,45 +279,8 @@ def fill_depressions_tiled(
             store.put(s.tid, filled=filled, glabels=glabels)
 
     # --- stage 2: reduce (stitch seams + global solve) ---
-    for s in specs:
-        right = by_grid.get((s.row, s.col + 1))
-        if right is not None:
-            a_lab, a_fil = strips[s.tid]["right"]
-            b_lab, b_fil = strips[right.tid]["left"]
-            graph.join_strips(a_lab, a_fil, b_lab, b_fil)
-        below = by_grid.get((s.row + 1, s.col))
-        if below is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            b_lab, b_fil = strips[below.tid]["top"]
-            graph.join_strips(a_lab, a_fil, b_lab, b_fil)
-        # Tile-corner diagonals (where four tiles meet): single corner-to-corner adjacencies not covered by the
-        # orthogonal-neighbour seam joins above.
-        diag = by_grid.get((s.row + 1, s.col + 1))
-        if diag is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[diag.tid]["top"]
-            if a_lab[-1] >= 1 and d_lab[0] >= 1:
-                graph.add_edge(
-                    int(a_lab[-1]),
-                    int(d_lab[0]),
-                    max(float(a_fil[-1]), float(d_fil[0])),
-                )
-        anti = by_grid.get((s.row + 1, s.col - 1))
-        if anti is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[anti.tid]["top"]
-            if a_lab[0] >= 1 and d_lab[-1] >= 1:
-                graph.add_edge(
-                    int(a_lab[0]),
-                    int(d_lab[-1]),
-                    max(float(a_fil[0]), float(d_fil[-1])),
-                )
-    drain = graph.solve()
-
-    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
-    for label, level in drain.items():
-        if 1 <= label <= label_offset:
-            drainvec[label] = level
+    stitch_seams(specs, by_grid, strips, graph)
+    drainvec = solve_drain_levels(graph, label_offset)
 
     # --- stage 3: map (raise + write) ---
     for s in specs:

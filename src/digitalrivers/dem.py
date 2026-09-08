@@ -807,13 +807,7 @@ class DEM(Dataset):
                 0.0,
             )
             z = z - drop
-            no_val = self.no_data_value[0]
-            z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-            if inplace:
-                self._update_inplace(plain_ds.raster)
-                return None
-            return DEM(plain_ds.raster)
+            return self._conditioned_result(elev, z, inplace)
 
         if method == "topological_breach":
             # Lindsay 2016: rasterise the stream network onto the DEM
@@ -823,22 +817,7 @@ class DEM(Dataset):
             # cells sit max_breach_depth-or-equivalent below their
             # surroundings, so the breach paths follow the vector topology
             # by construction.
-            elev = self.values
-            rows, cols = elev.shape
-            gt = self.geotransform
-            stream_mask = np.zeros((rows, cols), dtype=bool)
-            streams = _reproject_if_needed(streams, self.epsg)
-            for geom in streams.geometry:
-                if geom is None or geom.is_empty:
-                    continue
-                if geom.geom_type == "MultiLineString":
-                    for sub in geom.geoms:
-                        self._rasterise_line(sub, stream_mask, gt)
-                else:
-                    self._rasterise_line(geom, stream_mask, gt)
-            z = elev.astype(np.float64, copy=True)
-            z[stream_mask] = z[stream_mask] - constant_drop
-            nodata_mask = np.isnan(z)
+            elev, z, nodata_mask = self._burn_stream_cells(streams, constant_drop)
             z = _breach_depressions_array(
                 z,
                 nodata_mask=nodata_mask,
@@ -847,13 +826,7 @@ class DEM(Dataset):
                 max_length=max_breach_length,
                 fill_remaining=True,
             )
-            no_val = self.no_data_value[0]
-            z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-            if inplace:
-                self._update_inplace(plain_ds.raster)
-                return None
-            return DEM(plain_ds.raster)
+            return self._conditioned_result(elev, z, inplace)
 
         if method != "fill_burn":
             raise NotImplementedError(
@@ -861,14 +834,38 @@ class DEM(Dataset):
                 "'fill_burn', 'agree', 'topological_breach')"
             )
 
+        elev, z, nodata_mask = self._burn_stream_cells(streams, constant_drop)
+        z = _fill_depressions_array(
+            z,
+            nodata_mask=nodata_mask,
+            method="priority_flood",
+            epsilon=0.0,
+        )
+        return self._conditioned_result(elev, z, inplace)
+
+    def _burn_stream_cells(self, streams, constant_drop: float):
+        """Rasterise a stream network and lower the cells it covers.
+
+        The step `burn_streams` shares across its methods: reproject the network
+        to the DEM's CRS when needed, rasterise it through the same 2x
+        oversampled floor-rasteriser `enforce_breaklines` and `enforce_culverts`
+        use — so all three snap line samples to cells identically — then subtract
+        `constant_drop` from every cell the network touches.
+
+        Args:
+            streams: `GeoDataFrame` of LineString geometries.
+            constant_drop: Elevation subtracted from each stream cell, in map
+                units.
+
+        Returns:
+            Tuple `(elev, z, nodata_mask)` — the original elevations, the lowered
+            copy as `float64`, and the mask of its no-data cells, which the
+            conditioning kernels take as their gap mask.
+        """
         elev = self.values
-        rows, cols = elev.shape
         gt = self.geotransform
-        x0, dx, _, y0, _, dy = gt
-        stream_mask = np.zeros((rows, cols), dtype=bool)
-
+        stream_mask = np.zeros(elev.shape, dtype=bool)
         streams = _reproject_if_needed(streams, self.epsg)
-
         for geom in streams.geometry:
             if geom is None or geom.is_empty:
                 continue
@@ -876,22 +873,30 @@ class DEM(Dataset):
                 for sub in geom.geoms:
                     self._rasterise_line(sub, stream_mask, gt)
             else:
-                # Delegate to the shared 2× oversampled floor-rasteriser so
-                # burn_streams, enforce_breaklines, and enforce_culverts all
-                # snap line samples to cells identically (I1 fix).
                 self._rasterise_line(geom, stream_mask, gt)
-
         z = elev.astype(np.float64, copy=True)
         z[stream_mask] = z[stream_mask] - constant_drop
-        nodata_mask = np.isnan(z)
-        z = _fill_depressions_array(
-            z,
-            nodata_mask=nodata_mask,
-            method="priority_flood",
-            epsilon=0.0,
-        )
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
+        return elev, z, np.isnan(z)
+
+    def _conditioned_result(self, elev, z, inplace: bool, *, gaps=None):
+        """Return a conditioned surface as a `DEM`, or apply it in place.
+
+        The tail every conditioning operation shares: restore the raster's own
+        no-data sentinel over the cells the kernel left empty and cast back to
+        the source dtype, so conditioning never silently widens the band.
+
+        Args:
+            elev: The original elevation array, read for its dtype.
+            z: The conditioned surface, modified in place.
+            inplace: Update this instance instead of returning a new `DEM`.
+            gaps: Boolean mask of the cells to stamp as no-data. Defaults to
+                `np.isnan(z)`; pass `~np.isfinite(z)` for a kernel that can also
+                produce infinities.
+
+        Returns:
+            A new `DEM`, or `None` when `inplace` is True.
+        """
+        z[np.isnan(z) if gaps is None else gaps] = self.no_data_value[0]
         plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
         if inplace:
             self._update_inplace(plain_ds.raster)
@@ -961,13 +966,7 @@ class DEM(Dataset):
         crossings = road_mask & stream_mask
         z = elev.astype(np.float64, copy=True)
         z[crossings] = z[crossings] - culvert_drop
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def _polygon_cell_indices(self, geom, gt, rows, cols):
         """Return `(rows_idx, cols_idx)` of cells whose centre is inside `geom`.
@@ -1132,13 +1131,7 @@ class DEM(Dataset):
                 target = float(np.median(vals))
             z[rs, cs] = target
 
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def burn_buildings(
         self,
@@ -1173,13 +1166,7 @@ class DEM(Dataset):
             if rs.size:
                 z[rs, cs] = z[rs, cs] + lift
 
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def enforce_breaklines(
         self,
@@ -1215,13 +1202,7 @@ class DEM(Dataset):
 
         z = elev.astype(np.float64, copy=True)
         z[mask] = z[mask] + lift
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def subgrid_bathymetry(
         self,
@@ -1708,13 +1689,7 @@ class DEM(Dataset):
                 if diff < tol:
                     break
 
-        no_val = self.no_data_value[0]
-        z[~np.isfinite(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace, gaps=~np.isfinite(z))
 
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
         """Deprecated alias for `fill_depressions(method="priority_flood", epsilon=0.1)`.

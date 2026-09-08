@@ -40,6 +40,43 @@ if TYPE_CHECKING:
     from digitalrivers.watershed_raster import WatershedRaster
 
 
+def _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir):
+    """Count the stream neighbours draining into each stream cell.
+
+    Vectorised over the eight D8 directions rather than per cell: for each
+    direction the whole grid is shifted once with paired source/destination
+    slices, so a neighbour contributes exactly when it is a stream cell, points
+    back along that direction (`inv_dir[k]`), and drains into another stream
+    cell. The result is what separates a confluence (count > 1) from a link
+    interior (count == 1) and a head (count == 0).
+
+    Args:
+        stream_mask: Boolean stream network.
+        fdir: D8 direction codes, aligned with `stream_mask`.
+        d_row: Row offset per direction code.
+        d_col: Column offset per direction code.
+        inv_dir: For direction `k`, the code a neighbour must carry to point back.
+
+    Returns:
+        `int8` array of upstream stream-neighbour counts, shaped like
+        `stream_mask`.
+    """
+    rows, cols = stream_mask.shape
+    nup = np.zeros(stream_mask.shape, dtype=np.int8)
+    for k in range(8):
+        dr = int(d_row[k])
+        dc = int(d_col[k])
+        src_r = slice(max(0, dr), min(rows, rows + dr))
+        src_c = slice(max(0, dc), min(cols, cols + dc))
+        dst_r = slice(max(0, -dr), min(rows, rows - dr))
+        dst_c = slice(max(0, -dc), min(cols, cols - dc))
+        sm_src = stream_mask[src_r, src_c]
+        fd_src = fdir[src_r, src_c]
+        inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
+        nup[dst_r, dst_c] += inflow.astype(np.int8)
+    return nup
+
+
 class StreamRaster(Dataset):
     """Boolean/int stream-network raster tagged with extraction threshold.
 
@@ -319,19 +356,7 @@ class StreamRaster(Dataset):
         inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
         rows, cols = stream_mask.shape
 
-        # Incoming-stream count per stream cell (for confluence detection).
-        nup = np.zeros(stream_mask.shape, dtype=np.int8)
-        for k in range(8):
-            dr = int(d_row[k])
-            dc = int(d_col[k])
-            src_r = slice(max(0, dr), min(rows, rows + dr))
-            src_c = slice(max(0, dc), min(cols, cols + dc))
-            dst_r = slice(max(0, -dr), min(rows, rows - dr))
-            dst_c = slice(max(0, -dc), min(cols, cols - dc))
-            sm_src = stream_mask[src_r, src_c]
-            fd_src = fdir[src_r, src_c]
-            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
-            nup[dst_r, dst_c] += inflow.astype(np.int8)
+        nup = _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir)
 
         link_id = np.zeros((rows, cols), dtype=np.int32)
         next_id = 1
@@ -799,20 +824,7 @@ class StreamRaster(Dataset):
 
         rows, cols = stream_mask.shape
 
-        # Step 1 — incoming-stream count per stream cell.
-        nup = np.zeros(stream_mask.shape, dtype=np.int8)
-        for k in range(8):
-            dr = int(d_row[k])
-            dc = int(d_col[k])
-            src_r = slice(max(0, dr), min(rows, rows + dr))
-            src_c = slice(max(0, dc), min(cols, cols + dc))
-            dst_r = slice(max(0, -dr), min(rows, rows - dr))
-            dst_c = slice(max(0, -dc), min(cols, cols - dc))
-            sm_src = stream_mask[src_r, src_c]
-            fd_src = fdir[src_r, src_c]
-            # A neighbour at (src) points into (dst) iff its direction equals inv[k].
-            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
-            nup[dst_r, dst_c] += inflow.astype(np.int8)
+        nup = _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir)
 
         # Step 2 — find link starts.
         heads_or_confluences_mask = stream_mask & ((nup == 0) | (nup >= 2))

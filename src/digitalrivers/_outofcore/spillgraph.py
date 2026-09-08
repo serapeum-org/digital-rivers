@@ -167,3 +167,73 @@ class GlobalSpillGraph:
         mins = np.minimum.reduceat(e_sorted, starts)
         for k, s in enumerate(starts):
             self.add_edge(int(lo[s]), int(hi[s]), float(mins[k]))
+
+
+def stitch_seams(specs, by_grid, strips, graph) -> None:
+    """Join every tile's perimeter labels to its neighbours' in the spill graph.
+
+    Each tile is flooded in isolation, so a depression spanning a seam appears as
+    two unrelated labels until they are joined here. Orthogonal neighbours share a
+    whole edge and go through `join_strips`; the two diagonals share exactly one
+    corner cell, which no strip join covers, so they get a single explicit edge at
+    the higher of the two fill levels.
+
+    Only the down-right and down-left diagonals are walked: every tile pair is
+    reached once from the upper tile, so adding the mirrored pair would double the
+    edges without changing the solve.
+
+    Args:
+        specs: Every tile, in any order.
+        by_grid: `(row, col)` -> `TileSpec`, for neighbour lookup.
+        strips: `tile id` -> `{"top"|"bottom"|"left"|"right": (labels, filled)}`,
+            with labels already offset into the global numbering.
+        graph: The `GlobalSpillGraph` to add the seam edges to. Mutated in place.
+    """
+    for s in specs:
+        right = by_grid.get((s.row, s.col + 1))
+        if right is not None:
+            graph.join_strips(*strips[s.tid]["right"], *strips[right.tid]["left"])
+        below = by_grid.get((s.row + 1, s.col))
+        if below is not None:
+            graph.join_strips(*strips[s.tid]["bottom"], *strips[below.tid]["top"])
+        diag = by_grid.get((s.row + 1, s.col + 1))
+        if diag is not None:
+            a_lab, a_fil = strips[s.tid]["bottom"]
+            d_lab, d_fil = strips[diag.tid]["top"]
+            if a_lab[-1] >= 1 and d_lab[0] >= 1:
+                graph.add_edge(
+                    int(a_lab[-1]),
+                    int(d_lab[0]),
+                    max(float(a_fil[-1]), float(d_fil[0])),
+                )
+        anti = by_grid.get((s.row + 1, s.col - 1))
+        if anti is not None:
+            a_lab, a_fil = strips[s.tid]["bottom"]
+            d_lab, d_fil = strips[anti.tid]["top"]
+            if a_lab[0] >= 1 and d_lab[-1] >= 1:
+                graph.add_edge(
+                    int(a_lab[0]),
+                    int(d_lab[-1]),
+                    max(float(a_fil[0]), float(d_fil[-1])),
+                )
+
+
+def solve_drain_levels(graph, label_offset: int) -> np.ndarray:
+    """Solve the spill graph and index the drain level of each label.
+
+    An array rather than the solver's dict because the per-tile raise pass looks
+    up one level per cell; `-inf` marks a label the solve returned nothing for,
+    which the raise reads as "do not lift this cell".
+
+    Args:
+        graph: The stitched `GlobalSpillGraph`.
+        label_offset: One past the highest global label issued.
+
+    Returns:
+        `float64` array of length `label_offset + 1`, indexed by label.
+    """
+    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
+    for label, level in graph.solve().items():
+        if 1 <= label <= label_offset:
+            drainvec[label] = level
+    return drainvec

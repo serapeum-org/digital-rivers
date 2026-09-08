@@ -29,7 +29,11 @@ from digitalrivers._outofcore.fill import (
     collect_outlet_edges,
     out_dtype,
 )
-from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
+from digitalrivers._outofcore.spillgraph import (
+    GlobalSpillGraph,
+    solve_drain_levels,
+    stitch_seams,
+)
 from digitalrivers._outofcore.tiling import (
     allocate_tiled_output,
     perimeter_cells,
@@ -166,43 +170,9 @@ def fill_depressions_dask(
             for side, (lab, fil) in strips.items()
         }
 
-    for s in specs:
-        right = by_grid.get((s.row, s.col + 1))
-        if right is not None:
-            graph.join_strips(
-                *strips_global[s.tid]["right"], *strips_global[right.tid]["left"]
-            )
-        below = by_grid.get((s.row + 1, s.col))
-        if below is not None:
-            graph.join_strips(
-                *strips_global[s.tid]["bottom"], *strips_global[below.tid]["top"]
-            )
-        diag = by_grid.get((s.row + 1, s.col + 1))
-        if diag is not None:
-            a_lab, a_fil = strips_global[s.tid]["bottom"]
-            d_lab, d_fil = strips_global[diag.tid]["top"]
-            if a_lab[-1] >= 1 and d_lab[0] >= 1:
-                graph.add_edge(
-                    int(a_lab[-1]),
-                    int(d_lab[0]),
-                    max(float(a_fil[-1]), float(d_fil[0])),
-                )
-        anti = by_grid.get((s.row + 1, s.col - 1))
-        if anti is not None:
-            a_lab, a_fil = strips_global[s.tid]["bottom"]
-            d_lab, d_fil = strips_global[anti.tid]["top"]
-            if a_lab[0] >= 1 and d_lab[-1] >= 1:
-                graph.add_edge(
-                    int(a_lab[0]),
-                    int(d_lab[-1]),
-                    max(float(a_fil[0]), float(d_fil[-1])),
-                )
+    stitch_seams(specs, by_grid, strips_global, graph)
 
-    drain = graph.solve()
-    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
-    for label, level in drain.items():
-        if 1 <= label <= label_offset:
-            drainvec[label] = level
+    drainvec = solve_drain_levels(graph, label_offset)
 
     # stage 3: parallel map -> finished core tiles; producer writes sequentially
     finalized = _compute(
