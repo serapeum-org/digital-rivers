@@ -1,6 +1,7 @@
 from pyramids.dataset import Dataset
 from osgeo_utils import gdal_calc
 import pandas as pd
+from pyramids.plot import ColorScaling
 
 # path = r"\\MYCLOUDEX2ULTRA\satellite-data\landsat\lake-taho"
 path = r"examples\data\landsat\lake-taho"
@@ -9,10 +10,10 @@ color_palette = pd.read_csv(f"{path}/beige_green.txt")
 # %%
 b4 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B4.TIF")
 print(b4)
-# b4.plot(color_scale="linear")
+# b4.plot(color=ColorScaling.linear())
 b4.no_data_value
 b5 = Dataset.read_file(rf"{path}\LC08_L2SP_043033_20210922_20210930_02_T1_SR_B5.TIF")
-# b5.plot(color_scale="linear")
+# b5.plot(color=ColorScaling.linear())
 b5.no_data_value
 # %%
 """
@@ -41,8 +42,8 @@ ndvi = gdal_calc.Calc(
 # %%
 ndvi = Dataset(ndvi)
 print(ndvi)
-# color_scale="boundary-norm", bounds=[0, 0.2, 0.4, 0.6, 0.8, 1]
-ndvi.plot(vmin=0, vmax=1, color_scale="linear")
+# For a classed ramp instead of a linear one, pass a boundary ColorScaling.
+ndvi.plot(vmin=0, vmax=1, color=ColorScaling.linear())
 ndvi.stats()
 ndvi = ndvi.change_no_data_value(-9999, ndvi.no_data_value[0])
 
@@ -53,5 +54,5 @@ color_relief.to_file(f"{path}/tahoe_LC08_20210922_SR_NDVI_color_relief.tif")
 # ndvi = Dataset.read_file(r"examples\data\landsat\lake-taho\tahoe_LC08_20210922_SR_NDVI.tif", read_only=False)
 
 color_relief.no_data_value = 0
-color_relief.plot(rgb=[0, 1, 2, 3])
+color_relief.plot(rgb_options={"rgb": [0, 1, 2, 3]})
 color_relief.read_array(band=0, window=[0, 0, 5, 5])

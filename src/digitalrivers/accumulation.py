@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers._metadata import (
@@ -106,6 +106,11 @@ class Accumulation(Dataset):
         routing: Routing scheme of the `FlowDirection` that produced this
             accumulation. Required keyword-only argument. Used as provenance
             so `streams(threshold)` can validate compatibility downstream.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Raises:
         ValueError: If `routing` is not a recognised value.
@@ -119,8 +124,25 @@ class Accumulation(Dataset):
         access: str = "read_only",
         *,
         routing: str,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
-        super().__init__(src, access)
+        """Wrap a GDAL dataset as a flow-accumulation raster.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+            routing: Routing scheme of the `FlowDirection` that produced this
+                accumulation, kept as provenance. Required keyword-only.
+
+        Raises:
+            ValueError: If `routing` is not a recognised value.
+        """
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -129,12 +151,85 @@ class Accumulation(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str) -> Accumulation:
-        """Promote a plain `Dataset` into an `Accumulation`."""
-        return cls(ds.raster, routing=routing)
+        """Promote a plain `Dataset` into an `Accumulation`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: The `Dataset` to wrap. Its raster handle is reused, not copied.
+            routing: Routing scheme that produced the accumulation. Keyword-only.
+
+        Returns:
+            A `Accumulation` over the same raster, with `ds`'s handle configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> wrapped.routing
+                'd8'
+                >>> wrapped.access == plain.access
+                True
+
+                ```
+        """
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying `Dataset`."""
-        return Dataset(self.raster)
+        """Drop the typed wrapper and return the underlying `Dataset`.
+
+        Symmetric with `from_dataset`: the access mode, `gdal_env` and
+        `open_options` come back out with the raster, so a round trip does not
+        silently downgrade a writable handle to a read-only one.
+
+        Returns:
+            A plain `Dataset` over the same raster and handle configuration.
+
+        Examples:
+            - Unwrap and read the grid straight off the plain `Dataset`, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
+                >>> plain_again = wrapped.to_dataset()
+                >>> plain_again.read_array().tolist()
+                [[1.0, 2.0], [3.0, 4.0]]
+                >>> wrapped.to_dataset().access == wrapped.access
+                True
+
+                ```
+        """
+        return Dataset(
+            self.raster,
+            self.access,
+            gdal_env=self.gdal_env or None,
+            open_options=self.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Write `routing` to the underlying raster's metadata tags."""
@@ -144,16 +239,39 @@ class Accumulation(Dataset):
         }
 
     @classmethod
-    def open(cls, path: str, *, routing: str | None = None) -> Accumulation:
+    def open(
+        cls,
+        path: str,
+        *,
+        routing: str | None = None,
+        read_only: bool = True,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
+    ) -> Accumulation:
         """Open an `Accumulation` GeoTIFF.
 
         Resolution order: explicit `routing=` > `DR_ROUTING` tag > raise.
+
+        Args:
+            path: Path to the GeoTIFF.
+            routing: Explicit routing override. If `None`, falls back to
+                the `DR_ROUTING` tag.
+            read_only: Open the file read-only (default). Pass `False` to
+                get a writable handle — required before `persist_metadata()`
+                can stamp the `DR_*` tags onto an existing file.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) installed
+                for the open and captured on the result, so pyramids' reopen
+                paths re-authenticate. Default `None`.
+            open_options: GDAL open options forwarded to the driver and
+                captured on the result. Default `None`.
 
         Raises:
             ValueError: If neither `routing=` nor a `DR_ROUTING` tag is
                 available.
         """
-        ds = Dataset.read_file(path)
+        ds = Dataset.read_file(
+            path, read_only, gdal_env=gdal_env, open_options=open_options
+        )
         md = ds.meta_data or {}
         resolved_routing = routing or md.get(META_ROUTING)
         if resolved_routing is None:
@@ -161,7 +279,13 @@ class Accumulation(Dataset):
                 f"{path!r} carries no DR_ROUTING tag and no routing= was passed. "
                 f"Pass routing= explicitly (one of {sorted(VALID_ROUTING)})."
             )
-        return cls(ds.raster, routing=resolved_routing)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=resolved_routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def streams(
         self,
@@ -221,15 +345,20 @@ class Accumulation(Dataset):
               one-cell accumulation threshold:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> sr = dem.flow_direction(method="d8").accumulate().streams(threshold=1)
@@ -239,15 +368,20 @@ class Accumulation(Dataset):
             - Apply an envelope mask to exclude the first row from the result:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> acc = DEM(ds.raster).flow_direction(method="d8").accumulate()
                 >>> env = np.ones(acc.read_array().shape, dtype=bool)
@@ -307,10 +441,9 @@ class Accumulation(Dataset):
             mask = valid & (acc_arr >= cells_threshold)
 
         stream_mask = mask.astype(np.uint8, copy=False)
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             stream_mask,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
@@ -373,15 +506,20 @@ class Accumulation(Dataset):
                 >>> import numpy as np
                 >>> import geopandas as gpd
                 >>> from shapely.geometry import Point
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> acc = dem.flow_direction(method="d8").accumulate()
@@ -399,15 +537,20 @@ class Accumulation(Dataset):
                 >>> import numpy as np
                 >>> import geopandas as gpd
                 >>> from shapely.geometry import Point
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> acc = dem.flow_direction(method="d8").accumulate()

@@ -1,22 +1,12 @@
 """Tests for `FlowDirection.upscale` (P18 — COTAT only)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
 from digitalrivers import DEM, FlowDirection
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem, twin_channel_z
 
 
 def test_scale_factor_one_is_noop():
@@ -37,17 +27,7 @@ def test_scale_factor_one_is_noop():
 
 
 def test_scale_factor_two_halves_dimensions():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = twin_channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -56,17 +36,7 @@ def test_scale_factor_two_halves_dimensions():
 
 
 def test_cotat_returns_dem_when_input_dem_supplied():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = twin_channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()

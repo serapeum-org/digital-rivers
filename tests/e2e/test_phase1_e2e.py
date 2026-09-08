@@ -12,6 +12,7 @@ mass conservation across accumulation, sinks-free output after fill +
 resolve_flats, stream cells == HAND zero, and non-negative HAND in the
 catchment.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -20,7 +21,7 @@ import sys
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation, FlowDirection, StreamRaster
 from digitalrivers._flow.accumulation import accumulate as _accumulate_array
@@ -71,9 +72,12 @@ class TestCoelloEndToEndPipeline:
             no cell is strictly lower than all eight valid 8-neighbours.
         """
         from digitalrivers._conditioning.pitremoval import local_minima_8
+
         resolved = pipeline["resolved"]
         sinks = local_minima_8(resolved.values)
-        assert int(sinks.sum()) == 0, f"Expected no internal sinks, found {int(sinks.sum())}"
+        assert (
+            int(sinks.sum()) == 0
+        ), f"Expected no internal sinks, found {int(sinks.sum())}"
 
     def test_flow_direction_has_at_most_one_undefined_inside_envelope(
         self, pipeline: dict
@@ -91,9 +95,9 @@ class TestCoelloEndToEndPipeline:
         nan_in_original = np.isnan(dem.values)
         undefined_in_fd = fd_arr == no_data_value
         spurious = undefined_in_fd & ~nan_in_original
-        assert int(spurious.sum()) <= 1, (
-            f"Expected at most 1 undefined interior cell, got {int(spurious.sum())}"
-        )
+        assert (
+            int(spurious.sum()) <= 1
+        ), f"Expected at most 1 undefined interior cell, got {int(spurious.sum())}"
 
     def test_accumulation_is_non_negative(self, pipeline: dict) -> None:
         """Every cell's accumulation is >= 0 (no negative weights are introduced).
@@ -122,9 +126,9 @@ class TestCoelloEndToEndPipeline:
         valid = (acc_arr != no_val) & ~np.isnan(dem.values)
         n_valid = int(valid.sum())
         total = float(acc_arr[valid].sum())
-        assert total >= n_valid - 1, (
-            f"Accumulation sum {total} below conservation lower bound {n_valid - 1}"
-        )
+        assert (
+            total >= n_valid - 1
+        ), f"Accumulation sum {total} below conservation lower bound {n_valid - 1}"
 
     def test_stream_cells_have_zero_hand(self, pipeline: dict) -> None:
         """HAND at every stream cell is 0 (cells drain to themselves).
@@ -136,7 +140,9 @@ class TestCoelloEndToEndPipeline:
         sr_mask = pipeline["sr"].read_array().astype(bool)
         hand_arr = pipeline["hand"].read_array()
         np.testing.assert_allclose(
-            hand_arr[sr_mask], 0.0, atol=1e-4,
+            hand_arr[sr_mask],
+            0.0,
+            atol=1e-4,
             err_msg="Stream cells should have HAND == 0",
         )
 
@@ -223,15 +229,21 @@ class TestNumbaFallbackExercised:
         for mod in ("digitalrivers._numba", "digitalrivers._conditioning.pitremoval"):
             sys.modules.pop(mod, None)
         try:
-            pitremoval = importlib.import_module("digitalrivers._conditioning.pitremoval")
+            pitremoval = importlib.import_module(
+                "digitalrivers._conditioning.pitremoval"
+            )
             numba_mod = importlib.import_module("digitalrivers._numba")
             assert numba_mod.is_numba_enabled() is False
-            out = pitremoval.fill_depressions(z.copy(), method="priority_flood",
-                                              epsilon=0.0)
+            out = pitremoval.fill_depressions(
+                z.copy(), method="priority_flood", epsilon=0.0
+            )
             assert out[2, 2] == 5.0, f"Expected pit lift to rim, got {out[2, 2]}"
         finally:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
-            for mod in ("digitalrivers._numba", "digitalrivers._conditioning.pitremoval"):
+            for mod in (
+                "digitalrivers._numba",
+                "digitalrivers._conditioning.pitremoval",
+            ):
                 sys.modules.pop(mod, None)
             importlib.import_module("digitalrivers._numba")
             importlib.import_module("digitalrivers._conditioning.pitremoval")
@@ -255,9 +267,9 @@ class TestNumbaFallbackExercised:
             numba_mod = importlib.import_module("digitalrivers._numba")
             assert numba_mod.is_numba_enabled() is False
             out = accumulation.accumulate(fdir, "d8", valid)
-            assert out[0, 4] == pytest.approx(4.0), (
-                f"Expected outlet count 4, got {out[0, 4]}"
-            )
+            assert out[0, 4] == pytest.approx(
+                4.0
+            ), f"Expected outlet count 4, got {out[0, 4]}"
         finally:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
             for mod in ("digitalrivers._numba", "digitalrivers._flow.accumulation"):
@@ -283,13 +295,10 @@ class TestAccumulationOpenRoundTrip:
         """
         arr = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.float32)
         path = str(tmp_path / "acc.tif")
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             arr,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
-            driver_type="GTiff",
             path=path,
         )
         acc = Accumulation.from_dataset(plain, routing="mfd_quinn")
@@ -307,13 +316,10 @@ class TestAccumulationOpenRoundTrip:
         """
         arr = np.array([[1, 2]], dtype=np.float32)
         path = str(tmp_path / "untagged.tif")
-        Dataset.create_from_array(
+        Dataset.from_array(
             arr,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
-            driver_type="GTiff",
             path=path,
         )
         with pytest.raises(ValueError, match="DR_ROUTING"):
@@ -333,13 +339,10 @@ class TestStreamRasterOpenRoundTrip:
         """
         arr = np.array([[0, 1, 1, 0]], dtype=np.uint8)
         path = str(tmp_path / "streams.tif")
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             arr,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=0,
-            driver_type="GTiff",
             path=path,
         )
         sr = StreamRaster.from_dataset(plain, threshold=42.5, routing="d8")
@@ -358,13 +361,10 @@ class TestStreamRasterOpenRoundTrip:
         """
         arr = np.array([[0, 1]], dtype=np.uint8)
         path = str(tmp_path / "no_threshold.tif")
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             arr,
-            top_left_corner=(0.0, 0.0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=0,
-            driver_type="GTiff",
             path=path,
         )
         plain.meta_data = {"DR_ROUTING": "d8"}
@@ -414,6 +414,7 @@ class TestBreachAdditionalBranches:
         )
         out = breach_depressions(z, method="least_cost", max_depth=1.0)
         from digitalrivers._conditioning.pitremoval import local_minima_8
+
         assert local_minima_8(out)[3, 3]
 
 

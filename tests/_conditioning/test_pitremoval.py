@@ -4,12 +4,13 @@ Covers the three algorithms (Priority-Flood + ε, Wang & Liu, Planchon-Darboux) 
 acceptance-criteria fixtures from the P2 spec: single pit, cascading pit, no-data as drain,
 flat plateau with two outlets, and a behavioural sinks-free check on the Coello basin.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 from digitalrivers._conditioning.pitremoval import (
@@ -74,11 +75,9 @@ def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
     disk[nan_mask] = no_data_value
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         disk,
-        top_left_corner=(0.0, 0.0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
@@ -153,7 +152,9 @@ class TestPriorityFloodCascadingPit:
 
     def test_planchon_darboux_resolves_inner_and_outer(self):
         # PD with a tiny epsilon — every interior cell must be at least the outer rim.
-        z_fill = fill_depressions(PIT_IN_PIT_6x6, method="planchon_darboux", epsilon=1e-6)
+        z_fill = fill_depressions(
+            PIT_IN_PIT_6x6, method="planchon_darboux", epsilon=1e-6
+        )
         assert np.all(z_fill[1:-1, 1:-1] >= 5.0 - 1e-9)
 
 
@@ -269,9 +270,9 @@ class TestCoelloBasinSinksFree:
             method="priority_flood", epsilon=0.1, eps_fill="barnes"
         )
         sinks = _internal_sinks_mask(filled.values)
-        assert int(sinks.sum()) == 0, (
-            f"priority_flood left {int(sinks.sum())} internal sinks on the Coello DEM"
-        )
+        assert (
+            int(sinks.sum()) == 0
+        ), f"priority_flood left {int(sinks.sum())} internal sinks on the Coello DEM"
 
     def test_fill_only_raises_elevations(self, coello_dem_4000: gdal.Dataset):
         dem = DEM(coello_dem_4000)

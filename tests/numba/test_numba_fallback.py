@@ -8,6 +8,7 @@ Verifies:
   (requires re-importing the kernel module after setting the env var).
 * The kernel module exposes a public `is_numba_enabled` predicate.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -23,6 +24,7 @@ from digitalrivers._flow.accumulation import _receivers_d8, kahn_accumulate
 
 
 # ----- Toggle / availability ----------------------------------------------------------------
+
 
 def test_is_numba_enabled_predicate_exists():
     assert isinstance(_numba.is_numba_enabled(), bool)
@@ -45,6 +47,7 @@ def test_env_var_disables_numba_on_reimport(monkeypatch):
 
 
 # ----- Priority-flood parity -----------------------------------------------------------------
+
 
 def _single_pit_5x5() -> np.ndarray:
     return np.array(
@@ -95,6 +98,7 @@ def test_priority_flood_numba_handles_nodata():
 
 # ----- D8 accumulation parity ---------------------------------------------------------------
 
+
 def test_kahn_accumulate_d8_numba_matches_pure_python():
     # Hand-crafted 3-row strip; the central row chains east into a sink.
     fdir = np.array(
@@ -135,6 +139,7 @@ def test_d8_kernel_handles_sinks():
 
 
 # ----- D8 flow-direction kernel -------------------------------------------------------------
+
 
 def test_d8_flow_direction_numba_matches_steepest_descent():
     # Simple 3x3 hilltop: centre is highest, all neighbours slope away.

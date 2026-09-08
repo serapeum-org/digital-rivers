@@ -1,5 +1,6 @@
 from pyramids.dataset import Dataset
 from digitalrivers.terrain import Terrain
+from pyramids.plot import ColorScaling
 
 path = r"\\MYCLOUDEX2ULTRA\satellite-data\DEM"
 # dem_path = "USGS_1M_10_x56y512_WA_FEMAHQ_2018_D18.tif"
@@ -9,7 +10,7 @@ dem_path = f"/vsicurl/https://drive.google.com/uc?export=download&id={file_id}"
 # %%
 dataset = Terrain.read_file(f"{dem_path}")
 print(dataset)
-dataset.plot(color_scale="linear")
+dataset.plot(color=ColorScaling.linear())
 dataset.stats()
 src = dataset.raster
 # %%

@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import geopandas as gpd
 import numpy as np
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers._flow.accumulation import (
@@ -70,6 +70,11 @@ class FlowDirection(Dataset):
             `"taudem"`, `"esri"`, `"whitebox"`. Defaults to
             `"digitalrivers"` (the convention defined by `DIR_OFFSETS` in
             `dem.py`).
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Raises:
         ValueError: If `routing` or `encoding` is not a recognised value.
@@ -85,8 +90,27 @@ class FlowDirection(Dataset):
         *,
         routing: str,
         encoding: str = "digitalrivers",
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
-        super().__init__(src, access)
+        """Wrap a GDAL dataset as a flow-direction raster.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+            routing: Routing scheme the raster encodes. Required keyword-only —
+                there is no default, because reading a D-infinity raster as D8
+                silently corrupts every derivative.
+            encoding: Cell-value convention. Defaults to `"digitalrivers"`.
+
+        Raises:
+            ValueError: If `routing` or `encoding` is not a recognised value.
+        """
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -108,19 +132,89 @@ class FlowDirection(Dataset):
     ) -> FlowDirection:
         """Promote a plain `Dataset` into a `FlowDirection`.
 
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
         Args:
-            ds: Dataset wrapping the flow-direction raster.
+            ds: Dataset wrapping the flow-direction raster. Its raster handle is
+                reused, not copied.
             routing: Routing scheme. Required keyword-only.
             encoding: Cell-value encoding convention.
 
         Returns:
-            A `FlowDirection` sharing the same underlying GDAL dataset.
+            A `FlowDirection` over the same raster, with `ds`'s handle
+            configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [2, 3]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = FlowDirection.from_dataset(plain, routing="d8")
+                >>> wrapped.routing, wrapped.encoding
+                ('d8', 'digitalrivers')
+                >>> FlowDirection.from_dataset(
+                ...     plain, routing="d8"
+                ... ).access == plain.access
+                True
+
+                ```
         """
-        return cls(ds.raster, routing=routing, encoding=encoding)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=routing,
+            encoding=encoding,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying `Dataset`."""
-        return Dataset(self.raster)
+        """Drop the typed wrapper and return the underlying `Dataset`.
+
+        Symmetric with `from_dataset`: the access mode, `gdal_env` and
+        `open_options` come back out with the raster, so a round trip does not
+        silently downgrade a writable handle to a read-only one.
+
+        Returns:
+            A plain `Dataset` over the same raster and handle configuration.
+
+        Examples:
+            - Unwrap and read the grid straight off the plain `Dataset`, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = FlowDirection.from_dataset(plain, routing="d8")
+                >>> plain_again = wrapped.to_dataset()
+                >>> plain_again.read_array().tolist()
+                [[1.0, 2.0], [3.0, 4.0]]
+                >>> wrapped.to_dataset().access == wrapped.access
+                True
+
+                ```
+        """
+        return Dataset(
+            self.raster,
+            self.access,
+            gdal_env=self.gdal_env or None,
+            open_options=self.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Write `routing` and `encoding` to the underlying raster tags.
@@ -141,6 +235,9 @@ class FlowDirection(Dataset):
         *,
         routing: str | None = None,
         encoding: str | None = None,
+        read_only: bool = True,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ) -> FlowDirection:
         """Open a `FlowDirection` GeoTIFF.
 
@@ -161,6 +258,14 @@ class FlowDirection(Dataset):
                 the `DR_ROUTING` tag.
             encoding: Explicit encoding override. If `None`, falls back to
                 the `DR_ENCODING` tag, then to `"digitalrivers"`.
+            read_only: Open the file read-only (default). Pass `False` to
+                get a writable handle — required before `persist_metadata()`
+                can stamp the `DR_*` tags onto an existing file.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) installed
+                for the open and captured on the result, so pyramids' reopen
+                paths re-authenticate. Default `None`.
+            open_options: GDAL open options forwarded to the driver and
+                captured on the result. Default `None`.
 
         Returns:
             A `FlowDirection` wrapping the opened raster.
@@ -169,7 +274,9 @@ class FlowDirection(Dataset):
             ValueError: If neither `routing=` nor a `DR_ROUTING` tag is
                 available.
         """
-        ds = Dataset.read_file(path)
+        ds = Dataset.read_file(
+            path, read_only, gdal_env=gdal_env, open_options=open_options
+        )
         md = ds.meta_data or {}
         resolved_routing = routing or md.get(META_ROUTING)
         resolved_encoding = encoding or md.get(META_ENCODING) or "digitalrivers"
@@ -179,7 +286,14 @@ class FlowDirection(Dataset):
                 f"Pass routing= explicitly (one of {sorted(VALID_ROUTING)}) to "
                 f"avoid silent misinterpretation of cell values."
             )
-        return cls(ds.raster, routing=resolved_routing, encoding=resolved_encoding)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=resolved_routing,
+            encoding=resolved_encoding,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def accumulate(
         self,
@@ -261,10 +375,9 @@ class FlowDirection(Dataset):
             w_arr = None
         acc = _accumulate_array(fd_arr, self.routing, valid_mask, weights=w_arr)
         acc_f32 = acc.astype(np.float32, copy=False)
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             acc_f32,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=self.default_no_data_value,
         )
         return Accumulation.from_dataset(plain, routing=self.routing)
@@ -376,10 +489,9 @@ class FlowDirection(Dataset):
             gt[4],
             gt[5] * scale_factor,
         )
-        plain_fdir = Dataset.create_from_array(
+        plain_fdir = Dataset.from_array(
             coarse_fdir,
-            geo=coarse_gt,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
             no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
@@ -404,10 +516,9 @@ class FlowDirection(Dataset):
                 fr = int(out[1])
                 fc = int(out[2])
                 coarse_z[br, bc] = _pick_coarse_elev(z_arr, fr, fc)
-            plain_dem = Dataset.create_from_array(
+            plain_dem = Dataset.from_array(
                 coarse_z,
-                geo=coarse_gt,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_dem = _DEM(plain_dem.raster)
@@ -518,6 +629,7 @@ class FlowDirection(Dataset):
                 np.int32(Dataset.default_no_data_value),
             )
             z = None
+            coarse_z = None
             if dem is not None:
                 z = dem.read_array().astype(np.float64, copy=False)
                 coarse_z = np.full(
@@ -535,39 +647,7 @@ class FlowDirection(Dataset):
                         fr = br * scale_factor + idx // scale_factor
                         fc = bc * scale_factor + idx % scale_factor
                         coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
-            gt = self.geotransform
-            coarse_gt = (
-                gt[0],
-                gt[1] * scale_factor,
-                gt[2],
-                gt[3],
-                gt[4],
-                gt[5] * scale_factor,
-            )
-            plain_fdir = Dataset.create_from_array(
-                coarse_fdir,
-                geo=coarse_gt,
-                epsg=self.epsg,
-                no_data_value=Dataset.default_no_data_value,
-            )
-            upscaled_fdir = FlowDirection.from_dataset(
-                plain_fdir,
-                routing="d8",
-                encoding=self.encoding,
-            )
-            if z is not None:
-                from digitalrivers.dem import DEM as _DEM
-
-                plain_dem = Dataset.create_from_array(
-                    coarse_z,
-                    geo=coarse_gt,
-                    epsg=self.epsg,
-                    no_data_value=Dataset.default_no_data_value,
-                )
-                upscaled_dem = _DEM(plain_dem.raster)
-            else:
-                upscaled_dem = None
-            return upscaled_dem, upscaled_fdir
+            return self._wrap_upscaled(coarse_fdir, scale_factor, coarse_z)
 
         coarse_fdir = np.full(
             (out_rows, out_cols),
@@ -576,6 +656,7 @@ class FlowDirection(Dataset):
         )
 
         z = None
+        coarse_z = None
         if dem is not None:
             z = dem.read_array().astype(np.float64, copy=False)
             coarse_z = np.full(
@@ -636,40 +717,61 @@ class FlowDirection(Dataset):
                         break
                     r, c = nr, nc
 
-        # Build coarse geotransform.
+        return self._wrap_upscaled(coarse_fdir, scale_factor, coarse_z)
+
+    def _wrap_upscaled(
+        self,
+        coarse_fdir: np.ndarray,
+        scale_factor: int,
+        coarse_z: np.ndarray | None = None,
+    ):
+        """Wrap the coarse arrays as typed rasters on the upscaled grid.
+
+        The tail every upscaling method shares: derive the coarse geotransform by
+        stretching the source cell size, then wrap the flow-direction array — and
+        the coarse elevation array when there is one — as typed results.
+
+        Args:
+            coarse_fdir: Upscaled D8 codes, shaped to the coarse grid.
+            scale_factor: Cells of the source grid per coarse cell.
+            coarse_z: Upscaled elevations, or `None` when the caller upscaled no
+                DEM. Decides whether a `DEM` comes back.
+
+        Returns:
+            `(upscaled_dem, upscaled_fdir)`, the first `None` when `coarse_z` is.
+        """
         gt = self.geotransform
-        coarse_gt = (
-            gt[0],
-            gt[1] * scale_factor,
-            gt[2],
-            gt[3],
-            gt[4],
-            gt[5] * scale_factor,
-        )
-        plain_fdir = Dataset.create_from_array(
-            coarse_fdir,
-            geo=coarse_gt,
+        geo_ref = GeoReference(
+            geo=(
+                gt[0],
+                gt[1] * scale_factor,
+                gt[2],
+                gt[3],
+                gt[4],
+                gt[5] * scale_factor,
+            ),
             epsg=self.epsg,
-            no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
-            plain_fdir,
+            Dataset.from_array(
+                coarse_fdir,
+                geo_ref=geo_ref,
+                no_data_value=Dataset.default_no_data_value,
+            ),
             routing="d8",
             encoding=self.encoding,
         )
-        if z is not None:
-            from digitalrivers.dem import DEM as _DEM
+        if coarse_z is None:
+            return None, upscaled_fdir
+        # Circular-import break: dem imports flow_direction at module load.
+        from digitalrivers.dem import DEM as _DEM
 
-            plain_dem = Dataset.create_from_array(
-                coarse_z,
-                geo=coarse_gt,
-                epsg=self.epsg,
-                no_data_value=Dataset.default_no_data_value,
-            )
-            upscaled_dem = _DEM(plain_dem.raster)
-        else:
-            upscaled_dem = None
-        return upscaled_dem, upscaled_fdir
+        plain_dem = Dataset.from_array(
+            coarse_z,
+            geo_ref=geo_ref,
+            no_data_value=Dataset.default_no_data_value,
+        )
+        return _DEM(plain_dem.raster), upscaled_fdir
 
     def _upscale_eam_or_dmm(
         self,
@@ -769,10 +871,9 @@ class FlowDirection(Dataset):
             gt[4],
             gt[5] * scale_factor,
         )
-        plain_fdir = Dataset.create_from_array(
+        plain_fdir = Dataset.from_array(
             coarse_fdir,
-            geo=coarse_gt,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
             no_data_value=Dataset.default_no_data_value,
         )
         upscaled_fdir = FlowDirection.from_dataset(
@@ -800,10 +901,9 @@ class FlowDirection(Dataset):
                     fr = br * scale_factor + idx // scale_factor
                     fc = bc * scale_factor + idx % scale_factor
                     coarse_z[br, bc] = _pick_coarse_elev(z, fr, fc)
-            plain_dem = Dataset.create_from_array(
+            plain_dem = Dataset.from_array(
                 coarse_z,
-                geo=coarse_gt,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=coarse_gt, epsg=self.epsg),
                 no_data_value=Dataset.default_no_data_value,
             )
             upscaled_dem = _DEM(plain_dem.raster)
@@ -854,7 +954,7 @@ class FlowDirection(Dataset):
               the canonical `[1, 9]` Pfafstetter range:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [
@@ -864,9 +964,14 @@ class FlowDirection(Dataset):
                 ...     ],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")
@@ -882,7 +987,7 @@ class FlowDirection(Dataset):
               (P16 multi-level backfill):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [
@@ -892,9 +997,14 @@ class FlowDirection(Dataset):
                 ...     ],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")
@@ -909,14 +1019,19 @@ class FlowDirection(Dataset):
             - `level < 1` is rejected:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")
@@ -967,10 +1082,9 @@ class FlowDirection(Dataset):
             basin_mask=None,
             level=level,
         )
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         ids = sorted({int(v) for v in np.unique(out) if v != 0})
@@ -1182,10 +1296,9 @@ class FlowDirection(Dataset):
             )
         fdir = self.read_array().astype(np.int32, copy=False)
         lengths = kahn_max_upslope_length(fdir, float(abs(self.geotransform[1])))
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             lengths.astype(np.float32),
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=-9999.0,
         )
 
@@ -1280,10 +1393,9 @@ class FlowDirection(Dataset):
             if not outlets:
                 # No stream cells at all — emit an all-zero basin raster.
                 labels = np.zeros((rows, cols), dtype=np.int32)
-                plain = Dataset.create_from_array(
+                plain = Dataset.from_array(
                     labels,
-                    geo=self.geotransform,
-                    epsg=self.epsg,
+                    geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
                     no_data_value=0,
                 )
                 return WatershedRaster.from_dataset(
@@ -1300,10 +1412,9 @@ class FlowDirection(Dataset):
             basin_ids,
             require_unique_basins=True,
         )
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             labels.astype(np.int32),
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         outlets_dict = dict(zip(basin_ids, seed_rcs))
@@ -1458,10 +1569,9 @@ class FlowDirection(Dataset):
             for rec in outlet_records:
                 rec["cell_count"] = int(sizes.get(rec["basin_id"], 0))
 
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             basins,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
 
@@ -1557,10 +1667,9 @@ class FlowDirection(Dataset):
         basins = watershed_d8(
             fdir, seeds, basin_ids, require_unique_basins=require_unique_basins
         )
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             basins,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
 

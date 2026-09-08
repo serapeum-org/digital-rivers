@@ -8,7 +8,7 @@ import types
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._numba import (
     _DIR_DC_I32,
@@ -30,13 +30,10 @@ def _make_fdir(seed: int, shape=(13, 17)) -> np.ndarray:
 
 
 def _fdir_dataset(fd: np.ndarray, path: str) -> Dataset:
-    return Dataset.create_from_array(
+    return Dataset.from_array(
         fd.astype(np.float32),
-        top_left_corner=(0, 0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         no_data_value=-1,
-        driver_type="GTiff",
         path=path,
     )
 
@@ -46,12 +43,9 @@ def _run(fd: np.ndarray, tile, weights=None):
         fdds = _fdir_dataset(fd, os.path.join(tmp, "fd.tif"))
         wds = None
         if weights is not None:
-            wds = Dataset.create_from_array(
+            wds = Dataset.from_array(
                 weights.astype(np.float32),
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
-                driver_type="GTiff",
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 path=os.path.join(tmp, "w.tif"),
             )
         out = flow_accumulation_tiled(

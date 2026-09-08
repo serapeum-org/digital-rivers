@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from digitalrivers.terrain import Terrain
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 rng = np.random.default_rng(42)
 
@@ -16,13 +16,11 @@ def _terrain(arr: np.ndarray, cell_size: float = 0.05, epsg: int = 4326) -> Terr
         epsg: CRS code. Defaults to 4326.
 
     Returns:
-        Terrain: Dataset wrapping ``arr`` with no-data set to ``-9999.0``.
+        Terrain: Dataset wrapping `arr` with no-data set to `-9999.0`.
     """
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         arr,
-        top_left_corner=(0, 0),
-        cell_size=cell_size,
-        epsg=epsg,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=cell_size, epsg=epsg),
         no_data_value=-9999.0,
     )
     return Terrain(ds.raster)
@@ -33,8 +31,9 @@ class TestHillShade:
     def test_int_parameters(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -46,15 +45,16 @@ class TestHillShade:
             scale=1,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_list_parameters(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -66,15 +66,16 @@ class TestHillShade:
             scale=[1, 1],
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_multi_directional(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -87,15 +88,16 @@ class TestHillShade:
             multi_directional=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_combined(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -108,15 +110,16 @@ class TestHillShade:
             combined=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
     def test_igor(self):
         arr = rng.integers(0, 15, size=(100, 100))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
 
@@ -129,7 +132,7 @@ class TestHillShade:
             igor=True,
         )
         assert hill_shade.shape == dataset.shape
-        assert hill_shade.dtype == ["byte"]
+        assert hill_shade.dtype == ["uint8"]
         arr2 = hill_shade.read_array()
         assert arr2.dtype == np.uint8
 
@@ -137,8 +140,8 @@ class TestHillShade:
         """Test hill_shade rejects list parameters of unequal length.
 
         Test scenario:
-            ``azimuth`` has two entries but ``altitude`` only one, so the
-            length-consistency guard must raise ``ValueError``.
+            `azimuth` has two entries but `altitude` only one, so the
+            length-consistency guard must raise `ValueError`.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
         with pytest.raises(ValueError, match="same length") as exc:
@@ -154,8 +157,8 @@ class TestHillShade:
         """Test explicit weights actually alter the multi-directional blend.
 
         Test scenario:
-            The same two-direction hill shade blended with ``weights=[3, 1]``
-            differs from the uniform ``weights=[1, 1]`` blend, confirming the
+            The same two-direction hill shade blended with `weights=[3, 1]`
+            differs from the uniform `weights=[1, 1]` blend, confirming the
             weights are applied (not silently ignored). Output is uint8 of the
             input shape.
         """
@@ -178,10 +181,10 @@ class TestHillShade:
         ), "weights=[3, 1] must produce a different blend than uniform [1, 1]"
 
     def test_path_writes_geotiff(self, tmp_path):
-        """Test hill_shade writes a GeoTIFF when ``path`` is given.
+        """Test hill_shade writes a GeoTIFF when `path` is given.
 
         Test scenario:
-            With ``path=<file>`` the GTiff driver branch runs and the
+            With `path=<file>` the GTiff driver branch runs and the
             output file exists on disk and is readable.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
@@ -194,7 +197,7 @@ class TestHillShade:
         """Test multi_directional=False produces a normal single hill shade.
 
         Test scenario:
-            Passing ``multi_directional=False`` takes the non-blended branch
+            Passing `multi_directional=False` takes the non-blended branch
             and returns a single uint8 band of the input shape.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
@@ -206,7 +209,7 @@ class TestHillShade:
         """Test multi_directional must be a boolean.
 
         Test scenario:
-            A non-boolean ``multi_directional`` value raises ``ValueError``.
+            A non-boolean `multi_directional` value raises `ValueError`.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
         with pytest.raises(ValueError, match="multi_directional") as exc:
@@ -217,7 +220,7 @@ class TestHillShade:
         """Test igor=False leaves altitude unchanged and still runs.
 
         Test scenario:
-            ``igor=False`` takes the branch that does not blank out altitude;
+            `igor=False` takes the branch that does not blank out altitude;
             the call returns a single uint8 hill-shade band.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
@@ -228,7 +231,7 @@ class TestHillShade:
         """Test igor must be a boolean.
 
         Test scenario:
-            A non-boolean ``igor`` value raises ``ValueError``.
+            A non-boolean `igor` value raises `ValueError`.
         """
         dem = _terrain(rng.integers(0, 15, size=(20, 20)))
         with pytest.raises(ValueError, match="igor") as exc:
@@ -241,8 +244,9 @@ class TestSlope:
     def test_default_parameters(self):
         arr = rng.integers(0, 50, size=(100, 100)).astype(np.float32)
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         slope = dataset.slope()
@@ -259,7 +263,7 @@ class TestSlope:
 
         Test scenario:
             On a steep ramp, degree slope is bounded by 90 while percent-rise
-            slope is unbounded and exceeds it — proving ``slope_format`` actually
+            slope is unbounded and exceeds it — proving `slope_format` actually
             changes the computation rather than being ignored.
         """
         ramp = (np.arange(100).reshape(10, 10) * 5).astype(np.float32)
@@ -286,8 +290,8 @@ class TestSlope:
             algorithm: The GDAL slope algorithm name.
 
         Test scenario:
-            Both ``Horn`` and ``ZevenbergenThorne`` produce a float32
-            slope raster of the input shape with no-data ``-9999.0``.
+            Both `Horn` and `ZevenbergenThorne` produce a float32
+            slope raster of the input shape with no-data `-9999.0`.
         """
         dem = _terrain(rng.integers(0, 50, size=(30, 30)).astype(np.float32))
         out = dem.slope(algorithm=algorithm)
@@ -295,10 +299,10 @@ class TestSlope:
         assert out.dtype == ["float32"], f"{algorithm}: dtype {out.dtype}"
 
     def test_path_writes_geotiff(self, tmp_path):
-        """Test slope writes a GeoTIFF when ``path`` is given.
+        """Test slope writes a GeoTIFF when `path` is given.
 
         Test scenario:
-            ``path=<file>`` selects the GTiff driver; the file exists and
+            `path=<file>` selects the GTiff driver; the file exists and
             round-trips to the input shape.
         """
         dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
@@ -311,7 +315,7 @@ class TestSlope:
         """Test slope honours caller-supplied creation_options.
 
         Test scenario:
-            Passing explicit ``creation_options`` takes the non-default branch
+            Passing explicit `creation_options` takes the non-default branch
             and writes a readable GeoTIFF of the input shape.
         """
         dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
@@ -326,8 +330,9 @@ class TestAspect:
     def test_default_parameters(self):
         arr = rng.integers(0, 50, size=(100, 100)).astype(np.float32)
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         aspect = dataset.aspect()
@@ -344,7 +349,7 @@ class TestAspect:
 
         Test scenario:
             On a perfectly flat surface every cell is flat; with
-            ``zero_flat_surface=True`` interior aspect values are 0 rather
+            `zero_flat_surface=True` interior aspect values are 0 rather
             than the no-data sentinel.
         """
         dem = _terrain(np.full((10, 10), 5.0, dtype=np.float32))
@@ -355,10 +360,10 @@ class TestAspect:
         ), f"Flat interior aspect should be 0, got {interior}"
 
     def test_path_writes_geotiff(self, tmp_path):
-        """Test aspect writes a GeoTIFF when ``path`` is given.
+        """Test aspect writes a GeoTIFF when `path` is given.
 
         Test scenario:
-            ``path=<file>`` selects the GTiff driver; the file exists and
+            `path=<file>` selects the GTiff driver; the file exists and
             round-trips to the input shape.
         """
         dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
@@ -371,7 +376,7 @@ class TestAspect:
         """Test aspect honours caller-supplied creation_options.
 
         Test scenario:
-            Passing explicit ``creation_options`` takes the non-default branch
+            Passing explicit `creation_options` takes the non-default branch
             and writes a readable GeoTIFF of the input shape.
         """
         dem = _terrain(rng.integers(0, 50, size=(20, 20)).astype(np.float32))
@@ -388,14 +393,12 @@ class TestTerrainInit:
         """Test Terrain wraps an existing in-memory gdal.Dataset.
 
         Test scenario:
-            Passing a ``gdal.Dataset`` yields a Terrain that is also a
+            Passing a `gdal.Dataset` yields a Terrain that is also a
             Dataset and preserves the raster shape.
         """
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             rng.integers(0, 15, size=(8, 8)),
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         )
         terrain = Terrain(ds.raster)
         assert isinstance(terrain, Dataset), "Terrain must subclass Dataset"
@@ -405,15 +408,13 @@ class TestTerrainInit:
         """Test Terrain.read_file opens a raster from a filesystem path.
 
         Test scenario:
-            Writing a GeoTIFF then opening it via ``Terrain.read_file(<path>)``
+            Writing a GeoTIFF then opening it via `Terrain.read_file(<path>)`
             yields a Terrain (the supported path-based constructor; the bare
-            ``Terrain(<path>)`` ctor only accepts a ``gdal.Dataset``).
+            `Terrain(<path>)` ctor only accepts a `gdal.Dataset`).
         """
-        ds = Dataset.create_from_array(
+        ds = Dataset.from_array(
             np.arange(16, dtype=np.float32).reshape(4, 4),
-            top_left_corner=(0, 0),
-            cell_size=1.0,
-            epsg=4326,
+            geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         path = tmp_path / "dem.tif"
@@ -431,7 +432,7 @@ class TestColorRelief:
         Test scenario:
             A numeric RGBA color table (no hex parsing, so no optional viz
             dependency) produces a 4-band RGBA raster tagged with the
-            standard ``band_color`` mapping.
+            standard `band_color` mapping.
         """
         table = pd.DataFrame(
             {
@@ -456,10 +457,10 @@ class TestColorRelief:
         ), f"Grid changed: {out.shape} vs {dem.shape}"
 
     def test_rgba_color_table_writes_geotiff(self, tmp_path):
-        """Test color_relief writes a GeoTIFF when ``path`` is given.
+        """Test color_relief writes a GeoTIFF when `path` is given.
 
         Test scenario:
-            With an RGBA table and ``path=<file>``, the GTiff branch runs
+            With an RGBA table and `path=<file>`, the GTiff branch runs
             and a 4-band file is written to disk.
         """
         table = pd.DataFrame(
@@ -487,8 +488,9 @@ class TestColorRelief:
         )
         arr = rng.integers(0, 15, size=(10, 10))
         dataset = Terrain(
-            Dataset.create_from_array(
-                arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+            Dataset.from_array(
+                arr,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=0.05, epsg=4326),
             ).raster
         )
         color_relief = dataset.color_relief(band=0, color_table=color_df)

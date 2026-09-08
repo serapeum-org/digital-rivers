@@ -1,9 +1,10 @@
 """Tests for D∞ / MFD-Quinn / MFD-Holmgren / Rho8 flow direction (P5)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, FlowDirection
 from digitalrivers._flow.routing import (
@@ -13,19 +14,26 @@ from digitalrivers._flow.routing import (
 )
 
 
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0,
-              no_data_value: float = -9999.0) -> DEM:
+def _make_dem(
+    arr: np.ndarray, cell_size: float = 1.0, no_data_value: float = -9999.0
+) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
     disk[nan_mask] = no_data_value
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
 
 
 # ----- D8 regression --------------------------------------------------------------------
+
 
 def test_d8_still_returns_routing_d8():
     z = np.array(
@@ -46,6 +54,7 @@ def test_d8_still_returns_routing_d8():
 
 
 # ----- D∞ ------------------------------------------------------------------------------
+
 
 class TestDinf:
     def test_planar_east_slope_gives_eastward_angle(self):
@@ -100,6 +109,7 @@ class TestDinf:
 
 # ----- MFD ----------------------------------------------------------------------------
 
+
 class TestMFD:
     def test_quinn_fractions_sum_to_one_on_downslope_cells(self):
         # Conical hilltop: every direction has a downslope neighbour.
@@ -111,8 +121,9 @@ class TestMFD:
         dem = _make_dem(z)
         slopes = dem._get_8_direction_slopes()
         elev_mask = ~np.isnan(dem.values)
-        fractions = mfd_flow_direction(slopes, elev_mask,
-                                       weighting="quinn", exponent=1.0)
+        fractions = mfd_flow_direction(
+            slopes, elev_mask, weighting="quinn", exponent=1.0
+        )
         total = fractions.sum(axis=2)
         # Interior cells (away from edge nans) should have downhill neighbours.
         interior_total = total[2:-2, 2:-2]
@@ -133,8 +144,12 @@ class TestMFD:
         dem = _make_dem(z)
         slopes = dem._get_8_direction_slopes()
         elev_mask = ~np.isnan(dem.values)
-        f_low = mfd_flow_direction(slopes, elev_mask, weighting="holmgren", exponent=1.0)
-        f_high = mfd_flow_direction(slopes, elev_mask, weighting="holmgren", exponent=10.0)
+        f_low = mfd_flow_direction(
+            slopes, elev_mask, weighting="holmgren", exponent=1.0
+        )
+        f_high = mfd_flow_direction(
+            slopes, elev_mask, weighting="holmgren", exponent=10.0
+        )
         # At the centre cell (2, 2), the steepest direction's fraction should be larger
         # with high exponent.
         centre_low = f_low[2, 2].max()
@@ -159,6 +174,7 @@ class TestMFD:
 
 
 # ----- Rho8 ----------------------------------------------------------------------------
+
 
 class TestRho8:
     def test_reproducible_with_seed(self):
@@ -204,6 +220,7 @@ class TestRho8:
 
 
 # ----- Validation ----------------------------------------------------------------------
+
 
 def test_unknown_method_raises():
     z = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)

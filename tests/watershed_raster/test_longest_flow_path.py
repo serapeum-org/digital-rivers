@@ -1,22 +1,10 @@
 """Tests for `WatershedRaster.statistics(longest_flow_path_m)` (W-8)."""
+
 from __future__ import annotations
 
 import numpy as np
-import pytest
-from pyramids.dataset import Dataset
 
-from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestLongestFlowPath:
@@ -29,14 +17,7 @@ class TestLongestFlowPath:
             With both kwargs supplied, statistics() must include the
             longest_flow_path_m column.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         acc = fd.accumulate()
@@ -52,14 +33,7 @@ class TestLongestFlowPath:
             Passing `flow_direction` without `accumulation` must still
             produce the metric.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         ws = fd.basins()
@@ -73,14 +47,7 @@ class TestLongestFlowPath:
             Without `flow_direction`, the longest-flow-path block is
             skipped silently — no error, no column.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         ws = dem.flow_direction(method="d8").basins()
         df = ws.statistics()
@@ -117,14 +84,7 @@ class TestLongestFlowPath:
             Path lengths are summed step distances; they must be ≥ 0 for
             every basin.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         acc = fd.accumulate()
@@ -139,14 +99,7 @@ class TestLongestFlowPath:
             After M1: the gate is `flow_direction is not None` only. An
             accumulation-only call must skip the metric without error.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         acc = fd.accumulate()

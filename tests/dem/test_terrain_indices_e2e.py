@@ -18,24 +18,14 @@ in sequence on a single synthetic DEM and asserts cross-cutting invariants:
       → openness(search_radius=3, kind="negative")
       → sky_view_factor(search_radius=3)     # W-28
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
 from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 @pytest.fixture(scope="module")
@@ -87,8 +77,21 @@ class TestTerrainAttributeStack:
 
     @pytest.mark.parametrize(
         "key",
-        ["tpi", "dev", "sd", "rug", "plan", "profile", "total", "mean",
-         "gaussian", "normal_dev", "openness_pos", "openness_neg", "svf"],
+        [
+            "tpi",
+            "dev",
+            "sd",
+            "rug",
+            "plan",
+            "profile",
+            "total",
+            "mean",
+            "gaussian",
+            "normal_dev",
+            "openness_pos",
+            "openness_neg",
+            "svf",
+        ],
     )
     def test_every_surface_matches_dem_shape_and_dtype(self, bundle, key):
         """Test each surface in the stack has the DEM's shape and float32 dtype.
@@ -116,7 +119,8 @@ class TestTerrainAttributeStack:
         tpi = bundle["tpi"].read_array()
         dev = bundle["dev"].read_array()
         centre = (7, 7)
-        assert tpi[centre] > 0 and dev[centre] > 0
+        assert tpi[centre] > 0
+        assert dev[centre] > 0
 
     def test_sd_and_ruggedness_non_negative(self, bundle):
         """Test elev_std and ruggedness are non-negative across the DEM (W-23 / W-24).
@@ -144,7 +148,9 @@ class TestTerrainAttributeStack:
         interior_total = total[2:-2, 2:-2]
         interior_mean = mean[2:-2, 2:-2]
         np.testing.assert_allclose(
-            interior_mean, interior_total / 2.0, atol=1e-5,
+            interior_mean,
+            interior_total / 2.0,
+            atol=1e-5,
         )
 
     def test_gaussian_curvature_finite(self, bundle):

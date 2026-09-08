@@ -2,17 +2,17 @@
 
 The Barnes design is "two MapReduce operations": the per-tile **map** passes are embarrassingly parallel and the
 edge **reduce** is a cheap serial graph solve on the producer. This module runs the map passes through
-``dask.delayed`` (any scheduler, or a ``distributed.Client``) while the reduce stays in-process — reusing the same
+`dask.delayed` (any scheduler, or a `distributed.Client`) while the reduce stays in-process — reusing the same
 kernels and graph as the serial path, so the result is identical.
 
 Design notes:
 
 * Workers reopen the source **by path** (`Dataset.read_file`), so the source must be file-backed; pyramids'
-  ``CachingFileManager`` makes repeated re-opens cheap and a GDAL handle is never pickled.
+  `CachingFileManager` makes repeated re-opens cheap and a GDAL handle is never pickled.
 * Per-tile *interiors* never leave the worker: stage 1 returns only perimeter-sized payloads (label count, local
   spill edges, outlet edges, border strips). Stage 3 returns the finished **core tile array**, which the producer
   writes sequentially — avoiding concurrent writes to one GeoTIFF entirely.
-* When a real ``distributed.Client`` is supplied, ``pyramids.configure(client=...)`` replays the GDAL/cloud env on
+* When a real `distributed.Client` is supplied, `pyramids.configure(client=...)` replays the GDAL/cloud env on
   every worker.
 """
 
@@ -21,7 +21,7 @@ from __future__ import annotations
 import os
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.fill import (
     _edge_strips,
@@ -29,15 +29,24 @@ from digitalrivers._outofcore.fill import (
     collect_outlet_edges,
     out_dtype,
 )
-from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
-from digitalrivers._outofcore.tiling import plan_tiles, write_core
+from digitalrivers._outofcore.spillgraph import (
+    GlobalSpillGraph,
+    solve_drain_levels,
+    stitch_seams,
+)
+from digitalrivers._outofcore.tiling import (
+    allocate_tiled_output,
+    perimeter_cells,
+    plan_tiles,
+    write_core,
+)
 
 
 def _source_path(dataset) -> str:
-    """Return a reopenable path for ``dataset``, or raise if it is not file-backed.
+    """Return a reopenable path for `dataset`, or raise if it is not file-backed.
 
     Workers reopen the source by path, so an in-memory MEM dataset (empty description) or a description that is
-    neither an on-disk file nor a GDAL ``/vsi`` virtual path cannot be used by the dask backend.
+    neither an on-disk file nor a GDAL `/vsi` virtual path cannot be used by the dask backend.
     """
     path = dataset.raster.GetDescription()
     if not path:
@@ -108,7 +117,7 @@ def fill_depressions_dask(
 ):
     """Dask-distributed Barnes-2016 tiled fill (epsilon=0). Result identical to the serial engine.
 
-    ``dtype`` overrides the output band dtype (``None`` uses the source band dtype), matching the serial
+    `dtype` overrides the output band dtype (`None` uses the source band dtype), matching the serial
     :func:`digitalrivers._outofcore.fill.fill_depressions_tiled`.
     """
     import dask  # noqa: PLC0415
@@ -120,21 +129,14 @@ def fill_depressions_dask(
 
     path = _source_path(dem)
     rows, cols = dem.rows, dem.columns
-    nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = dtype or out_dtype(dem)
-    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
-    by_grid = {(s.row, s.col): s for s in specs}
-
-    out = Dataset.create_empty(
-        rows,
-        cols,
-        dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
-        no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
-        path=out_path,
+    out, specs, nodata = allocate_tiled_output(
+        dem,
+        out_path,
+        dtype=dtype or out_dtype(dem),
+        tile_rows=tile_rows,
+        tile_cols=tile_cols,
     )
+    by_grid = {(s.row, s.col): s for s in specs}
 
     # stage 1: parallel map -> local payloads
     consumed = _compute(
@@ -168,43 +170,9 @@ def fill_depressions_dask(
             for side, (lab, fil) in strips.items()
         }
 
-    for s in specs:
-        right = by_grid.get((s.row, s.col + 1))
-        if right is not None:
-            graph.join_strips(
-                *strips_global[s.tid]["right"], *strips_global[right.tid]["left"]
-            )
-        below = by_grid.get((s.row + 1, s.col))
-        if below is not None:
-            graph.join_strips(
-                *strips_global[s.tid]["bottom"], *strips_global[below.tid]["top"]
-            )
-        diag = by_grid.get((s.row + 1, s.col + 1))
-        if diag is not None:
-            a_lab, a_fil = strips_global[s.tid]["bottom"]
-            d_lab, d_fil = strips_global[diag.tid]["top"]
-            if a_lab[-1] >= 1 and d_lab[0] >= 1:
-                graph.add_edge(
-                    int(a_lab[-1]),
-                    int(d_lab[0]),
-                    max(float(a_fil[-1]), float(d_fil[0])),
-                )
-        anti = by_grid.get((s.row + 1, s.col - 1))
-        if anti is not None:
-            a_lab, a_fil = strips_global[s.tid]["bottom"]
-            d_lab, d_fil = strips_global[anti.tid]["top"]
-            if a_lab[0] >= 1 and d_lab[-1] >= 1:
-                graph.add_edge(
-                    int(a_lab[0]),
-                    int(d_lab[-1]),
-                    max(float(a_fil[0]), float(d_fil[-1])),
-                )
+    stitch_seams(specs, by_grid, strips_global, graph)
 
-    drain = graph.solve()
-    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
-    for label, level in drain.items():
-        if 1 <= label <= label_offset:
-            drainvec[label] = level
+    drainvec = solve_drain_levels(graph, label_offset)
 
     # stage 3: parallel map -> finished core tiles; producer writes sequentially
     finalized = _compute(
@@ -255,15 +223,7 @@ def _accum_exports(spec, fd, w, acc, rows, cols, dr, dc):
         spec.row_off + n_rows,
         spec.col_off + n_cols,
     )
-    cells = []
-    for j in range(n_cols):
-        cells.append((0, j))
-        cells.append((n_rows - 1, j))
-    for i in range(n_rows):
-        cells.append((i, 0))
-        cells.append((i, n_cols - 1))
-    # dict.fromkeys dedups deterministically (order-stable) so the export-sum order is reproducible.
-    for i, j in dict.fromkeys(cells):
+    for i, j in perimeter_cells(n_rows, n_cols):
         d = int(fd[i, j])
         if d < 0 or d > 7:
             continue
@@ -334,11 +294,9 @@ def flow_accumulation_dask(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=fdir.geotransform, epsg=fdir.epsg),
         dtype="float32",
-        geo=fdir.geotransform,
-        epsg=fdir.epsg,
         no_data_value=-1.0,
-        driver_type="GTiff",
         path=out_path,
     )
 

@@ -31,18 +31,28 @@ class Terrain(Dataset):
         raster: A `gdal.Dataset` to wrap. To open a terrain raster from a file
             path, use the inherited `Terrain.read_file(path)` classmethod.
         access: `"read_only"` (default) or `"write"`.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Examples:
         - Wrap an in-memory DEM and compute a ruggedness derivative:
             ```python
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers import Terrain
             >>> arr = np.array(
             ...     [[10, 11, 12], [10, 9, 8], [5, 6, 30]], dtype=np.float32
             ... )
-            >>> ds = Dataset.create_from_array(
-            ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            >>> ds = Dataset.from_array(
+            ...     arr,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=32636,
+            ...     ),
             ...     no_data_value=-9999.0,
             ... )
             >>> terrain = Terrain(ds.raster)
@@ -53,11 +63,16 @@ class Terrain(Dataset):
         - Derive slope and read back its single float32 band:
             ```python
             >>> import numpy as np
-            >>> from pyramids.dataset import Dataset
+            >>> from pyramids.dataset import Dataset, GeoReference
             >>> from digitalrivers import Terrain
             >>> ramp = np.arange(9, dtype=np.float32).reshape(3, 3)
-            >>> ds = Dataset.create_from_array(
-            ...     ramp, top_left_corner=(0, 0), cell_size=1.0, epsg=32636,
+            >>> ds = Dataset.from_array(
+            ...     ramp,
+            ...     geo_ref=GeoReference(
+            ...         top_left_corner=(0, 0),
+            ...         cell_size=1.0,
+            ...         epsg=32636,
+            ...     ),
             ...     no_data_value=-9999.0,
             ... )
             >>> slope = Terrain(ds.raster).slope()
@@ -71,7 +86,14 @@ class Terrain(Dataset):
             accumulation) with native window-configurable `tpi` / `ruggedness`.
     """
 
-    def __init__(self, raster: gdal.Dataset, access: str = "read_only"):
+    def __init__(
+        self,
+        raster: gdal.Dataset,
+        access: str = "read_only",
+        *,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
+    ):
         """Wrap a GDAL dataset for terrain analysis.
 
         Args:
@@ -80,16 +102,26 @@ class Terrain(Dataset):
                 classmethod; the bare constructor accepts a `gdal.Dataset`
                 only.
             access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+                the dataset and re-installed around its reads, so the paths that
+                reopen the file authenticate the same way. Default `None`.
+            open_options: GDAL open options captured on the dataset and
+                reapplied when it is reopened. Default `None`.
 
         Examples:
             - Wrap an in-memory raster and read its grid dimensions:
                 ```python
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import Terrain
                 >>> arr = np.ones((4, 5), dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=1.0, epsg=4326,
+                >>> ds = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
                 ... )
                 >>> terrain = Terrain(ds.raster)
                 >>> terrain.shape[-2:]
@@ -97,7 +129,7 @@ class Terrain(Dataset):
 
                 ```
         """
-        super().__init__(raster, access)
+        super().__init__(raster, access, gdal_env=gdal_env, open_options=open_options)
 
     def color_relief(
         self,
@@ -145,8 +177,17 @@ class Terrain(Dataset):
             - First create a one band dataset, consisting of 10 columns and 10 rows, with random values between 0 and 15.
                 ```python
                 >>> import numpy as np
+
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
-                >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+                >>> dataset = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=0.05,
+                ...         epsg=4326,
+                ...     ),
+                ... )
 
                 ```
             - Now let's create the color table using hex colors.
@@ -170,7 +211,7 @@ class Terrain(Dataset):
                             Number of Bands: 4
                             Band names: ['Band_1', 'Band_2', 'Band_3', 'Band_4']
                             Mask: None
-                            Data type: byte
+                            Data type: uint8
                             projection: GEOGCS["WGS 84",DATUM["WGS_1984",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AXIS["Latitude",NORTH],AXIS["Longitude",EAST],AUTHORITY["EPSG","4326"]]
                             Metadata: {}
                             File: ...
@@ -183,7 +224,9 @@ class Terrain(Dataset):
             - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices
                 with the alpha index as the fourth index, otherwise the alpha band will be missing.
                 ```python
-                >>> fig, ax = color_relief.plot(rgb=[0, 1, 2, 3]) # doctest: +SKIP
+                >>> glyph = color_relief.plot(
+                ...     rgb_options={"rgb": [0, 1, 2, 3]}
+                ... ) # doctest: +SKIP
 
                 ```
             ![color-relief](./../_images/dataset/color-relief.png)
@@ -292,15 +335,24 @@ class Terrain(Dataset):
             - First create a one band dataset, consisting of 10 columns and 10 rows, with random values between 0 and 15.
                 ```python
                 >>> import numpy as np
+
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> arr = np.random.randint(0, 15, size=(100, 100))
-                >>> dataset = Dataset.create_from_array(arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326)
+                >>> dataset = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=0.05,
+                ...         epsg=4326,
+                ...     ),
+                ... )
 
                 >>> hill_shade = Terrain(dataset.raster).hill_shade(
                 ...     band=0, altitude=45, azimuth=315, vertical_exaggeration=1, scale=1
                 ... )
 
                 >>> print(hill_shade.dtype) # doctest: +SKIP
-                ['byte']
+                ['uint8']
                 >>> hill_shade.plot() # doctest: +SKIP
 
                 ```
@@ -486,16 +538,23 @@ class Terrain(Dataset):
                 and 10 rows, with random values between 0 and 15.
                 ```python
                 >>> import numpy as np
+
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
-                >>> dataset = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+                >>> dataset = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=0.05,
+                ...         epsg=4326,
+                ...     ),
                 ... )
 
                 ```
             - Now let's create the slope for the dataset.
                 ```python
                 >>> slope = Terrain(dataset.raster).slope()
-                >>> fig, ax = slope.plot() # doctest: +SKIP
+                >>> glyph = slope.plot() # doctest: +SKIP
 
                 ```
                 ![slope](./../_images/dataset/slope.png)
@@ -573,16 +632,23 @@ class Terrain(Dataset):
             - Create a small raster and compute its aspect.
                 ```python
                 >>> import numpy as np
+
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> arr = np.random.randint(0, 15, size=(10, 10))
-                >>> dataset = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=0.05, epsg=4326
+                >>> dataset = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=0.05,
+                ...         epsg=4326,
+                ...     ),
                 ... )
 
                 ```
             - Compute the aspect raster.
                 ```python
                 >>> aspect = Terrain(dataset.raster).aspect()
-                >>> fig, ax = aspect.plot() # doctest: +SKIP
+                >>> glyph = aspect.plot() # doctest: +SKIP
 
                 ```
                 ![aspect](./../_images/dataset/aspect.png)
@@ -705,16 +771,21 @@ class Terrain(Dataset):
             - Compute roughness for a small elevation raster.
                 ```python
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import Terrain
                 >>> arr = np.array(
                 ...     [[10, 11, 12, 40], [10, 9, 8, 7],
                 ...      [5, 6, 30, 6], [4, 3, 2, 1]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
-                ...     epsg=32636, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=1.0,
+                ...         epsg=32636,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> roughness = Terrain(ds.raster).roughness()
                 >>> roughness.read_array().shape
@@ -772,16 +843,21 @@ class Terrain(Dataset):
             - Compute TPI for a small elevation raster.
                 ```python
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import Terrain
                 >>> arr = np.array(
                 ...     [[10, 11, 12, 40], [10, 9, 8, 7],
                 ...      [5, 6, 30, 6], [4, 3, 2, 1]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
-                ...     epsg=32636, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=1.0,
+                ...         epsg=32636,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> tpi = Terrain(ds.raster).tpi()
                 >>> tpi.read_array().shape
@@ -846,16 +922,21 @@ class Terrain(Dataset):
             - Compute TRI for a small elevation raster.
                 ```python
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import Terrain
                 >>> arr = np.array(
                 ...     [[10, 11, 12, 40], [10, 9, 8, 7],
                 ...      [5, 6, 30, 6], [4, 3, 2, 1]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
-                ...     epsg=32636, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=1.0,
+                ...         epsg=32636,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> tri = Terrain(ds.raster).tri()
                 >>> tri.read_array().shape
@@ -941,16 +1022,21 @@ class Terrain(Dataset):
             - Compute the viewshed from the top-left corner of a small DEM.
                 ```python
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import Terrain
                 >>> arr = np.array(
                 ...     [[10, 11, 12, 40], [10, 9, 8, 7],
                 ...      [5, 6, 30, 6], [4, 3, 2, 1]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     arr, top_left_corner=(0, 0), cell_size=1.0,
-                ...     epsg=32636, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     arr,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0, 0),
+                ...         cell_size=1.0,
+                ...         epsg=32636,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> vs = Terrain(ds.raster).viewshed(
                 ...     observer_x=0.5, observer_y=-0.5,

@@ -1,22 +1,14 @@
 """Tests for `StreamRaster.main_stem` (W-4)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers import DEM, StreamRaster
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from digitalrivers import StreamRaster
+from tests.helpers import channel_z, make_dem as _make_dem
+from digitalrivers import FlowDirection
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -28,11 +20,31 @@ def _build_pipeline(z: np.ndarray, threshold: int):
 
 
 def _stream_raster_from_mask(sm: np.ndarray) -> StreamRaster:
-    ds = Dataset.create_from_array(
-        sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=1.0,
-        epsg=4326, no_data_value=0,
+    ds = Dataset.from_array(
+        sm.astype(np.uint8),
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=0,
     )
     return StreamRaster.from_dataset(ds, threshold=1, routing="d8")
+
+
+def _top_row_stream():
+    """A 3x3 raster whose top row is a stream draining east to (0, 2).
+
+    Returns:
+        Tuple `(stream_raster, flow_direction)` over the same 3x3 grid.
+    """
+    sm = np.zeros((3, 3), dtype=bool)
+    sm[0, :] = True
+    fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
+    fdir_ds = Dataset.from_array(
+        fdir,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=-1,
+    )
+    return _stream_raster_from_mask(sm), FlowDirection.from_dataset(
+        fdir_ds, routing="d8"
+    )
 
 
 class TestStreamRasterMainStem:
@@ -45,14 +57,7 @@ class TestStreamRasterMainStem:
             With one head and one outlet, the longest path covers all stream
             cells. `main_stem` must return a mask matching the stream mask.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         mask = sr.main_stem(fd)
         sm = sr.read_array().astype(bool)
@@ -71,14 +76,16 @@ class TestStreamRasterMainStem:
         sm[0, 0] = sm[0, 2] = True
         sm[1, 1] = sm[2, 1] = sm[3, 1] = True
         from digitalrivers import FlowDirection
+
         fdir = np.array(
             [[7, -1, 1], [-1, 0, -1], [-1, 0, -1], [-1, -1, -1]],
             dtype=np.int32,
         )
         # Wrap the raw mask + fdir into typed objects.
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
@@ -86,7 +93,9 @@ class TestStreamRasterMainStem:
         assert mask[0, 0], "Lower-index head must be on the main stem"
         assert not mask[0, 2], "Higher-index head must NOT be on the main stem"
         # Trunk cells are on the main stem.
-        assert mask[1, 1] and mask[2, 1] and mask[3, 1]
+        assert mask[1, 1]
+        assert mask[2, 1]
+        assert mask[3, 1]
 
     def test_explicit_outlet_traces_subnetwork(self):
         """Test passing an outlet explicitly traces from that specific cell.
@@ -95,14 +104,7 @@ class TestStreamRasterMainStem:
             Pass the outlet location directly; the returned mask must contain
             that cell and walk upstream from it.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         # Pour-point at the rightmost stream cell.
         outlet_rc = (1, 5)
@@ -116,16 +118,7 @@ class TestStreamRasterMainStem:
             outlet=(100, 100) outside the raster bounds must raise
             ValueError with a clear message.
         """
-        sm = np.zeros((3, 3), dtype=bool)
-        sm[0, :] = True
-        from digitalrivers import FlowDirection
-        fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
-        sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-            no_data_value=-1,
-        )
-        fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
+        sr, fd = _top_row_stream()
         with pytest.raises(ValueError, match="outside the raster"):
             sr.main_stem(fd, outlet=(100, 100))
 
@@ -136,16 +129,7 @@ class TestStreamRasterMainStem:
             outlet pointing at a cell where the stream mask is False must
             raise ValueError.
         """
-        sm = np.zeros((3, 3), dtype=bool)
-        sm[0, :] = True
-        from digitalrivers import FlowDirection
-        fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
-        sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-            no_data_value=-1,
-        )
-        fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
+        sr, fd = _top_row_stream()
         with pytest.raises(ValueError, match="not a stream cell"):
             sr.main_stem(fd, outlet=(1, 1))
 
@@ -156,14 +140,7 @@ class TestStreamRasterMainStem:
             main_stem requires a single-direction FlowDirection; passing
             a dinf-routed one must be rejected.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd_dinf = dem.flow_direction(method="dinf")
         fd_d8 = dem.flow_direction(method="d8")
@@ -196,11 +173,13 @@ class TestStreamRasterMainStem:
             input shape.
         """
         from digitalrivers import FlowDirection
+
         sm = np.zeros((2, 3), dtype=bool)
         fdir = np.full((2, 3), -1, dtype=np.int32)
         sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.create_from_array(
-            fdir, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        fdir_ds = Dataset.from_array(
+            fdir,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-1,
         )
         fd = FlowDirection.from_dataset(fdir_ds, routing="d8")

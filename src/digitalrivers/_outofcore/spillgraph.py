@@ -3,10 +3,10 @@
 After every tile is flooded and watershed-labelled (B2), the only cross-tile information that matters is, for each
 pair of labelled watersheds, the **lowest elevation at which they meet** — the saddle they would spill over. Those
 saddles form a small graph whose nodes are global watershed labels (plus a special :data:`OUTLET` node for the
-domain edge / no-data, the ultimate drain at ``-inf``) and whose edge weights are spill elevations.
+domain edge / no-data, the ultimate drain at `-inf`) and whose edge weights are spill elevations.
 
 The graph "is itself a DEM": solving it is a minimax (bottleneck) shortest-path from the outlet — exactly a
-Priority-Flood on the label graph. The result, ``drain[label]``, is the elevation each watershed must be raised
+Priority-Flood on the label graph. The result, `drain[label]`, is the elevation each watershed must be raised
 to. The whole reconciliation is **max-of-the-two-cells then keep-the-minimum-over-touching-pairs**.
 
 This module is pure Python/NumPy (no GDAL, no Numba) and is perimeter-sized, so it is cheap and unit-testable in
@@ -21,7 +21,7 @@ from collections import defaultdict
 
 import numpy as np
 
-#: Special graph node id for the domain edge / no-data "ocean" — the ultimate outlet (drains at ``-inf``).
+#: Special graph node id for the domain edge / no-data "ocean" — the ultimate outlet (drains at `-inf`).
 OUTLET = 0
 
 # 8-neighbour forward directions (right, down, down-right, down-left) — enough to visit every adjacency once.
@@ -31,17 +31,17 @@ _FORWARD = ((0, 1), (1, 0), (1, 1), (1, -1))
 class GlobalSpillGraph:
     """Accumulates watershed spill elevations and solves for each label's global drainage elevation.
 
-    Nodes are global watershed labels (``>= 1``); node :data:`OUTLET` (``0``) is the domain edge / no-data
-    outlet. Edge weight ``(a, b) -> e`` is the lowest elevation at which watersheds ``a`` and ``b`` meet.
+    Nodes are global watershed labels (`>= 1`); node :data:`OUTLET` (`0`) is the domain edge / no-data
+    outlet. Edge weight `(a, b) -> e` is the lowest elevation at which watersheds `a` and `b` meet.
     """
 
     def __init__(self) -> None:
         self.edges: dict[tuple[int, int], float] = {}
 
     def add_edge(self, a: int, b: int, elevation: float) -> None:
-        """Register a spill of ``elevation`` between labels ``a`` and ``b``, keeping the minimum seen.
+        """Register a spill of `elevation` between labels `a` and `b`, keeping the minimum seen.
 
-        Self-edges (``a == b``) are ignored. The pair is stored order-independently (``min, max``).
+        Self-edges (`a == b`) are ignored. The pair is stored order-independently (`min, max`).
         """
         a = int(a)
         b = int(b)
@@ -55,18 +55,18 @@ class GlobalSpillGraph:
             self.edges[key] = float(elevation)
 
     def add_outlet(self, label: int, elevation: float) -> None:
-        """Register that ``label`` can spill out of the domain (to :data:`OUTLET`) at ``elevation``."""
+        """Register that `label` can spill out of the domain (to :data:`OUTLET`) at `elevation`."""
         self.add_edge(OUTLET, label, elevation)
 
     def add_adjacency(self, labels: np.ndarray, filled: np.ndarray) -> None:
-        """Add intra-region spill edges from a tile's ``labels`` + ``filled`` arrays.
+        """Add intra-region spill edges from a tile's `labels` + `filled` arrays.
 
-        For every pair of 8-adjacent cells carrying different (``>= 1``) labels, the saddle elevation is
-        ``max(filled_a, filled_b)``; :meth:`add_edge` keeps the minimum over all touching pairs.
+        For every pair of 8-adjacent cells carrying different (`>= 1`) labels, the saddle elevation is
+        `max(filled_a, filled_b)`; :meth:`add_edge` keeps the minimum over all touching pairs.
 
         Args:
-            labels: `(rows, cols)` integer label array (``0`` = no-data / outside, ``>= 1`` = watersheds).
-            filled: `(rows, cols)` float filled-elevation array aligned with ``labels``.
+            labels: `(rows, cols)` integer label array (`0` = no-data / outside, `>= 1` = watersheds).
+            filled: `(rows, cols)` float filled-elevation array aligned with `labels`.
         """
         rows, cols = labels.shape
         for dr, dc in _FORWARD:
@@ -92,8 +92,8 @@ class GlobalSpillGraph:
     ) -> None:
         """Stitch two adjacent tiles along their shared seam (orthogonal + diagonal touches).
 
-        ``a_*`` / ``b_*`` are aligned 1-D border strips (tile A's edge facing tile B and vice versa). Cell ``i``
-        of A touches cells ``i-1, i, i+1`` of B. Spill = ``max(filled_a, filled_b)``; minimum kept.
+        `a_*` / `b_*` are aligned 1-D border strips (tile A's edge facing tile B and vice versa). Cell `i`
+        of A touches cells `i-1, i, i+1` of B. Spill = `max(filled_a, filled_b)`; minimum kept.
         """
         n = len(a_labels)
         m = len(b_labels)
@@ -112,11 +112,11 @@ class GlobalSpillGraph:
     def solve(self) -> dict[int, float]:
         """Solve for each label's drainage elevation by minimax Priority-Flood from :data:`OUTLET`.
 
-        ``drain[label]`` is the minimum over all paths to the outlet of the maximum edge (saddle) on the path —
+        `drain[label]` is the minimum over all paths to the outlet of the maximum edge (saddle) on the path —
         the elevation that label's watershed must be raised to.
 
         Returns:
-            Mapping ``label -> drain_elevation``. :data:`OUTLET` maps to ``-inf``; labels with no path to the
+            Mapping `label -> drain_elevation`. :data:`OUTLET` maps to `-inf`; labels with no path to the
             outlet are absent.
 
         Examples:
@@ -167,3 +167,87 @@ class GlobalSpillGraph:
         mins = np.minimum.reduceat(e_sorted, starts)
         for k, s in enumerate(starts):
             self.add_edge(int(lo[s]), int(hi[s]), float(mins[k]))
+
+
+def _join_tile_corner(graph, strips, tid_a: int, tid_b: int, corner: int) -> None:
+    """Add the single corner-to-corner edge between two diagonally adjacent tiles.
+
+    Where four tiles meet, the upper tile's bottom strip touches the lower tile's
+    top strip at exactly one cell, which no orthogonal strip join covers. The edge
+    is taken at the higher of the two fill levels, since that is the level water
+    must reach to cross the corner. Labels below 1 are background, not depressions,
+    so a corner touching either is skipped.
+
+    Args:
+        graph: The graph to add the edge to. Mutated in place.
+        strips: `tile id` -> side -> `(labels, filled)`, in global label numbering.
+        tid_a: The upper tile, contributing its `bottom` strip.
+        tid_b: The lower tile, contributing its `top` strip.
+        corner: `-1` for the down-right diagonal (upper tile's east end meets the
+            lower tile's west end), `0` for the down-left.
+    """
+    a_lab, a_fil = strips[tid_a]["bottom"]
+    d_lab, d_fil = strips[tid_b]["top"]
+    other = -1 - corner
+    if a_lab[corner] < 1 or d_lab[other] < 1:
+        return
+    graph.add_edge(
+        int(a_lab[corner]),
+        int(d_lab[other]),
+        max(float(a_fil[corner]), float(d_fil[other])),
+    )
+
+
+def stitch_seams(specs, by_grid, strips, graph) -> None:
+    """Join every tile's perimeter labels to its neighbours' in the spill graph.
+
+    Each tile is flooded in isolation, so a depression spanning a seam appears as
+    two unrelated labels until they are joined here. Orthogonal neighbours share a
+    whole edge and go through `join_strips`; the diagonals share one corner cell
+    and go through :func:`_join_tile_corner`.
+
+    Only the eastward and downward neighbours are walked: every tile pair is
+    reached once from its upper-left member, so adding the mirrored pairs would
+    double the edges without changing the solve.
+
+    Args:
+        specs: Every tile, in any order.
+        by_grid: `(row, col)` -> `TileSpec`, for neighbour lookup.
+        strips: `tile id` -> `{"top"|"bottom"|"left"|"right": (labels, filled)}`,
+            with labels already offset into the global numbering.
+        graph: The `GlobalSpillGraph` to add the seam edges to. Mutated in place.
+    """
+    # (row offset, col offset, this tile's side, the neighbour's facing side)
+    ORTHOGONAL = ((0, 1, "right", "left"), (1, 0, "bottom", "top"))
+    # (col offset, which end of the bottom strip the corner sits at)
+    DIAGONAL = ((1, -1), (-1, 0))
+    for s in specs:
+        for d_row, d_col, side, facing in ORTHOGONAL:
+            nb = by_grid.get((s.row + d_row, s.col + d_col))
+            if nb is not None:
+                graph.join_strips(*strips[s.tid][side], *strips[nb.tid][facing])
+        for d_col, corner in DIAGONAL:
+            nb = by_grid.get((s.row + 1, s.col + d_col))
+            if nb is not None:
+                _join_tile_corner(graph, strips, s.tid, nb.tid, corner)
+
+
+def solve_drain_levels(graph, label_offset: int) -> np.ndarray:
+    """Solve the spill graph and index the drain level of each label.
+
+    An array rather than the solver's dict because the per-tile raise pass looks
+    up one level per cell; `-inf` marks a label the solve returned nothing for,
+    which the raise reads as "do not lift this cell".
+
+    Args:
+        graph: The stitched `GlobalSpillGraph`.
+        label_offset: One past the highest global label issued.
+
+    Returns:
+        `float64` array of length `label_offset + 1`, indexed by label.
+    """
+    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
+    for label, level in graph.solve().items():
+        if 1 <= label <= label_offset:
+            drainvec[label] = level
+    return drainvec

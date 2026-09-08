@@ -7,7 +7,7 @@ import tempfile
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.engine import require_out_path, resolve_engine
 from digitalrivers.dem import DEM
@@ -54,14 +54,10 @@ class TestResolveEngine:
 
 
 def _dem(arr: np.ndarray, path: str | None = None) -> DEM:
-    driver = "GTiff" if path else "MEM"
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         arr,
-        top_left_corner=(0, 0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
-        driver_type=driver,
         path=path,
     )
     return DEM(ds.raster)
@@ -186,7 +182,9 @@ class TestFillDepressionsEngine:
         )
         b = np.asarray(
             _dem(arr)
-            .fill_depressions(method="priority_flood", epsilon=1e-3, eps_fill="monotone")
+            .fill_depressions(
+                method="priority_flood", epsilon=1e-3, eps_fill="monotone"
+            )
             .read_array()
         )
         np.testing.assert_array_equal(a, b)
@@ -216,13 +214,10 @@ class TestFillDepressionsEngine:
         # M4: no-data parity for a non-(-9999) sentinel or NaN no-data — tiled == in-memory at finite cells,
         # and the no-data positions agree.
         def _build(path):
-            ds = Dataset.create_from_array(
+            ds = Dataset.from_array(
                 arr,
-                top_left_corner=(0, 0),
-                cell_size=1.0,
-                epsg=4326,
+                geo_ref=GeoReference(top_left_corner=(0, 0), cell_size=1.0, epsg=4326),
                 no_data_value=nodata,
-                driver_type=("GTiff" if path else "MEM"),
                 path=path,
             )
             return DEM(ds.raster)

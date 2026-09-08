@@ -1,22 +1,12 @@
 """Third backfill pass: P25 ANUDEM-lite Laplacian relaxation."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
 from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 def test_anudem_fills_nan_holes():

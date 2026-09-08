@@ -12,20 +12,23 @@ Each test pins behaviour that was previously asserted weakly or not at all:
        `flow_direction` is supplied to `statistics`.
 * C6: `snap_distance_m` is NaN when the snap target is the input cell.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
+from tests.helpers import channel_z
 
 
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     disk[np.isnan(disk)] = no_data_value
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        disk,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
@@ -87,8 +90,9 @@ def test_centroid_returned_when_only_slope_provided():
     fd = dem.flow_direction(method="d8")
     ws = fd.basins()
     slope_arr = np.zeros(z.shape, dtype=np.float32)
-    slope_ds = Dataset.create_from_array(
-        slope_arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    slope_ds = Dataset.from_array(
+        slope_arr,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
     )
     df = ws.statistics(slope=slope_ds)
     assert "centroid_x" in df.columns
@@ -114,10 +118,7 @@ def test_centroid_returned_with_no_inputs():
 def test_pfafstetter_outlets_have_non_placeholder_coords():
     """The Pfafstetter outlets GeoDataFrame must not be a column of
     `Point(0, 0)` placeholders."""
-    z = np.array(
-        [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -132,10 +133,7 @@ def test_pfafstetter_outlets_have_non_placeholder_coords():
 
 def test_streamraster_subbasins_outlets_have_non_placeholder_coords():
     """`StreamRaster.subbasins` outlets must also be real coordinates."""
-    z = np.array(
-        [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -155,9 +153,7 @@ def test_drainage_density_diagonal_weighting():
     length: cells flowing diagonally count as `sqrt(2)` cell-lengths."""
     # Build a DEM whose flow is a single diagonal chain so every stream
     # cell has a diagonal D8 code (1, 3, 5, or 7).
-    z = np.array(
-        [[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32
-    )
+    z = np.array([[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -183,9 +179,7 @@ def test_snap_distance_nan_when_unmoved():
     import geopandas as gpd
     from shapely.geometry import Point
 
-    z = np.array(
-        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -205,9 +199,7 @@ def test_snap_distance_finite_when_moved():
     import geopandas as gpd
     from shapely.geometry import Point
 
-    z = np.array(
-        [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32
-    )
+    z = np.array([[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -231,9 +223,7 @@ class TestBasinCountLazy:
     alone should not trigger a full-raster read."""
 
     def _build(self):
-        z = np.array(
-            [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
-        )
+        z = np.array([[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32)
         dem = _make_dem(z)
         return dem.flow_direction(method="d8").basins()
 
@@ -265,9 +255,7 @@ def test_drainage_density_with_flow_direction_higher_for_diagonal_chain():
     """A pure-diagonal stream chain produces strictly higher density when
     `flow_direction` is passed (sqrt(2) per cell) than the unweighted
     fallback (1.0 per cell)."""
-    z = np.array(
-        [[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32
-    )
+    z = np.array([[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32)
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -290,8 +278,9 @@ def test_resolve_no_val_returns_band0_sentinel():
     from digitalrivers._metadata import resolve_no_val
 
     arr = np.ones((3, 3), dtype=np.float32)
-    ds = Dataset.create_from_array(
-        arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        arr,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     assert float(resolve_no_val(ds)) == -9999.0
@@ -371,7 +360,10 @@ def test_watershed_d8_non_unique_mode_visits_each_cell_at_most_once():
     fdir = np.array([[6, 6, 6, 6, -1]], dtype=np.int32)
     nu = watershed_d8(fdir, [(0, 2), (0, 4)], [1, 2])
     un = watershed_d8(
-        fdir, [(0, 2), (0, 4)], [1, 2], require_unique_basins=True,
+        fdir,
+        [(0, 2), (0, 4)],
+        [1, 2],
+        require_unique_basins=True,
     )
     # Non-unique: cells {0,1,2} belong to seed 2 (later); cells {3,4} only
     # to seed 2 anyway.

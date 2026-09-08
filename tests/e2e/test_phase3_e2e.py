@@ -1,24 +1,15 @@
 """End-to-end pipeline + coverage gap tests for Phase 3."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString, Polygon
 
 from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 class TestPhase3ConditioningPipeline:
@@ -33,19 +24,24 @@ class TestPhase3ConditioningPipeline:
         z[5, 5] = 0.0
         dem = _make_dem(z)
         streams = gpd.GeoDataFrame(
-            geometry=[LineString([(0.5, -5.5), (9.5, -5.5)])], crs=4326,
+            geometry=[LineString([(0.5, -5.5), (9.5, -5.5)])],
+            crs=4326,
         )
         roads = gpd.GeoDataFrame(
-            geometry=[LineString([(5.5, -0.5), (5.5, -9.5)])], crs=4326,
+            geometry=[LineString([(5.5, -0.5), (5.5, -9.5)])],
+            crs=4326,
         )
         lakes = gpd.GeoDataFrame(
-            geometry=[Polygon([(0, 0), (3, 0), (3, -3), (0, -3)])], crs=4326,
+            geometry=[Polygon([(0, 0), (3, 0), (3, -3), (0, -3)])],
+            crs=4326,
         )
         bld = gpd.GeoDataFrame(
-            geometry=[Polygon([(7, -7), (9, -7), (9, -9), (7, -9)])], crs=4326,
+            geometry=[Polygon([(7, -7), (9, -7), (9, -9), (7, -9)])],
+            crs=4326,
         )
         bl = gpd.GeoDataFrame(
-            geometry=[LineString([(0.5, -1.5), (4.5, -1.5)])], crs=4326,
+            geometry=[LineString([(0.5, -1.5), (4.5, -1.5)])],
+            crs=4326,
         )
 
         d1 = dem.burn_streams(streams)
@@ -61,7 +57,9 @@ class TestPhase3ConditioningPipeline:
         # validate=False to focus on the export I/O path.
         paths = filled.export(out_path, target="lisflood_fp", validate=False)
         return {
-            "input": dem, "conditioned": filled, "out_paths": paths,
+            "input": dem,
+            "conditioned": filled,
+            "out_paths": paths,
         }
 
     def test_pipeline_runs_to_completion(self, pipeline):
@@ -85,6 +83,7 @@ class TestPhase3ConditioningPipeline:
         """fill_depressions(method='priority_flood', epsilon=0.1) leaves
         the conditioned DEM sinks-free for downstream flow routing."""
         from digitalrivers._conditioning.pitremoval import local_minima_8
+
         sinks = local_minima_8(pipeline["conditioned"].values)
         assert int(sinks.sum()) == 0
 
@@ -110,8 +109,9 @@ class TestPhase3MixedGeometryE2E:
 
     def test_burn_streams_handles_mixed_geometry(self, mixed_layer):
         z = np.full((10, 10), 10.0, dtype=np.float32)
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
@@ -123,8 +123,9 @@ class TestPhase3MixedGeometryE2E:
 
     def test_enforce_breaklines_handles_mixed_geometry(self, mixed_layer):
         z = np.full((10, 10), 10.0, dtype=np.float32)
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
@@ -140,16 +141,20 @@ class TestPhase3MixedGeometryE2E:
         from shapely.geometry import LineString
 
         z = np.full((10, 10), 10.0, dtype=np.float32)
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)
         streams = gpd.GeoDataFrame(
-            geometry=[LineString([(0.5, -5.5), (9.5, -5.5)])], crs=4326,
+            geometry=[LineString([(0.5, -5.5), (9.5, -5.5)])],
+            crs=4326,
         )
         out = dem.enforce_culverts(
-            roads=mixed_layer, streams=streams, culvert_drop=2.0,
+            roads=mixed_layer,
+            streams=streams,
+            culvert_drop=2.0,
         )
         arr = out.values
         # Crossings at (row=5, col=3) and (row=5, col=6) get lowered.

@@ -1,32 +1,32 @@
-"""Exit-distance ramp epsilon-fill — the shared ``eps_fill="exact"`` / ``"monotone"`` definition (B6).
+"""Exit-distance ramp epsilon-fill — the shared `eps_fill="exact"` / `"monotone"` definition (B6).
 
     fill_ramp = fill_0 + epsilon * g
 
-where ``g`` is the graph distance, over the ``epsilon = 0`` filled surface (B3) stepping to lower-or-equal
+where `g` is the graph distance, over the `epsilon = 0` filled surface (B3) stepping to lower-or-equal
 neighbours, from each cell to the nearest **real-terrain exit** (a strictly-lower cell that was *not* raised by
-the fill) or domain edge / no-data. Real (already-draining) terrain has ``g = 0`` and is left unchanged.
+the fill) or domain edge / no-data. Real (already-draining) terrain has `g = 0` and is left unchanged.
 
 This is the **single epsilon>0 definition used by both engines**: the in-memory path
-(``DEM.fill_depressions(eps_fill="exact")``) computes :func:`ramp_fill_reference` directly, and the tiled
-path reproduces it tile-by-tile — so ``engine="in_memory"`` and ``engine="tiled"`` agree **bit-for-bit**, which
-is what makes ``eps_fill="exact"`` exact (see ``docs/eps-fill-exact-feasibility.md`` and issue #69).
+(`DEM.fill_depressions(eps_fill="exact")`) computes :func:`ramp_fill_reference` directly, and the tiled
+path reproduces it tile-by-tile — so `engine="in_memory"` and `engine="tiled"` agree **bit-for-bit**, which
+is what makes `eps_fill="exact"` exact (see `docs/eps-fill-exact-feasibility.md` and issue #69).
 
 **What this guarantees (tested):**
 
-* ``epsilon -> 0`` reduces to the exact ``fill_0``.
+* `epsilon -> 0` reduces to the exact `fill_0`.
 * The tiled result is **bit-for-bit identical to its whole-array reference** (graph distance is unique and
   seam-reconcilable), so tiling introduces no error and matches the in-memory engine exactly.
 
 **What this does NOT guarantee — read before using:**
 
-``g`` is a tile-reconstructible **min-distance**, not the in-memory Barnes step-count. Because it is deterministic
+`g` is a tile-reconstructible **min-distance**, not the in-memory Barnes step-count. Because it is deterministic
 and order-independent it cannot, for *large* epsilon, replicate the classic kernel's universal flat-removal:
-``epsilon * g`` can over-inflate a wide flat above adjacent lower terrain and leave a residual flat **when epsilon
+`epsilon * g` can over-inflate a wide flat above adjacent lower terrain and leave a residual flat **when epsilon
 is not small relative to the terrain's vertical steps**. This is a valid, flat-free fill for **small** epsilon
-(``epsilon`` ≪ the smallest real elevation difference you care about — the normal regime, e.g. ``1e-3`` on
-metre-scale DEMs). For guaranteed flat removal at *any* epsilon use ``eps_fill="barnes"`` (the classic
+(`epsilon` ≪ the smallest real elevation difference you care about — the normal regime, e.g. `1e-3` on
+metre-scale DEMs). For guaranteed flat removal at *any* epsilon use `eps_fill="barnes"` (the classic
 Priority-Flood step-count), which is in-memory only — it depends on the global traversal order and is provably
-not tileable (``docs/eps-fill-exact-feasibility.md``).
+not tileable (`docs/eps-fill-exact-feasibility.md`).
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ import os
 import tempfile
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.fill import (
     _nodata_mask,
@@ -49,7 +49,7 @@ _DIRS = ((1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1))
 
 
 def _shift(arr: np.ndarray, dr: int, dc: int):
-    """Return ``(neighbour_values, valid_mask)`` for the (dr, dc) shift; invalid outside the array."""
+    """Return `(neighbour_values, valid_mask)` for the (dr, dc) shift; invalid outside the array."""
     rows, cols = arr.shape
     out = np.zeros_like(arr)
     valid = np.zeros(arr.shape, dtype=bool)
@@ -61,7 +61,7 @@ def _shift(arr: np.ndarray, dr: int, dc: int):
 
 
 def _source_mask(orig, fill0, nodata, glob_r0, glob_c0, rows, cols) -> np.ndarray:
-    """Cells with ``g = 0``: a strictly-lower **real-terrain** neighbour, or domain edge / no-data-adjacent."""
+    """Cells with `g = 0`: a strictly-lower **real-terrain** neighbour, or domain edge / no-data-adjacent."""
     nod = _nodata_mask(fill0, nodata)
     real = (fill0 == orig) & ~nod  # cell that was NOT raised by the epsilon=0 fill
     lower_real = np.zeros(fill0.shape, dtype=bool)
@@ -81,8 +81,8 @@ def _source_mask(orig, fill0, nodata, glob_r0, glob_c0, rows, cols) -> np.ndarra
 
 
 def _relax(fill0, g, source, nodata) -> np.ndarray:
-    """Relax ``g`` to local convergence: ``g[c] = min(g[c], 1 + g[n])`` over neighbours ``n`` with
-    ``fill0[n] <= fill0[c]`` (downhill-or-flat); ``g = 0`` at sources."""
+    """Relax `g` to local convergence: `g[c] = min(g[c], 1 + g[n])` over neighbours `n` with
+    `fill0[n] <= fill0[c]` (downhill-or-flat); `g = 0` at sources."""
     nod = _nodata_mask(fill0, nodata)
     g = g.astype(np.int64, copy=True)
     g[source] = 0
@@ -124,10 +124,10 @@ def fill_depressions_ramp_tiled(
     tile_cols: int = 2048,
     cache: str = "evict",
 ):
-    """Tiled exit-distance ramp = tiled ``fill_0`` (B3) + ``epsilon`` * tiled exit-distance ``g``.
+    """Tiled exit-distance ramp = tiled `fill_0` (B3) + `epsilon` * tiled exit-distance `g`.
 
-    Byte-for-byte identical to :func:`ramp_fill_reference` (the in-memory engine), so ``engine="tiled"`` matches
-    ``engine="in_memory"``. Flat-free for small ``epsilon`` only; see the module docstring for the caveats.
+    Byte-for-byte identical to :func:`ramp_fill_reference` (the in-memory engine), so `engine="tiled"` matches
+    `engine="in_memory"`. Flat-free for small `epsilon` only; see the module docstring for the caveats.
     """
     rows, cols = dem.rows, dem.columns
     nodata = dem.no_data_value[0] if dem.no_data_value else None
@@ -141,18 +141,16 @@ def fill_depressions_ramp_tiled(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
         dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
         no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
         path=out_path,
     )
     scratch = tempfile.mkdtemp(prefix="dr_monotone_")
     fill0_ds = g_ds = None
     try:
-        # fill_0 scratch is float64 (not the source dtype) so that ``fill_0 + epsilon * g`` matches the in-memory
-        # engine bit-for-bit on float32 sources — the final ``out`` below is still cast to the source dtype.
+        # fill_0 scratch is float64 (not the source dtype) so that `fill_0 + epsilon * g` matches the in-memory
+        # engine bit-for-bit on float32 sources — the final `out` below is still cast to the source dtype.
         fill0_ds = fill_depressions_tiled(
             dem,
             os.path.join(scratch, "fill0.tif"),
@@ -165,11 +163,9 @@ def fill_depressions_ramp_tiled(
         g_ds = Dataset.create_empty(
             rows,
             cols,
+            geo_ref=GeoReference(geo=dem.geotransform, epsg=dem.epsg),
             dtype="int32",
-            geo=dem.geotransform,
-            epsg=dem.epsg,
             no_data_value=-1,
-            driver_type="GTiff",
             path=os.path.join(scratch, "g.tif"),
         )
         for s in specs:

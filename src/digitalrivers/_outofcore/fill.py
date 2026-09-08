@@ -7,11 +7,11 @@ Two MapReduce passes over a larger-than-RAM DEM:
 2. **reduce** — stitch tile perimeters into one :class:`~digitalrivers._outofcore.spillgraph.GlobalSpillGraph`
    (intra-tile saddles, cross-seam saddles, and outlet connections for true domain-edge / no-data-adjacent
    cells), then solve it for each watershed's global drainage elevation.
-3. **map** — raise every cell to ``max(local_filled, drain[label])`` and write the tile core to disk.
+3. **map** — raise every cell to `max(local_filled, drain[label])` and write the tile core to disk.
 
-For ``epsilon = 0`` this is bit-for-bit identical to a whole-array Priority-Flood, because the fill is always a
+For `epsilon = 0` this is bit-for-bit identical to a whole-array Priority-Flood, because the fill is always a
 selection among the original elevations and the master graph assigns one consistent spill level per watershed.
-``epsilon > 0`` does **not** compose across seams and is rejected (see the out-of-core plan §2.3 / B6).
+`epsilon > 0` does **not** compose across seams and is rejected (see the out-of-core plan §2.3 / B6).
 """
 
 from __future__ import annotations
@@ -19,12 +19,15 @@ from __future__ import annotations
 import warnings
 
 import numpy as np
-from pyramids.dataset import Dataset
 
-from digitalrivers._outofcore.spillgraph import GlobalSpillGraph
+from digitalrivers._outofcore.spillgraph import (
+    GlobalSpillGraph,
+    solve_drain_levels,
+    stitch_seams,
+)
 from digitalrivers._outofcore.tiling import (
     TileSpec,
-    plan_tiles,
+    allocate_tiled_output,
     read_tile,
     require_single_band,
     write_core,
@@ -32,7 +35,7 @@ from digitalrivers._outofcore.tiling import (
 
 
 def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
-    """Boolean no-data mask: NaN cells, plus cells equal to ``nodata`` if a sentinel is given."""
+    """Boolean no-data mask: NaN cells, plus cells equal to `nodata` if a sentinel is given."""
     mask = np.isnan(elev)
     if nodata is not None and not np.isnan(nodata):
         mask = mask | (elev == nodata)
@@ -40,13 +43,13 @@ def _nodata_mask(elev: np.ndarray, nodata: float | None) -> np.ndarray:
 
 
 def out_dtype(dem) -> str:
-    """Band-0 dtype string of ``dem`` (e.g. ``"float32"`` / ``"float64"``), defaulting to ``"float32"``.
+    """Band-0 dtype string of `dem` (e.g. `"float32"` / `"float64"`), defaulting to `"float32"`.
 
     The tiled fill preserves the source dtype so it stays bit-for-bit with the in-memory fill (which casts back
     to the input dtype) for float64 DEMs, not just float32.
 
     Examples:
-        - A pyramids ``Dataset`` reports its band dtypes as a list; the band-0 dtype is used:
+        - A pyramids `Dataset` reports its band dtypes as a list; the band-0 dtype is used:
             ```python
             >>> import types
             >>> from digitalrivers._outofcore.fill import out_dtype
@@ -54,7 +57,7 @@ def out_dtype(dem) -> str:
             'float64'
 
             ```
-        - Falls back to ``"float32"`` when no dtype is available:
+        - Falls back to `"float32"` when no dtype is available:
             ```python
             >>> import types
             >>> from digitalrivers._outofcore.fill import out_dtype
@@ -72,7 +75,7 @@ def out_dtype(dem) -> str:
 def _flood_tile(
     dem, spec: TileSpec, full_rows: int, full_cols: int, nodata, offset: int
 ):
-    """Run the labelled flood on one tile's core; return ``(filled, glabels, halo_arr, core)``."""
+    """Run the labelled flood on one tile's core; return `(filled, glabels, halo_arr, core)`."""
     # Lazy import keeps `import digitalrivers` numba-free (CLAUDE.md rule).
     from digitalrivers._numba import (  # noqa: PLC0415
         _DIR_DC_I32,
@@ -108,7 +111,7 @@ def _dilate8(mask: np.ndarray) -> np.ndarray:
 def collect_outlet_edges(
     spec, glabels, filled, halo_arr, core, nodata, full_rows, full_cols
 ) -> list[tuple[int, float]]:
-    """Return ``(label, elevation)`` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
+    """Return `(label, elevation)` outlet edges for true-outlet cells (domain edge or no-data-adjacent).
 
     Vectorised: an outlet cell is a labelled core cell that is on the domain boundary or 8-adjacent to no-data.
     Shared by the serial orchestrator and the dask backend (B7); the latter ships the list back from a worker
@@ -169,35 +172,35 @@ def fill_depressions_tiled(
     """Out-of-core depression fill (Barnes 2016 master-graph).
 
     Args:
-        dem: Source `pyramids` ``Dataset`` (or ``DEM``) to fill.
+        dem: Source `pyramids` `Dataset` (or `DEM`) to fill.
         out_path: Path of the GeoTIFF to create and stream the filled result into.
         tile_rows: Core tile height in cells. Defaults to 2048.
         tile_cols: Core tile width in cells. Defaults to 2048.
-        epsilon: Per-step lift. ``0.0`` (default) is exact / bit-for-bit. For ``epsilon > 0`` see ``eps_fill``.
-        cache: ``TileStore`` mode — ``"evict"`` (default), ``"retain"``, or ``"cache"``.
-        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
-            Only the ``epsilon = 0`` path is dask-parallelised; ``epsilon > 0`` runs serially.
-        scratch_dir: Scratch directory for ``cache`` mode.
-        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
-        client: Optional ``distributed.Client``; when given, the dask backend is used and
-            ``pyramids.configure(client=...)`` replays GDAL config on every worker.
-        eps_fill: Strategy for ``epsilon > 0`` (ignored for ``epsilon = 0``). ``"exact"`` (default, alias
-            ``"monotone"``) produces the exit-distance ramp (``fill_0 + epsilon * exit_distance``) — the *same*
+        epsilon: Per-step lift. `0.0` (default) is exact / bit-for-bit. For `epsilon > 0` see `eps_fill`.
+        cache: `TileStore` mode — `"evict"` (default), `"retain"`, or `"cache"`.
+        workers: `> 1` (or a non-None `client`) runs the per-tile passes through the dask backend (B7).
+            Only the `epsilon = 0` path is dask-parallelised; `epsilon > 0` runs serially.
+        scratch_dir: Scratch directory for `cache` mode.
+        scheduler: dask scheduler for the dask backend (`"threads"` default) when no `client` is given.
+        client: Optional `distributed.Client`; when given, the dask backend is used and
+            `pyramids.configure(client=...)` replays GDAL config on every worker.
+        eps_fill: Strategy for `epsilon > 0` (ignored for `epsilon = 0`). `"exact"` (default, alias
+            `"monotone"`) produces the exit-distance ramp (`fill_0 + epsilon * exit_distance`) — the *same*
             definition the in-memory engine uses, so the tiled result is **byte-for-byte identical** to
-            ``engine="in_memory"`` (flat-free for small epsilon). ``"barnes"`` (the classic Priority-Flood
+            `engine="in_memory"` (flat-free for small epsilon). `"barnes"` (the classic Priority-Flood
             step-count) is in-memory only and raises here: it depends on the global traversal order and is not
-            tileable (see issue #69 / ``docs/eps-fill-exact-feasibility.md``).
-        dtype: Optional output dtype override (e.g. ``"float64"``). ``None`` (default) uses the source band
-            dtype. The ``epsilon>0`` ramp path requests ``"float64"`` for its intermediate ``fill_0`` so the
-            ``fill_0 + epsilon * g`` arithmetic matches the in-memory engine bit-for-bit on ``float32`` sources.
+            tileable (see issue #69 / `docs/eps-fill-exact-feasibility.md`).
+        dtype: Optional output dtype override (e.g. `"float64"`). `None` (default) uses the source band
+            dtype. The `epsilon>0` ramp path requests `"float64"` for its intermediate `fill_0` so the
+            `fill_0 + epsilon * g` arithmetic matches the in-memory engine bit-for-bit on `float32` sources.
 
     Returns:
-        The filled `pyramids` ``Dataset`` opened on ``out_path``.
+        The filled `pyramids` `Dataset` opened on `out_path`.
 
     Raises:
-        NotImplementedError: If ``epsilon != 0`` and ``eps_fill="barnes"`` (not tileable).
-        ValueError: If ``eps_fill`` is not ``"exact"``, ``"monotone"`` or ``"barnes"``, or ``dem`` is multi-band.
-            Use a sane tile size (e.g. ``>= 512``): the global label count / drain vector scale with total tile
+        NotImplementedError: If `epsilon != 0` and `eps_fill="barnes"` (not tileable).
+        ValueError: If `eps_fill` is not `"exact"`, `"monotone"` or `"barnes"`, or `dem` is multi-band.
+            Use a sane tile size (e.g. `>= 512`): the global label count / drain vector scale with total tile
             perimeter.
     """
     require_single_band(dem)
@@ -248,21 +251,14 @@ def fill_depressions_tiled(
     from digitalrivers._outofcore.cache import TileStore  # noqa: PLC0415
 
     rows, cols = dem.rows, dem.columns
-    nodata = dem.no_data_value[0] if dem.no_data_value else None
-    dtype = dtype or out_dtype(dem)
-    specs = plan_tiles(rows, cols, tile_rows, tile_cols, halo=1)
-    by_grid = {(s.row, s.col): s for s in specs}
-
-    out = Dataset.create_empty(
-        rows,
-        cols,
-        dtype=dtype,
-        geo=dem.geotransform,
-        epsg=dem.epsg,
-        no_data_value=-9999.0 if nodata is None else nodata,
-        driver_type="GTiff",
-        path=out_path,
+    out, specs, nodata = allocate_tiled_output(
+        dem,
+        out_path,
+        dtype=dtype or out_dtype(dem),
+        tile_rows=tile_rows,
+        tile_cols=tile_cols,
     )
+    by_grid = {(s.row, s.col): s for s in specs}
     graph = GlobalSpillGraph()
     store = TileStore(cache, scratch_dir)
     strips: dict[int, dict[str, tuple[np.ndarray, np.ndarray]]] = {}
@@ -283,45 +279,8 @@ def fill_depressions_tiled(
             store.put(s.tid, filled=filled, glabels=glabels)
 
     # --- stage 2: reduce (stitch seams + global solve) ---
-    for s in specs:
-        right = by_grid.get((s.row, s.col + 1))
-        if right is not None:
-            a_lab, a_fil = strips[s.tid]["right"]
-            b_lab, b_fil = strips[right.tid]["left"]
-            graph.join_strips(a_lab, a_fil, b_lab, b_fil)
-        below = by_grid.get((s.row + 1, s.col))
-        if below is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            b_lab, b_fil = strips[below.tid]["top"]
-            graph.join_strips(a_lab, a_fil, b_lab, b_fil)
-        # Tile-corner diagonals (where four tiles meet): single corner-to-corner adjacencies not covered by the
-        # orthogonal-neighbour seam joins above.
-        diag = by_grid.get((s.row + 1, s.col + 1))
-        if diag is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[diag.tid]["top"]
-            if a_lab[-1] >= 1 and d_lab[0] >= 1:
-                graph.add_edge(
-                    int(a_lab[-1]),
-                    int(d_lab[0]),
-                    max(float(a_fil[-1]), float(d_fil[0])),
-                )
-        anti = by_grid.get((s.row + 1, s.col - 1))
-        if anti is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[anti.tid]["top"]
-            if a_lab[0] >= 1 and d_lab[-1] >= 1:
-                graph.add_edge(
-                    int(a_lab[0]),
-                    int(d_lab[-1]),
-                    max(float(a_fil[0]), float(d_fil[-1])),
-                )
-    drain = graph.solve()
-
-    drainvec = np.full(label_offset + 1, -np.inf, dtype=np.float64)
-    for label, level in drain.items():
-        if 1 <= label <= label_offset:
-            drainvec[label] = level
+    stitch_seams(specs, by_grid, strips, graph)
+    drainvec = solve_drain_levels(graph, label_offset)
 
     # --- stage 3: map (raise + write) ---
     for s in specs:

@@ -4,7 +4,7 @@ The typed result classes in P1 (`FlowDirection` / `Accumulation` /
 `StreamRaster`) rely on three specific properties of the installed
 `pyramids.dataset.Dataset`:
 
-1. The three classmethods `read_file` / `create_from_array` /
+1. The three classmethods `read_file` / `from_array` /
    `dataset_like` exist and end with `cls(...)` (so subclass identity
    is preserved when called on a typed subclass).
 2. The `meta_data` property has a setter and writes per-key via
@@ -12,9 +12,9 @@ The typed result classes in P1 (`FlowDirection` / `Accumulation` /
 3. The same classmethods, when called from a subclass with a single-arg
    `__init__` (like `DEM`), return an instance of the subclass — not a
    plain `Dataset`. This is the regression guard for the
-   `Dataset(...)`-returning paths at pyramids `dataset.py` lines 1152 /
-   1539 / 2076 / 3472; if any release routes `dataset_like` through one of
-   those paths, this test fails first.
+   `Dataset(...)`-returning paths inside pyramids; if any release routes
+   `dataset_like` through one of those instead of `cls(...)`, this test
+   fails first.
 
 `DEM` is used rather than `FlowDirection` in test (3) because the typed
 subclasses require a `routing` kwarg that pyramids' inner
@@ -22,12 +22,13 @@ subclasses require a `routing` kwarg that pyramids' inner
 before we could inspect the returned type. `DEM` keeps a single-arg
 `__init__`, so it isolates the regression we actually want to detect.
 """
+
 from __future__ import annotations
 
 import inspect
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 
@@ -39,11 +40,9 @@ def test_dataset_has_classmethod_read_file():
     )
 
 
-def test_dataset_has_classmethod_create_from_array():
-    assert callable(getattr(Dataset, "create_from_array", None))
-    assert isinstance(
-        inspect.getattr_static(Dataset, "create_from_array"), classmethod
-    )
+def test_dataset_has_classmethod_from_array():
+    assert callable(getattr(Dataset, "from_array", None))
+    assert isinstance(inspect.getattr_static(Dataset, "from_array"), classmethod)
 
 
 def test_dataset_has_classmethod_dataset_like():
@@ -69,8 +68,10 @@ def test_dem_dataset_like_preserves_subclass():
     this test fires before any of the typed-result tests do.
     """
     arr = np.array([[100.0, 200.0], [150.0, 250.0]], dtype=np.float32)
-    src = Dataset.create_from_array(
-        arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326, no_data_value=-9999
+    src = Dataset.from_array(
+        arr,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=-9999,
     )
     dem = DEM(src.raster)
     new_arr = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
@@ -83,10 +84,12 @@ def test_dem_dataset_like_preserves_subclass():
     )
 
 
-def test_dem_create_from_array_preserves_subclass():
-    """Same regression guard, for `create_from_array` (pyramids line 2280)."""
+def test_dem_from_array_preserves_subclass():
+    """Same regression guard, for `Dataset.from_array`."""
     arr = np.array([[1.0, 2.0]], dtype=np.float32)
-    out = DEM.create_from_array(
-        arr, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326, no_data_value=-9999
+    out = DEM.from_array(
+        arr,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=-9999,
     )
     assert type(out) is DEM

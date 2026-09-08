@@ -1,24 +1,12 @@
 """Tests for `WatershedRaster.statistics` (P17)."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
-from shapely.geometry import Point
 
-from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build(z: np.ndarray, cell_size: float = 1.0):
@@ -28,14 +16,7 @@ def _build(z: np.ndarray, cell_size: float = 1.0):
 
 
 def test_area_km2_matches_cell_count_for_unit_cell():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics()
@@ -47,14 +28,7 @@ def test_area_km2_matches_cell_count_for_unit_cell():
 
 
 def test_elevation_stats_match_basin_dem_values():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem)
@@ -62,19 +36,11 @@ def test_elevation_stats_match_basin_dem_values():
     assert "max_elev" in df.columns
     assert "mean_elev" in df.columns
     # Hypsometric integral is in [0, 1].
-    assert ((df["hypsometric_integral"] >= 0)
-            & (df["hypsometric_integral"] <= 1)).all()
+    assert ((df["hypsometric_integral"] >= 0) & (df["hypsometric_integral"] <= 1)).all()
 
 
 def test_drainage_density_uses_stream_length():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -87,14 +53,7 @@ def test_drainage_density_uses_stream_length():
 
 
 def test_metrics_subset_filters_columns():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem, metrics=["area_km2"])
@@ -102,14 +61,7 @@ def test_metrics_subset_filters_columns():
 
 
 def test_centroid_in_output_when_dem_passed():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem)
@@ -131,9 +83,7 @@ class TestBasinCountCachingAndCentroid:
     """Lazy-property and centroid-always coverage (N5, I4)."""
 
     def _build_ws(self):
-        z = np.array(
-            [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
-        )
+        z = np.array([[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32)
         dem, fd = _build(z)
         return fd.basins()
 

@@ -1,24 +1,36 @@
 """Tests for `StreamRaster.prune_short` (W-5)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
+from tests.helpers import channel_z
 
 
 def _stream_raster_from_mask(sm: np.ndarray, cell_size: float = 1.0) -> StreamRaster:
-    ds = Dataset.create_from_array(
-        sm.astype(np.uint8), top_left_corner=(0.0, 0.0), cell_size=cell_size,
-        epsg=4326, no_data_value=0,
+    ds = Dataset.from_array(
+        sm.astype(np.uint8),
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
+        no_data_value=0,
     )
     return StreamRaster.from_dataset(ds, threshold=1, routing="d8")
 
 
 def _fd_from_array(fdir: np.ndarray, cell_size: float = 1.0) -> FlowDirection:
-    fdir_ds = Dataset.create_from_array(
-        fdir, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
+    fdir_ds = Dataset.from_array(
+        fdir,
+        geo_ref=GeoReference(
+            top_left_corner=(0.0, 0.0),
+            cell_size=cell_size,
+            epsg=4326,
+        ),
         no_data_value=-1,
     )
     return FlowDirection.from_dataset(fdir_ds, routing="d8")
@@ -109,23 +121,23 @@ class TestStreamRasterPruneShort:
         #   row 3: . . X . H3      (H3 at (3, 4))
         #   row 4: . . X X .       (second confluence at (4, 2))
         sm = np.zeros((5, 5), dtype=bool)
-        sm[0, 0] = sm[0, 4] = True       # H1, H2
-        sm[1, 1] = sm[1, 2] = True       # first confluence + step
-        sm[1, 3] = True                   # H2's path-cell
-        sm[2, 2] = sm[3, 2] = True       # internal trunk between confluences
-        sm[3, 4] = True                   # H3
-        sm[4, 2] = sm[4, 3] = True       # second confluence + step from H3
+        sm[0, 0] = sm[0, 4] = True  # H1, H2
+        sm[1, 1] = sm[1, 2] = True  # first confluence + step
+        sm[1, 3] = True  # H2's path-cell
+        sm[2, 2] = sm[3, 2] = True  # internal trunk between confluences
+        sm[3, 4] = True  # H3
+        sm[4, 2] = sm[4, 3] = True  # second confluence + step from H3
         # Outlet at (4, 2).
         fdir = np.full((5, 5), -1, dtype=np.int32)
-        fdir[0, 0] = 7   # SE into (1, 1)
-        fdir[1, 1] = 6   # E into (1, 2)
-        fdir[0, 4] = 1   # SW into (1, 3)
-        fdir[1, 3] = 2   # W into (1, 2)
-        fdir[1, 2] = 0   # S into (2, 2)
-        fdir[2, 2] = 0   # S into (3, 2)
-        fdir[3, 4] = 1   # SW into (4, 3)
-        fdir[4, 3] = 2   # W into (4, 2)
-        fdir[3, 2] = 0   # S into (4, 2)
+        fdir[0, 0] = 7  # SE into (1, 1)
+        fdir[1, 1] = 6  # E into (1, 2)
+        fdir[0, 4] = 1  # SW into (1, 3)
+        fdir[1, 3] = 2  # W into (1, 2)
+        fdir[1, 2] = 0  # S into (2, 2)
+        fdir[2, 2] = 0  # S into (3, 2)
+        fdir[3, 4] = 1  # SW into (4, 3)
+        fdir[4, 3] = 2  # W into (4, 2)
+        fdir[3, 2] = 0  # S into (4, 2)
         fdir[4, 2] = -1  # outlet
         sr = _stream_raster_from_mask(sm)
         fd = _fd_from_array(fdir)
@@ -158,16 +170,10 @@ class TestStreamRasterPruneShort:
             prune_short requires single-direction routing; passing a dinf
             FlowDirection must raise.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
-        ds = Dataset.create_from_array(
-            z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+        z = channel_z()
+        ds = Dataset.from_array(
+            z,
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
             no_data_value=-9999.0,
         )
         dem = DEM(ds.raster)

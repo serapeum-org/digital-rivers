@@ -5,12 +5,13 @@ acceptance-criteria fixtures from the P3 spec: walled pit (single-cell-thick wal
 thick-wall blocking breach (hybrid fall-back to fill), single-cell pit preprocessing,
 `max_length` constraint, and a behavioural sinks-free check on the Coello basin.
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
 from digitalrivers._conditioning.breach import (
@@ -23,21 +24,21 @@ from digitalrivers._conditioning.pitremoval import local_minima_8
 
 # ----- helpers ----------------------------------------------------------------------------
 
+
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
     disk = arr.astype(np.float32, copy=True)
     nan_mask = np.isnan(disk)
     disk[nan_mask] = no_data_value
-    ds = Dataset.create_from_array(
+    ds = Dataset.from_array(
         disk,
-        top_left_corner=(0.0, 0.0),
-        cell_size=1.0,
-        epsg=4326,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=no_data_value,
     )
     return DEM(ds.raster)
 
 
 # ----- candidate-intermediates helper ----------------------------------------------------
+
 
 class TestCandidateIntermediates:
     def test_cardinal_second_order_has_three_intermediates(self):
@@ -59,6 +60,7 @@ class TestCandidateIntermediates:
 
 
 # ----- single_cell mode ------------------------------------------------------------------
+
 
 class TestSingleCellBreach:
     """Cheap O(n) preprocessing pass — resolves isolated 1-cell pits."""
@@ -125,6 +127,7 @@ class TestSingleCellBreach:
 
 # ----- least_cost mode -------------------------------------------------------------------
 
+
 class TestLeastCostBreach:
     """Lindsay 2016 Dijkstra-from-each-pit."""
 
@@ -190,6 +193,7 @@ class TestLeastCostBreach:
 
 # ----- hybrid mode -----------------------------------------------------------------------
 
+
 class TestHybridBreach:
     """Try least_cost; fall back to Priority-Flood fill on unresolved pits."""
 
@@ -210,9 +214,7 @@ class TestHybridBreach:
     def test_thick_wall_falls_back_to_fill(self):
         z = self._thick_wall()
         # With a tight max_depth the breach fails; hybrid falls back to fill.
-        out = breach_depressions(
-            z, method="hybrid", max_depth=2.0, fill_remaining=True
-        )
+        out = breach_depressions(z, method="hybrid", max_depth=2.0, fill_remaining=True)
         # No internal sinks remain — fill resolved what breach couldn't.
         assert not local_minima_8(out).any()
         # The pit cell has been raised (fill, not breach).
@@ -228,6 +230,7 @@ class TestHybridBreach:
 
 
 # ----- nodata handling -------------------------------------------------------------------
+
 
 class TestNodataAsOutlet:
     def test_nodata_neighbour_acts_as_free_outlet(self):
@@ -249,6 +252,7 @@ class TestNodataAsOutlet:
 
 
 # ----- validation ------------------------------------------------------------------------
+
 
 class TestValidation:
     def test_invalid_method_raises(self):
@@ -278,6 +282,7 @@ class TestValidation:
 
 # ----- DEM-level integration -------------------------------------------------------------
 
+
 class TestDEMBreach:
     def test_returns_typed_dem(self):
         z = np.array(
@@ -306,9 +311,7 @@ class TestDEMBreach:
             dtype=np.float32,
         )
         dem = _make_dem(z)
-        result = dem.breach_depressions(
-            method="least_cost", max_depth=20, inplace=True
-        )
+        result = dem.breach_depressions(method="least_cost", max_depth=20, inplace=True)
         assert result is None
 
     def test_hybrid_via_dem_method(self):

@@ -1,9 +1,8 @@
 """Tests for `DEM.full_hydro_pipeline` (W-20)."""
+
 from __future__ import annotations
 
 import numpy as np
-import pytest
-from pyramids.dataset import Dataset
 
 from digitalrivers import (
     DEM,
@@ -11,17 +10,7 @@ from digitalrivers import (
     FlowDirection,
     StreamRaster,
 )
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestFullHydroPipeline:
@@ -34,14 +23,7 @@ class TestFullHydroPipeline:
             Without `stream_threshold_cells`, the result dict carries exactly
             three keys, each pointing at the matching typed class.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline()
         assert set(out.keys()) == {"filled_dem", "flow_direction", "accumulation"}
@@ -56,14 +38,7 @@ class TestFullHydroPipeline:
             With `stream_threshold_cells=1`, the result dict carries a
             `"streams"` key pointing at a StreamRaster.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline(stream_threshold_cells=1)
         assert "streams" in out
@@ -76,14 +51,7 @@ class TestFullHydroPipeline:
             Calling fill → flow_direction → accumulate manually with the same
             arguments produces identical rasters.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         bundle = dem.full_hydro_pipeline()
         # Manual chain.
@@ -104,16 +72,10 @@ class TestFullHydroPipeline:
             Passing `fill_method="wang_liu"` and `flow_method="rho8"` returns
             objects tagged with the corresponding routing scheme.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline(
-            fill_method="wang_liu", flow_method="rho8",
+            fill_method="wang_liu",
+            flow_method="rho8",
         )
         assert out["flow_direction"].routing == "rho8"

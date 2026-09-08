@@ -5,8 +5,8 @@ flow only crosses tile seams at boundary cells. We exploit the linearity of accu
 
     acc_tile = kahn(fdir, weights + inflow) + inflow
 
-where ``inflow`` is the external flow arriving at the tile's inlet cells. A tile's **export** at a boundary cell
-``e`` whose receiver lies in a neighbour tile is ``acc[e] + weight[e]``, delivered to that receiver (an inlet).
+where `inflow` is the external flow arriving at the tile's inlet cells. A tile's **export** at a boundary cell
+`e` whose receiver lies in a neighbour tile is `acc[e] + weight[e]`, delivered to that receiver (an inlet).
 Inlet inflows therefore depend on neighbour exports, which depend on inlet inflows — a fixed point that converges
 because global D8 flow over a filled DEM is acyclic. We iterate the perimeter exchange to convergence (a simpler,
 still-exact alternative to the Barnes 2017 single-pass FOLLOWPATH graph; same result).
@@ -19,9 +19,10 @@ from __future__ import annotations
 from collections import defaultdict
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._outofcore.tiling import (
+    perimeter_cells,
     plan_tiles,
     read_tile,
     require_single_band,
@@ -54,24 +55,24 @@ def flow_accumulation_tiled(
     """Out-of-core D8/Rho8 flow accumulation by tiled perimeter-exchange to convergence.
 
     Args:
-        fdir: A ``FlowDirection`` (or ``Dataset``) of D8 direction codes (``DIR_OFFSETS`` order; sinks / no-data
-            are values outside ``[0, 7]``). Must be D8 or Rho8 routing.
+        fdir: A `FlowDirection` (or `Dataset`) of D8 direction codes (`DIR_OFFSETS` order; sinks / no-data
+            are values outside `[0, 7]`). Must be D8 or Rho8 routing.
         out_path: Path of the GeoTIFF to create and stream the accumulation into.
-        weights: Optional per-cell weight ``Dataset``; defaults to 1.0 per cell (cell counts).
+        weights: Optional per-cell weight `Dataset`; defaults to 1.0 per cell (cell counts).
         tile_rows: Core tile height. Defaults to 2048.
         tile_cols: Core tile width. Defaults to 2048.
-        workers: ``> 1`` (or a non-None ``client``) runs the per-tile passes through the dask backend (B7).
-        scheduler: dask scheduler for the dask backend (``"threads"`` default) when no ``client`` is given.
-        client: Optional ``distributed.Client``; when given, the dask backend is used.
+        workers: `> 1` (or a non-None `client`) runs the per-tile passes through the dask backend (B7).
+        scheduler: dask scheduler for the dask backend (`"threads"` default) when no `client` is given.
+        client: Optional `distributed.Client`; when given, the dask backend is used.
         cache: Accepted for parity with the fill API but currently ignored — the perimeter exchange re-reads
             tiles each round (bounded memory) rather than caching them.
         scratch_dir: Accepted for parity but currently ignored.
 
     Returns:
-        The accumulation `pyramids` ``Dataset`` opened on ``out_path``.
+        The accumulation `pyramids` `Dataset` opened on `out_path`.
 
     Raises:
-        NotImplementedError: If ``fdir.routing`` is not D8 / Rho8 (divergent flow has no fixed-halo closure).
+        NotImplementedError: If `fdir.routing` is not D8 / Rho8 (divergent flow has no fixed-halo closure).
     """
     require_single_band(fdir)
     routing = getattr(fdir, "routing", "d8")
@@ -109,11 +110,9 @@ def flow_accumulation_tiled(
     out = Dataset.create_empty(
         rows,
         cols,
+        geo_ref=GeoReference(geo=fdir.geotransform, epsg=fdir.epsg),
         dtype="float32",
-        geo=fdir.geotransform,
-        epsg=fdir.epsg,
         no_data_value=-1.0,
-        driver_type="GTiff",
         path=out_path,
     )
 
@@ -149,16 +148,7 @@ def flow_accumulation_tiled(
         n_rows, n_cols = fd.shape
         r0, r1 = spec.row_off, spec.row_off + n_rows
         c0, c1 = spec.col_off, spec.col_off + n_cols
-        cells = []
-        for j in range(n_cols):
-            cells.append((0, j))
-            cells.append((n_rows - 1, j))
-        for i in range(n_rows):
-            cells.append((i, 0))
-            cells.append((i, n_cols - 1))
-        # dict.fromkeys dedups while preserving insertion order, so the export-sum order is deterministic
-        # (unlike set() iteration) — float addition is not associative.
-        for i, j in dict.fromkeys(cells):
+        for i, j in perimeter_cells(n_rows, n_cols):
             d = int(fd[i, j])
             if d < 0 or d > 7:
                 continue
@@ -176,8 +166,8 @@ def flow_accumulation_tiled(
     # tile at progressively lower cells, so the number of hops is bounded by the total perimeter cell count, not by
     # len(specs); cap accordingly and RAISE on non-convergence rather than ever returning a silently-wrong result.
     inflow: dict[int, float] = {}
-    perimeter_cells = sum(2 * (s.n_rows + s.n_cols) for s in specs)
-    max_rounds = max(64, perimeter_cells + 2)
+    perimeter_cell_count = sum(2 * (s.n_rows + s.n_cols) for s in specs)
+    max_rounds = max(64, perimeter_cell_count + 2)
     converged = False
     for _ in range(max_rounds):
         buckets = bucket_inflow(inflow)

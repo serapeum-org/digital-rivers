@@ -1,22 +1,11 @@
 """Tests for `DEM.stochastic_depressions` (W-11)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
-from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 class TestStochasticDepressions:
@@ -136,6 +125,7 @@ class TestStochasticDepressions:
             catch a Dataset-per-iteration regression.
         """
         import time
+
         rng = np.random.default_rng(123)
         z = rng.uniform(0, 100, size=(32, 32)).astype(np.float32)
         dem = _make_dem(z)
@@ -143,4 +133,6 @@ class TestStochasticDepressions:
         out = dem.stochastic_depressions(sigma=1.0, n_runs=50, seed=0)
         elapsed = time.perf_counter() - start
         assert out.read_array().shape == z.shape
-        assert elapsed < 5.0, f"50-run Monte-Carlo took {elapsed:.2f}s — perf regression?"
+        assert (
+            elapsed < 5.0
+        ), f"50-run Monte-Carlo took {elapsed:.2f}s — perf regression?"

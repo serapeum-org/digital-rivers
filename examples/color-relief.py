@@ -14,7 +14,7 @@ cleo = max_dataset.plot(cmap="RdYlBu")
 df = pd.read_csv(color_file, header=None)
 df.columns = ["values", "red", "green", "blue", "alpha"]
 color_relief = max_dataset.color_relief(band=0, color_table=df)
-color_relief.plot(rgb=[0, 1, 2, 3])
+color_relief.plot(rgb_options={"rgb": [0, 1, 2, 3]})
 # %%
 dataset = Dataset.read_file(f"{path}/CHELSA_tas_09_1981-2010_V.2.1.tif")
 dataset.create_overviews()

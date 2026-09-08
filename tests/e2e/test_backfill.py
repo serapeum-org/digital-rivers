@@ -1,5 +1,6 @@
 """Tests for the deferred-item backfill: additional P26 export targets and the
 P20 AGREE stream-burn method."""
+
 from __future__ import annotations
 
 import os
@@ -11,17 +12,7 @@ from pyramids.dataset import Dataset
 from shapely.geometry import LineString
 
 from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 def _line_world(rows_cols: list[tuple[int, int]]) -> LineString:
@@ -29,6 +20,7 @@ def _line_world(rows_cols: list[tuple[int, int]]) -> LineString:
 
 
 # ----- HEC-RAS GeoTIFF export -----------------------------------------------
+
 
 def test_hec_ras_export_writes_geotiff(tmp_path):
     z = np.arange(9, dtype=np.float32).reshape(3, 3)
@@ -45,6 +37,7 @@ def test_hec_ras_export_writes_geotiff(tmp_path):
 
 # ----- TUFLOW .flt + .hdr ---------------------------------------------------
 
+
 def test_tuflow_export_writes_flt_and_hdr(tmp_path):
     z = np.arange(9, dtype=np.float32).reshape(3, 3)
     dem = _make_dem(z)
@@ -59,6 +52,7 @@ def test_tuflow_export_writes_flt_and_hdr(tmp_path):
 
 
 # ----- SFINCS .dep + .msk ---------------------------------------------------
+
 
 def test_sfincs_export_writes_dep_and_msk(tmp_path):
     z = np.arange(9, dtype=np.float32).reshape(3, 3)
@@ -86,6 +80,7 @@ def test_sfincs_msk_marks_nodata(tmp_path):
 
 # ----- Gmsh .geo ------------------------------------------------------------
 
+
 def test_gmsh_export_writes_geo_script(tmp_path):
     z = np.zeros((4, 4), dtype=np.float32)
     dem = _make_dem(z)
@@ -94,12 +89,18 @@ def test_gmsh_export_writes_geo_script(tmp_path):
     assert paths["geo"].endswith(".geo")
     text = open(paths["geo"]).read()
     # Four corner points, four lines, one loop, one surface.
-    for needle in ("Point(1)", "Point(4)", "Line(1)",
-                   "Line Loop(1)", "Plane Surface(1)"):
+    for needle in (
+        "Point(1)",
+        "Point(4)",
+        "Line(1)",
+        "Line Loop(1)",
+        "Plane Surface(1)",
+    ):
         assert needle in text
 
 
 # ----- Iber .dat ------------------------------------------------------------
+
 
 def test_iber_export_writes_dat(tmp_path):
     z = np.zeros((3, 3), dtype=np.float32)
@@ -113,14 +114,20 @@ def test_iber_export_writes_dat(tmp_path):
 
 # ----- AGREE stream burning --------------------------------------------------
 
+
 def test_agree_lowers_buffer_cells_around_stream():
     z = np.full((7, 7), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
-        geometry=[_line_world([(3, 0), (3, 6)])], crs=4326,
+        geometry=[_line_world([(3, 0), (3, 6)])],
+        crs=4326,
     )
     out = dem.burn_streams(
-        streams, method="agree", sharp=5.0, smooth=0.0, buffer_cells=2,
+        streams,
+        method="agree",
+        sharp=5.0,
+        smooth=0.0,
+        buffer_cells=2,
     )
     vals = out.values
     # Stream cells (row 3) drop by `sharp` = 5: 10 - 5 = 5.
@@ -135,7 +142,8 @@ def test_agree_returns_dem():
     z = np.full((5, 5), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
-        geometry=[_line_world([(2, 0), (2, 4)])], crs=4326,
+        geometry=[_line_world([(2, 0), (2, 4)])],
+        crs=4326,
     )
     out = dem.burn_streams(streams, method="agree")
     assert isinstance(out, DEM)
@@ -147,7 +155,8 @@ def test_topological_breach_now_implemented_returns_dem():
     z = np.full((4, 4), 10.0, dtype=np.float32)
     dem = _make_dem(z)
     streams = gpd.GeoDataFrame(
-        geometry=[_line_world([(1, 0), (1, 3)])], crs=4326,
+        geometry=[_line_world([(1, 0), (1, 3)])],
+        crs=4326,
     )
     out = dem.burn_streams(streams, method="topological_breach")
     assert isinstance(out, DEM)

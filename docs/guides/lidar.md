@@ -12,7 +12,7 @@ LAS / LAZ file
   → detect_trees                # W-19 — local-maxima on a CHM
 ```
 
-The LAS I/O step **soft-imports** `laspy` — install with `pip install laspy[lazrs]` to enable
+The LAS I/O step **soft-imports** `laspy` — add `laspy[lazrs]` to the environment to enable
 read/write. All other stages (classification, gridding, clipping, merging, tree detection)
 run on the in-memory `LasPoints` record with no laspy dependency.
 

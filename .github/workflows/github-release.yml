@@ -66,6 +66,10 @@ jobs:
           prerelease-type: ${{ github.event.inputs.prerelease_type }}
           draft: ${{ github.event.inputs.draft }}
           package-manager: pixi
+          # Must match the pixi pinned in tests.yml: this job runs `pixi lock`
+          # and commits the result, so a floating version could write a
+          # lock-file format the test matrix cannot read.
+          package-manager-version: v0.73.0
           install-groups: "dev"
 
       - name: Update lockfile after version bump

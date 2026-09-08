@@ -18,12 +18,13 @@ Pipeline (left to right):
       -> subbasins_pfafstetter()        # P16 (level 1 & level 2)
       -> statistics(streams, fd, dem)   # P17 (now including I4/N3 fixes)
 """
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
 from digitalrivers import DEM, WatershedRaster
@@ -47,8 +48,9 @@ def synthetic_dem() -> DEM:
     # The two outlet cells themselves dip to 0.
     z[5, 1] = 0.0
     z[5, 10] = 0.0
-    ds = Dataset.create_from_array(
-        z, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
+    ds = Dataset.from_array(
+        z,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
         no_data_value=-9999.0,
     )
     return DEM(ds.raster)
@@ -75,12 +77,21 @@ def pipeline(synthetic_dem):
     pfaf_l1 = fd.subbasins_pfafstetter(acc, sr, level=1)
     pfaf_l2 = fd.subbasins_pfafstetter(acc, sr, level=2)
     stats = basins.statistics(
-        dem=resolved, streams=sr, flow_direction=fd,
+        dem=resolved,
+        streams=sr,
+        flow_direction=fd,
     )
     return {
-        "dem": resolved, "fd": fd, "acc": acc, "sr": sr,
-        "snapped": snapped, "watershed": watershed, "basins": basins,
-        "pfaf_l1": pfaf_l1, "pfaf_l2": pfaf_l2, "stats": stats,
+        "dem": resolved,
+        "fd": fd,
+        "acc": acc,
+        "sr": sr,
+        "snapped": snapped,
+        "watershed": watershed,
+        "basins": basins,
+        "pfaf_l1": pfaf_l1,
+        "pfaf_l2": pfaf_l2,
+        "stats": stats,
     }
 
 
@@ -132,8 +143,14 @@ class TestPhase2PipelineInvariants:
         skip), drainage density, and centroid columns."""
         df = pipeline["stats"]
         expected = {
-            "area_km2", "min_elev", "max_elev", "mean_elev", "std_elev",
-            "hypsometric_integral", "centroid_x", "centroid_y",
+            "area_km2",
+            "min_elev",
+            "max_elev",
+            "mean_elev",
+            "std_elev",
+            "hypsometric_integral",
+            "centroid_x",
+            "centroid_y",
             "drainage_density_km_per_km2",
         }
         missing = expected - set(df.columns)
@@ -152,14 +169,11 @@ class TestPhase2PipelineInvariants:
         fdir = pipeline["fd"].read_array()
         diag = np.isin(fdir, [1, 3, 5, 7])
         cell_size = abs(pipeline["fd"].geotransform[1])
-        total_len_km = (
-            (sr_arr & ~diag).sum() * cell_size / 1000.0
-            + (sr_arr & diag).sum() * cell_size * np.sqrt(2.0) / 1000.0
-        )
+        total_len_km = (sr_arr & ~diag).sum() * cell_size / 1000.0 + (
+            sr_arr & diag
+        ).sum() * cell_size * np.sqrt(2.0) / 1000.0
         # Per-basin length = density × area (km/km² × km² = km).
-        per_basin_len_km = (
-            df["drainage_density_km_per_km2"] * df["area_km2"]
-        ).sum()
+        per_basin_len_km = (df["drainage_density_km_per_km2"] * df["area_km2"]).sum()
         assert per_basin_len_km <= total_len_km + 1e-6
 
     def test_watershed_and_basins_share_the_envelope(self, pipeline):

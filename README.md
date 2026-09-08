@@ -40,21 +40,16 @@ pixi install -e dev      # creates the dev environment
 pixi shell -e dev
 ```
 
-### With pip (from source)
+### Optional features
 
-Not yet on PyPI. GDAL must already be importable (e.g. from conda-forge):
-
-```bash
-pip install git+https://github.com/serapeum-org/digital-rivers.git
-```
-
-Optional plotting extras (pulls `cleopatra` via pyramids' `[viz]` extra):
+The `viz` extra adds plotting (`cleopatra`) and `distributed` adds the out-of-core
+Dask backend. Both are already in the `dev` environment; select them explicitly with:
 
 ```bash
-pip install "digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git"
+pixi install -e dev
 ```
 
-Supported Python: **3.11–3.13**.
+Supported Python: **3.11–3.14**.
 
 ## Quick start
 

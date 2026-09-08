@@ -1,11 +1,11 @@
 """Tests for `StreamRaster.order` — Strahler / Shreve / Horton (P10)."""
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
-from digitalrivers import DEM, FlowDirection, StreamRaster
+from digitalrivers import StreamRaster
 from digitalrivers._streams.order import (
     _stream_outlets,
     _upstream_length_from_head,
@@ -16,17 +16,7 @@ from digitalrivers._streams.order import (
     strahler,
     topological,
 )
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -63,6 +53,7 @@ def _y_junction_streams() -> tuple[np.ndarray, np.ndarray]:
 
 # ----- Strahler ----------------------------------------------------------------------------
 
+
 class TestStrahler:
     def test_y_junction_heads_are_one_trunk_is_two(self):
         sm, fd = _y_junction_streams()
@@ -86,6 +77,7 @@ class TestStrahler:
 
 # ----- Shreve ------------------------------------------------------------------------------
 
+
 class TestShreve:
     def test_y_junction_outlet_equals_head_count(self):
         sm, fd = _y_junction_streams()
@@ -107,6 +99,7 @@ class TestShreve:
 
 # ----- Horton ------------------------------------------------------------------------------
 
+
 class TestHorton:
     def test_y_junction_promotes_one_tributary_to_outlet_order(self):
         sm, fd = _y_junction_streams()
@@ -121,6 +114,7 @@ class TestHorton:
 
 
 # ----- Hack --------------------------------------------------------------------------------
+
 
 class TestHack:
     def test_y_junction_main_stem_is_order_one_tributaries_two(self):
@@ -209,10 +203,10 @@ class TestHack:
         fd[0, 0] = -1  # outlet
         for c in range(1, 8):
             fd[0, c] = 2  # W along the main stem
-        fd[1, 4] = 4   # N into (0, 4) — T merges with main stem here
-        fd[1, 5] = 2   # W into (1, 4)
-        fd[1, 6] = 2   # W into (1, 5)
-        fd[2, 5] = 4   # N into (1, 5) — U merges with T here
+        fd[1, 4] = 4  # N into (0, 4) — T merges with main stem here
+        fd[1, 5] = 2  # W into (1, 4)
+        fd[1, 6] = 2  # W into (1, 5)
+        fd[2, 5] = 4  # N into (1, 5) — U merges with T here
         order = hack(sm, fd)
         # Main stem along row 0 is order 1.
         assert (order[0, :] == 1).all()
@@ -225,6 +219,7 @@ class TestHack:
 
 
 # ----- Topological -------------------------------------------------------------------------
+
 
 class TestTopological:
     """Tests for the `topological` ordering function."""
@@ -290,6 +285,7 @@ class TestTopological:
                 if d < 0 or d > 7:
                     break
                 from digitalrivers._streams.order import _DIR_DR, _DIR_DC
+
                 nr, nc = r + int(_DIR_DR[d]), c + int(_DIR_DC[d])
                 if not sm[nr, nc]:
                     break
@@ -300,6 +296,7 @@ class TestTopological:
 
 
 # ----- _upstream_length_from_head -----------------------------------------------------------
+
 
 class TestUpstreamLengthFromHead:
     """Tests for the `_upstream_length_from_head` helper."""
@@ -334,6 +331,7 @@ class TestUpstreamLengthFromHead:
 
 
 # ----- _stream_outlets ----------------------------------------------------------------------
+
 
 class TestStreamOutlets:
     """Tests for the `_stream_outlets` helper."""
@@ -380,16 +378,10 @@ class TestStreamOutlets:
 
 # ----- DEM/StreamRaster end-to-end --------------------------------------------------------
 
+
 class TestStreamRasterOrder:
     def test_returns_typed_stream_raster_strahler(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="strahler", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -428,14 +420,7 @@ class TestStreamRasterOrder:
             produce a `StreamRaster` whose values strictly increase along the
             chain.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="topological", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -447,14 +432,7 @@ class TestStreamRasterOrder:
         assert len(values) == len(set(values)), "Indices must be unique"
 
     def test_hack_dispatcher_returns_typed_stream_raster(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="hack", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -462,30 +440,19 @@ class TestStreamRasterOrder:
         assert (ordered.read_array()[sr.read_array().astype(bool)] == 1).all()
 
     def test_invalid_method_raises(self):
-        z = np.array(
-            [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
-        )
+        z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
         dem, fd, sr = _build_pipeline(z, threshold=1)
         with pytest.raises(ValueError, match="method must be"):
             sr.order(method="bogus", flow_direction=fd)
 
     def test_missing_flow_direction_raises(self):
-        z = np.array(
-            [[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32
-        )
+        z = np.array([[9, 9, 9], [9, 5, 9], [9, 9, 9]], dtype=np.float32)
         dem, fd, sr = _build_pipeline(z, threshold=1)
         with pytest.raises(ValueError, match="FlowDirection"):
             sr.order(method="strahler", flow_direction=None)
 
     def test_multi_direction_routing_rejected(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd_d8, sr = _build_pipeline(z, threshold=1)
         fd_dinf = dem.flow_direction(method="dinf")
         with pytest.raises(ValueError, match="single-direction"):

@@ -17,12 +17,12 @@ def coello_dem_4000() -> gdal.Dataset:
     return gdal.Open("tests/data/coello/coello-dem-4000.tif")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def coello_slope() -> np.ndarray:
     return np.load("tests/data/coello/slope.npy")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def coello_max_slope() -> np.ndarray:
     return np.load("tests/data/coello/coello-max-slope.npy")
 
@@ -32,7 +32,7 @@ def coello_flow_direction_4000() -> gdal.Dataset:
     return gdal.Open("tests/data/coello/flow-direction-with-outfall.tif")
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def flow_direction_array_cells_indices() -> np.ndarray:
     return np.load("tests/data/coello/flow_direction_array.npy")
 
@@ -46,5 +46,3 @@ def coello_flow_accumulation_4000() -> gdal.Dataset:
 def coello_outfall() -> GeoDataFrame:
     """Point Geometry of the Coello river outfall"""
     return gpd.read_file("tests/data/coello/coello-outfall.geojson")
-
-

@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import geopandas as gpd
 import numpy as np
 from osgeo import gdal
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString
 
 from digitalrivers._metadata import (
@@ -40,6 +40,43 @@ if TYPE_CHECKING:
     from digitalrivers.watershed_raster import WatershedRaster
 
 
+def _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir):
+    """Count the stream neighbours draining into each stream cell.
+
+    Vectorised over the eight D8 directions rather than per cell: for each
+    direction the whole grid is shifted once with paired source/destination
+    slices, so a neighbour contributes exactly when it is a stream cell, points
+    back along that direction (`inv_dir[k]`), and drains into another stream
+    cell. The result is what separates a confluence (count > 1) from a link
+    interior (count == 1) and a head (count == 0).
+
+    Args:
+        stream_mask: Boolean stream network.
+        fdir: D8 direction codes, aligned with `stream_mask`.
+        d_row: Row offset per direction code.
+        d_col: Column offset per direction code.
+        inv_dir: For direction `k`, the code a neighbour must carry to point back.
+
+    Returns:
+        `int8` array of upstream stream-neighbour counts, shaped like
+        `stream_mask`.
+    """
+    rows, cols = stream_mask.shape
+    nup = np.zeros(stream_mask.shape, dtype=np.int8)
+    for k in range(8):
+        dr = int(d_row[k])
+        dc = int(d_col[k])
+        src_r = slice(max(0, dr), min(rows, rows + dr))
+        src_c = slice(max(0, dc), min(cols, cols + dc))
+        dst_r = slice(max(0, -dr), min(rows, rows - dr))
+        dst_c = slice(max(0, -dc), min(cols, cols - dc))
+        sm_src = stream_mask[src_r, src_c]
+        fd_src = fdir[src_r, src_c]
+        inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
+        nup[dst_r, dst_c] += inflow.astype(np.int8)
+    return nup
+
+
 class StreamRaster(Dataset):
     """Boolean/int stream-network raster tagged with extraction threshold.
 
@@ -52,6 +89,11 @@ class StreamRaster(Dataset):
         routing: Routing scheme of the `FlowDirection` that produced the
             upstream accumulation. Required keyword-only. Must be in
             `_SUPPORTED_ROUTING`.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Raises:
         ValueError: If `routing` is not a recognised value at all.
@@ -71,7 +113,28 @@ class StreamRaster(Dataset):
         *,
         threshold: float | int,
         routing: str,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
+        """Wrap a GDAL dataset as an extracted stream network.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+            threshold: Accumulation threshold the network was extracted at, kept
+                as provenance. Required keyword-only.
+            routing: Routing scheme behind the accumulation. Required
+                keyword-only, and must be single-direction.
+
+        Raises:
+            ValueError: If `routing` is not a recognised value.
+            TypeError: If `routing` is multi-direction — a stream network needs a
+                single downstream cell per stream cell.
+        """
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -82,7 +145,7 @@ class StreamRaster(Dataset):
                 f"({sorted(self._SUPPORTED_ROUTING)}); got {routing!r}. "
                 f"Convert the FlowDirection to D8 first."
             )
-        super().__init__(src, access)
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         self.threshold = threshold
         self.routing = routing
 
@@ -94,12 +157,96 @@ class StreamRaster(Dataset):
         threshold: float | int,
         routing: str,
     ) -> StreamRaster:
-        """Promote a plain `Dataset` into a `StreamRaster`."""
-        return cls(ds.raster, threshold=threshold, routing=routing)
+        """Promote a plain `Dataset` into a `StreamRaster`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: Dataset wrapping the stream raster. Its raster handle is reused,
+                not copied.
+            threshold: Accumulation threshold the network was extracted at, kept
+                for provenance. Required keyword-only.
+            routing: Routing scheme of the flow direction behind the
+                accumulation. Required keyword-only, and must be
+                single-direction.
+
+        Returns:
+            A `StreamRaster` over the same raster, with `ds`'s handle
+            configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [1, 0]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = StreamRaster.from_dataset(
+                ...     plain, threshold=10, routing="d8"
+                ... )
+                >>> wrapped.threshold, wrapped.routing
+                (10, 'd8')
+                >>> StreamRaster.from_dataset(
+                ...     plain, threshold=10, routing="d8"
+                ... ).access == plain.access
+                True
+
+                ```
+        """
+        return cls(
+            ds.raster,
+            ds.access,
+            threshold=threshold,
+            routing=routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def to_dataset(self) -> Dataset:
-        """Drop the typed wrapper and return the underlying `Dataset`."""
-        return Dataset(self.raster)
+        """Drop the typed wrapper and return the underlying `Dataset`.
+
+        Symmetric with `from_dataset`: the access mode, `gdal_env` and
+        `open_options` come back out with the raster, so a round trip does not
+        silently downgrade a writable handle to a read-only one.
+
+        Returns:
+            A plain `Dataset` over the same raster and handle configuration.
+
+        Examples:
+            - Unwrap and read the grid straight off the plain `Dataset`, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = StreamRaster.from_dataset(plain, threshold=10, routing="d8")
+                >>> plain_again = wrapped.to_dataset()
+                >>> plain_again.read_array().tolist()
+                [[1.0, 2.0], [3.0, 4.0]]
+                >>> wrapped.to_dataset().access == wrapped.access
+                True
+
+                ```
+        """
+        return Dataset(
+            self.raster,
+            self.access,
+            gdal_env=self.gdal_env or None,
+            open_options=self.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Write `routing` and `threshold` to the raster's metadata tags."""
@@ -116,6 +263,9 @@ class StreamRaster(Dataset):
         *,
         threshold: float | int | None = None,
         routing: str | None = None,
+        read_only: bool = True,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ) -> StreamRaster:
         """Open a `StreamRaster` GeoTIFF.
 
@@ -123,11 +273,28 @@ class StreamRaster(Dataset):
         `threshold` is parsed from the tag as a float (it was written via
         `str(self.threshold)`).
 
+        Args:
+            path: Path to the GeoTIFF.
+            threshold: Explicit threshold override. If `None`, falls back
+                to the `DR_THRESHOLD` tag.
+            routing: Explicit routing override. If `None`, falls back to
+                the `DR_ROUTING` tag.
+            read_only: Open the file read-only (default). Pass `False` to
+                get a writable handle — required before `persist_metadata()`
+                can stamp the `DR_*` tags onto an existing file.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) installed
+                for the open and captured on the result, so pyramids' reopen
+                paths re-authenticate. Default `None`.
+            open_options: GDAL open options forwarded to the driver and
+                captured on the result. Default `None`.
+
         Raises:
             ValueError: If either `routing` or `threshold` cannot be
                 resolved from kwargs or metadata tags.
         """
-        ds = Dataset.read_file(path)
+        ds = Dataset.read_file(
+            path, read_only, gdal_env=gdal_env, open_options=open_options
+        )
         md = ds.meta_data or {}
         resolved_routing = routing or md.get(META_ROUTING)
         if resolved_routing is None:
@@ -143,7 +310,14 @@ class StreamRaster(Dataset):
                     f"passed."
                 )
             threshold = float(tag)
-        return cls(ds.raster, threshold=threshold, routing=resolved_routing)
+        return cls(
+            ds.raster,
+            ds.access,
+            threshold=threshold,
+            routing=resolved_routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def subbasins(
         self,
@@ -201,19 +375,7 @@ class StreamRaster(Dataset):
         inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
         rows, cols = stream_mask.shape
 
-        # Incoming-stream count per stream cell (for confluence detection).
-        nup = np.zeros(stream_mask.shape, dtype=np.int8)
-        for k in range(8):
-            dr = int(d_row[k])
-            dc = int(d_col[k])
-            src_r = slice(max(0, dr), min(rows, rows + dr))
-            src_c = slice(max(0, dc), min(cols, cols + dc))
-            dst_r = slice(max(0, -dr), min(rows, rows - dr))
-            dst_c = slice(max(0, -dc), min(cols, cols - dc))
-            sm_src = stream_mask[src_r, src_c]
-            fd_src = fdir[src_r, src_c]
-            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
-            nup[dst_r, dst_c] += inflow.astype(np.int8)
+        nup = _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir)
 
         link_id = np.zeros((rows, cols), dtype=np.int32)
         next_id = 1
@@ -272,10 +434,9 @@ class StreamRaster(Dataset):
                     for pr, pc in path:
                         out[pr, pc] = tail_id
 
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
 
@@ -376,10 +537,9 @@ class StreamRaster(Dataset):
             arr = hack(stream_mask, fdir)
         else:
             arr = topological(stream_mask, fdir)
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
@@ -474,10 +634,9 @@ class StreamRaster(Dataset):
                 for pr, pc in path:
                     sm[pr, pc] = False
 
-        plain = Dataset.create_from_array(
+        plain = Dataset.from_array(
             sm.astype(np.uint8),
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=0,
         )
         return StreamRaster.from_dataset(
@@ -684,20 +843,7 @@ class StreamRaster(Dataset):
 
         rows, cols = stream_mask.shape
 
-        # Step 1 — incoming-stream count per stream cell.
-        nup = np.zeros(stream_mask.shape, dtype=np.int8)
-        for k in range(8):
-            dr = int(d_row[k])
-            dc = int(d_col[k])
-            src_r = slice(max(0, dr), min(rows, rows + dr))
-            src_c = slice(max(0, dc), min(cols, cols + dc))
-            dst_r = slice(max(0, -dr), min(rows, rows - dr))
-            dst_c = slice(max(0, -dc), min(cols, cols - dc))
-            sm_src = stream_mask[src_r, src_c]
-            fd_src = fdir[src_r, src_c]
-            # A neighbour at (src) points into (dst) iff its direction equals inv[k].
-            inflow = sm_src & (fd_src == inv_dir[k]) & stream_mask[dst_r, dst_c]
-            nup[dst_r, dst_c] += inflow.astype(np.int8)
+        nup = _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir)
 
         # Step 2 — find link starts.
         heads_or_confluences_mask = stream_mask & ((nup == 0) | (nup >= 2))

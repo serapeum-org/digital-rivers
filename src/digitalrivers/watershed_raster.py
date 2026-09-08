@@ -33,6 +33,11 @@ class WatershedRaster(Dataset):
             keyword-only.
         outlets: `GeoDataFrame` with one row per pour point used to build the
             raster; required keyword-only.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
 
     Attributes:
         routing: Routing scheme tag.
@@ -49,8 +54,27 @@ class WatershedRaster(Dataset):
         *,
         routing: str,
         outlets,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ):
-        super().__init__(src, access)
+        """Wrap a GDAL dataset as a labelled basin raster.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+            routing: Routing scheme of the source flow direction. Required
+                keyword-only.
+            outlets: `GeoDataFrame` of the pour points the basins were grown from,
+                one row each. Required keyword-only.
+
+        Raises:
+            ValueError: If `routing` is not a recognised value.
+        """
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
         if routing not in VALID_ROUTING:
             raise ValueError(
                 f"routing must be one of {sorted(VALID_ROUTING)}; got {routing!r}"
@@ -80,14 +104,19 @@ class WatershedRaster(Dataset):
               tie-breaking and any flat-area sinks):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
                 >>> z[0, 0] = 0.0
                 >>> z[4, 4] = 0.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> ws = DEM(ds.raster).flow_direction(method="d8").basins()
                 >>> ws.basin_count >= 2
@@ -100,8 +129,57 @@ class WatershedRaster(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str, outlets) -> "WatershedRaster":
-        """Promote a plain `Dataset` into a `WatershedRaster`."""
-        return cls(ds.raster, routing=routing, outlets=outlets)
+        """Promote a plain `Dataset` into a `WatershedRaster`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: The `Dataset` to wrap. Its raster handle is reused, not copied.
+            routing: Routing scheme of the source flow direction. Keyword-only.
+            outlets: `GeoDataFrame` of the pour points the basins were grown
+                from, one row per outlet. Keyword-only.
+
+        Returns:
+            A `WatershedRaster` over the same raster, with `ds`'s handle configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back, and confirm the handle carries through:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import Point
+                >>> from digitalrivers import WatershedRaster
+                >>> outlets = gpd.GeoDataFrame(
+                ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
+                ... )
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = WatershedRaster.from_dataset(
+                ...     plain, routing="d8", outlets=outlets
+                ... )
+                >>> wrapped.routing
+                'd8'
+                >>> wrapped.access == plain.access
+                True
+
+                ```
+        """
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=routing,
+            outlets=outlets,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Persist the routing and class tags to the raster metadata."""
@@ -166,14 +244,19 @@ class WatershedRaster(Dataset):
               area and centroid columns:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[5, 5, 5], [5, 1, 5], [5, 5, 5]], dtype=np.float32
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> ws = DEM(ds.raster).flow_direction(method="d8").basins()
                 >>> df = ws.statistics()
@@ -184,14 +267,19 @@ class WatershedRaster(Dataset):
               actual D8 path lengths:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[5, 9, 9], [9, 4, 9], [9, 9, 1]], dtype=np.float32
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")

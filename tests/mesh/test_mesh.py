@@ -1,4 +1,5 @@
 """Tests for `digitalrivers.mesh.Mesh` (P33 backfill)."""
+
 from __future__ import annotations
 
 import numpy as np
@@ -14,6 +15,21 @@ def two_triangle_quad() -> Mesh:
         [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]], dtype=np.float64
     )
     triangles = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
+    return Mesh(vertices, triangles)
+
+
+def _fan_mesh() -> Mesh:
+    """A square with one off-centre interior vertex, fanned into four triangles.
+
+    Vertex 4 at `(1.5, 1.5)` is the only interior one, and is deliberately off the
+    centre `(1.0, 1.0)`, so any operation that moves interior vertices has a
+    visible, signed effect.
+    """
+    vertices = np.array(
+        [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [1.5, 1.5]],
+        dtype=np.float64,
+    )
+    triangles = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64)
     return Mesh(vertices, triangles)
 
 
@@ -64,14 +80,15 @@ def test_laplacian_smooth_moves_interior():
     # Build a mesh where vertex 4 is interior, surrounded by 4 corner verts.
     vertices = np.array(
         [
-            [0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0],
+            [0.0, 0.0],
+            [2.0, 0.0],
+            [2.0, 2.0],
+            [0.0, 2.0],
             [1.5, 1.5],  # interior — off-centre
         ],
         dtype=np.float64,
     )
-    triangles = np.array(
-        [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64
-    )
+    triangles = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64)
     mesh = Mesh(vertices, triangles)
     smoothed = mesh.laplacian_smooth(
         n_iterations=20, relaxation=1.0, hold_boundary=True
@@ -93,9 +110,7 @@ def test_laplacian_smooth_relaxation_validated(two_triangle_quad):
 def test_aspect_ratios_equilateral_is_unity():
     # Build a perfect equilateral triangle.
     h = np.sqrt(3.0) / 2.0
-    vertices = np.array(
-        [[0.0, 0.0], [1.0, 0.0], [0.5, h]], dtype=np.float64
-    )
+    vertices = np.array([[0.0, 0.0], [1.0, 0.0], [0.5, h]], dtype=np.float64)
     triangles = np.array([[0, 1, 2]], dtype=np.int64)
     mesh = Mesh(vertices, triangles)
     ratios = mesh.aspect_ratios()
@@ -104,9 +119,7 @@ def test_aspect_ratios_equilateral_is_unity():
 
 def test_aspect_ratios_degenerate_is_infinite():
     # Three collinear points form a zero-area triangle.
-    vertices = np.array(
-        [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]], dtype=np.float64
-    )
+    vertices = np.array([[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]], dtype=np.float64)
     triangles = np.array([[0, 1, 2]], dtype=np.int64)
     mesh = Mesh(vertices, triangles)
     ratios = mesh.aspect_ratios()
@@ -139,62 +152,46 @@ def test_smooth_no_iterations_returns_copy(two_triangle_quad):
 
 def test_smooth_zero_relaxation_is_identity():
     """`relaxation=0` leaves all vertices unchanged even for many iters."""
-    vertices = np.array(
-        [
-            [0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [1.5, 1.5],
-        ],
-        dtype=np.float64,
-    )
-    triangles = np.array(
-        [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64
-    )
-    mesh = Mesh(vertices, triangles)
+    mesh = _fan_mesh()
+    before = mesh.vertices.copy()
     smoothed = mesh.laplacian_smooth(n_iterations=10, relaxation=0.0)
-    np.testing.assert_allclose(smoothed.vertices, vertices)
+    np.testing.assert_allclose(smoothed.vertices, before)
 
 
 def test_smooth_hold_boundary_false_moves_all_vertices():
     """With `hold_boundary=False` and `relaxation=1.0`, every vertex
     snaps onto its neighbour centroid each iteration."""
-    vertices = np.array(
-        [
-            [0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [1.5, 1.5],
-        ],
-        dtype=np.float64,
-    )
-    triangles = np.array(
-        [[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64
-    )
-    mesh = Mesh(vertices, triangles)
+    mesh = _fan_mesh()
+    before = mesh.vertices.copy()
     smoothed = mesh.laplacian_smooth(
-        n_iterations=1, relaxation=1.0, hold_boundary=False,
+        n_iterations=1,
+        relaxation=1.0,
+        hold_boundary=False,
     )
-    moved = ~np.all(np.isclose(smoothed.vertices, vertices), axis=1)
+    moved = ~np.all(np.isclose(smoothed.vertices, before), axis=1)
     assert moved.all(), f"Expected all 5 vertices to move; moved={moved}"
 
 
 def test_smooth_preserves_triangle_connectivity(two_triangle_quad):
     """Smoothing returns identical triangle index arrays."""
     smoothed = two_triangle_quad.laplacian_smooth(n_iterations=3)
-    np.testing.assert_array_equal(
-        smoothed.triangles, two_triangle_quad.triangles
-    )
+    np.testing.assert_array_equal(smoothed.triangles, two_triangle_quad.triangles)
 
 
 def test_smooth_does_not_mutate_input(two_triangle_quad):
     """Smoothing is pure — the input mesh's vertex array is untouched."""
     before = two_triangle_quad.vertices.copy()
     two_triangle_quad.laplacian_smooth(
-        n_iterations=5, relaxation=1.0, hold_boundary=False,
+        n_iterations=5,
+        relaxation=1.0,
+        hold_boundary=False,
     )
     np.testing.assert_array_equal(two_triangle_quad.vertices, before)
 
 
 def test_neighbour_lists_isolated_vertex():
     """A vertex referenced by no triangle gets an empty neighbour list."""
-    verts = np.array(
-        [[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [5.0, 5.0]], dtype=np.float64
-    )
+    verts = np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0], [5.0, 5.0]], dtype=np.float64)
     tris = np.array([[0, 1, 2]], dtype=np.int64)
     mesh = Mesh(verts, tris)
     adj = mesh.neighbour_lists()
@@ -210,9 +207,7 @@ def test_boundary_mask_returns_bool_dtype(two_triangle_quad):
 
 def test_aspect_ratios_right_triangle():
     """A 3-4-5 right triangle has a known non-unity aspect ratio."""
-    verts = np.array(
-        [[0.0, 0.0], [3.0, 0.0], [0.0, 4.0]], dtype=np.float64
-    )
+    verts = np.array([[0.0, 0.0], [3.0, 0.0], [0.0, 4.0]], dtype=np.float64)
     tris = np.array([[0, 1, 2]], dtype=np.int64)
     mesh = Mesh(verts, tris)
     ratio = float(mesh.aspect_ratios()[0])
@@ -239,6 +234,8 @@ def test_smooth_with_isolated_interior_vertex_short_circuits():
     # Vertex 3 is isolated; the boundary mask will only cover 0/1/2. Force it
     # into the "interior" code path by disabling boundary holding.
     smoothed = mesh.laplacian_smooth(
-        n_iterations=3, relaxation=1.0, hold_boundary=False,
+        n_iterations=3,
+        relaxation=1.0,
+        hold_boundary=False,
     )
     np.testing.assert_array_equal(smoothed.vertices[3], verts[3])

@@ -1,24 +1,14 @@
 """End-to-end and coverage tests for Phase 2 of digital-rivers."""
+
 from __future__ import annotations
 
 import geopandas as gpd
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 from shapely.geometry import Point
 
-from digitalrivers import DEM, FlowDirection, WatershedRaster
-
-
-def _make_dem(arr: np.ndarray) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from digitalrivers import WatershedRaster
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestPhase2EndToEndPipeline:
@@ -46,14 +36,21 @@ class TestPhase2EndToEndPipeline:
         acc = fd.accumulate()
         sr = acc.streams(threshold=2)
         pts = gpd.GeoDataFrame(
-            {"id": [1]}, geometry=[Point(5.5, -5.5)], crs=4326,
+            {"id": [1]},
+            geometry=[Point(5.5, -5.5)],
+            crs=4326,
         )
         snapped = acc.snap_pour_points(pts, radius_cells=3)
         watershed = fd.watershed(snapped)
         basins = fd.basins()
         return {
-            "dem": dem, "fd": fd, "acc": acc, "sr": sr,
-            "snapped": snapped, "watershed": watershed, "basins": basins,
+            "dem": dem,
+            "fd": fd,
+            "acc": acc,
+            "sr": sr,
+            "snapped": snapped,
+            "watershed": watershed,
+            "basins": basins,
         }
 
     def test_pipeline_produces_typed_watersheds(self, pipeline):
@@ -86,14 +83,7 @@ class TestPhase2EndToEndPipeline:
 
     def test_subbasins_align_with_streams(self):
         """Sub-basin labels include every stream cell."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         acc = fd.accumulate()
@@ -103,14 +93,7 @@ class TestPhase2EndToEndPipeline:
 
     def test_basin_statistics_include_area_km2(self):
         """statistics() emits area_km2 per basin."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         ws = fd.basins()
@@ -156,14 +139,7 @@ class TestPhase2CoverageGaps:
 
     def test_watershed_to_polygons_geometry(self):
         """to_polygons() returns Polygons / MultiPolygons."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         ws = fd.basins()
@@ -176,4 +152,5 @@ class TestPhase2CoverageGaps:
 def test_phase2_reexports_watershed_raster():
     """Package re-exports the P13 WatershedRaster class."""
     import digitalrivers
+
     assert hasattr(digitalrivers, "WatershedRaster")

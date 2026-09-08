@@ -20,24 +20,14 @@ synthetic DEM and asserts the cross-cutting invariants that bind them:
       → stochastic_depressions(sigma, …)  # W-11
       → twi / spi / sti                   # W-12 / W-13 / W-14
 """
+
 from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset
 
-from digitalrivers import DEM, StreamRaster
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.create_from_array(
-        disk, top_left_corner=(0.0, 0.0), cell_size=cell_size, epsg=4326,
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from digitalrivers import DEM
+from tests.helpers import make_dem as _make_dem
 
 
 @pytest.fixture(scope="module")

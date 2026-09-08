@@ -15,7 +15,7 @@ import pandas as pd
 import shapely
 from osgeo import gdal
 from geopandas import GeoDataFrame
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers._conditioning.breach import (
     breach_depressions as _breach_depressions_array,
@@ -138,10 +138,32 @@ class DEM(Dataset):
     Args:
         src: GDAL dataset containing a single-band elevation raster.
         access: `"read_only"` (default) or `"write"`.
+        gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+            the dataset and re-installed around its reads, so the paths that
+            reopen the file authenticate the same way. Default `None`.
+        open_options: GDAL open options captured on the dataset and reapplied
+            when it is reopened. Default `None`.
     """
 
-    def __init__(self, src: gdal.Dataset, access: str = "read_only"):
-        super().__init__(src, access)
+    def __init__(
+        self,
+        src: gdal.Dataset,
+        access: str = "read_only",
+        *,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
+    ):
+        """Wrap a GDAL dataset as a digital elevation model.
+
+        Args:
+            src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+            access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
+                dataset and re-installed around its reads. Default `None`.
+            open_options: GDAL open options captured on the dataset and reapplied
+                when it is reopened. Default `None`.
+        """
+        super().__init__(src, access, gdal_env=gdal_env, open_options=open_options)
 
     @property
     def values(self):
@@ -501,10 +523,9 @@ class DEM(Dataset):
         hand_arr = hand_d8(elev, fdir, stream_arr).astype(np.float32, copy=False)
         no_val = float(self.no_data_value[0])
         hand_arr = np.where(np.isnan(hand_arr), no_val, hand_arr)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             hand_arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -546,10 +567,9 @@ class DEM(Dataset):
         hand_arr = (elev - nearest_elev).astype(np.float32, copy=False)
         no_val = float(self.no_data_value[0])
         hand_arr = np.where(np.isnan(hand_arr), no_val, hand_arr)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             hand_arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -662,10 +682,9 @@ class DEM(Dataset):
             depr = (filled - noisy) > 0
             prob += depr.astype(np.float32)
         prob /= float(n_runs)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             prob,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=-1.0,
         )
 
@@ -684,10 +703,10 @@ class DEM(Dataset):
     ) -> DEM | None:
         """Condition the DEM by burning a vector stream network into it.
 
-        Three methods are specified by P20; this implementation ships
-        `"fill_burn"` (Lindsay 2018 — used by WhiteboxTools' FillBurn) as
-        the default. `"agree"` (Hellweger 1997) and
-        `"topological_breach"` (Lindsay 2016) raise `NotImplementedError`.
+        Implements all three P20 methods. `"fill_burn"` (Lindsay 2018 —
+        used by WhiteboxTools' FillBurn) is the default; `"agree"`
+        (Hellweger 1997) and `"topological_breach"` (Lindsay 2016) are
+        also available.
 
         Fill-burn algorithm:
 
@@ -696,16 +715,27 @@ class DEM(Dataset):
         3. Run `fill_depressions(method="priority_flood")` so the
            surrounding cells drain naturally into the channel.
 
+        AGREE algorithm: lower stream cells by `sharp`, then ramp the drop
+        linearly from `sharp` at the channel to `0` at a `buffer_cells`-wide
+        perimeter (offset by `smooth`), producing a smooth trench.
+
+        Topological-breach algorithm: rasterise and lower the stream cells,
+        then run the Phase 1 least-cost breach so every interior pit carves
+        outward to a stream cell, honouring `max_breach_depth` /
+        `max_breach_length`.
+
         Args:
             streams: `GeoDataFrame` of LineString geometries.
-            method: `"fill_burn"` (default); `"agree"` and
-                `"topological_breach"` raise `NotImplementedError`.
+            method: `"fill_burn"` (default), `"agree"`, or
+                `"topological_breach"`. Any other value raises
+                `NotImplementedError`.
             sharp / smooth / buffer_cells: AGREE parameters (unused for
-                fill_burn).
-            constant_drop: Elevation drop applied to every stream cell
-                in fill_burn (default 1.0 map unit).
+                fill_burn and topological_breach).
+            constant_drop: Elevation drop applied to every stream cell in
+                fill_burn and topological_breach (default 1.0 map unit;
+                unused for agree).
             max_breach_depth / max_breach_length: topological_breach
-                parameters (unused for fill_burn).
+                parameters (unused for fill_burn and agree).
             inplace: If True, update the instance; else return a new DEM.
 
         Returns:
@@ -718,12 +748,17 @@ class DEM(Dataset):
                 >>> import numpy as np
                 >>> import geopandas as gpd
                 >>> from shapely.geometry import LineString
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> # Horizontal stream down row 2 (y = -2.5).
@@ -782,13 +817,7 @@ class DEM(Dataset):
                 0.0,
             )
             z = z - drop
-            no_val = self.no_data_value[0]
-            z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-            if inplace:
-                self._update_inplace(plain_ds.raster)
-                return None
-            return DEM(plain_ds.raster)
+            return self._conditioned_result(elev, z, inplace)
 
         if method == "topological_breach":
             # Lindsay 2016: rasterise the stream network onto the DEM
@@ -798,22 +827,7 @@ class DEM(Dataset):
             # cells sit max_breach_depth-or-equivalent below their
             # surroundings, so the breach paths follow the vector topology
             # by construction.
-            elev = self.values
-            rows, cols = elev.shape
-            gt = self.geotransform
-            stream_mask = np.zeros((rows, cols), dtype=bool)
-            streams = _reproject_if_needed(streams, self.epsg)
-            for geom in streams.geometry:
-                if geom is None or geom.is_empty:
-                    continue
-                if geom.geom_type == "MultiLineString":
-                    for sub in geom.geoms:
-                        self._rasterise_line(sub, stream_mask, gt)
-                else:
-                    self._rasterise_line(geom, stream_mask, gt)
-            z = elev.astype(np.float64, copy=True)
-            z[stream_mask] = z[stream_mask] - constant_drop
-            nodata_mask = np.isnan(z)
+            elev, z, nodata_mask = self._burn_stream_cells(streams, constant_drop)
             z = _breach_depressions_array(
                 z,
                 nodata_mask=nodata_mask,
@@ -822,13 +836,7 @@ class DEM(Dataset):
                 max_length=max_breach_length,
                 fill_remaining=True,
             )
-            no_val = self.no_data_value[0]
-            z[np.isnan(z)] = no_val
-            plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-            if inplace:
-                self._update_inplace(plain_ds.raster)
-                return None
-            return DEM(plain_ds.raster)
+            return self._conditioned_result(elev, z, inplace)
 
         if method != "fill_burn":
             raise NotImplementedError(
@@ -836,14 +844,38 @@ class DEM(Dataset):
                 "'fill_burn', 'agree', 'topological_breach')"
             )
 
+        elev, z, nodata_mask = self._burn_stream_cells(streams, constant_drop)
+        z = _fill_depressions_array(
+            z,
+            nodata_mask=nodata_mask,
+            method="priority_flood",
+            epsilon=0.0,
+        )
+        return self._conditioned_result(elev, z, inplace)
+
+    def _burn_stream_cells(self, streams, constant_drop: float):
+        """Rasterise a stream network and lower the cells it covers.
+
+        The step `burn_streams` shares across its methods: reproject the network
+        to the DEM's CRS when needed, rasterise it through the same 2x
+        oversampled floor-rasteriser `enforce_breaklines` and `enforce_culverts`
+        use — so all three snap line samples to cells identically — then subtract
+        `constant_drop` from every cell the network touches.
+
+        Args:
+            streams: `GeoDataFrame` of LineString geometries.
+            constant_drop: Elevation subtracted from each stream cell, in map
+                units.
+
+        Returns:
+            Tuple `(elev, z, nodata_mask)` — the original elevations, the lowered
+            copy as `float64`, and the mask of its no-data cells, which the
+            conditioning kernels take as their gap mask.
+        """
         elev = self.values
-        rows, cols = elev.shape
         gt = self.geotransform
-        x0, dx, _, y0, _, dy = gt
-        stream_mask = np.zeros((rows, cols), dtype=bool)
-
+        stream_mask = np.zeros(elev.shape, dtype=bool)
         streams = _reproject_if_needed(streams, self.epsg)
-
         for geom in streams.geometry:
             if geom is None or geom.is_empty:
                 continue
@@ -851,22 +883,30 @@ class DEM(Dataset):
                 for sub in geom.geoms:
                     self._rasterise_line(sub, stream_mask, gt)
             else:
-                # Delegate to the shared 2× oversampled floor-rasteriser so
-                # burn_streams, enforce_breaklines, and enforce_culverts all
-                # snap line samples to cells identically (I1 fix).
                 self._rasterise_line(geom, stream_mask, gt)
-
         z = elev.astype(np.float64, copy=True)
         z[stream_mask] = z[stream_mask] - constant_drop
-        nodata_mask = np.isnan(z)
-        z = _fill_depressions_array(
-            z,
-            nodata_mask=nodata_mask,
-            method="priority_flood",
-            epsilon=0.0,
-        )
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
+        return elev, z, np.isnan(z)
+
+    def _conditioned_result(self, elev, z, inplace: bool, *, gaps=None):
+        """Return a conditioned surface as a `DEM`, or apply it in place.
+
+        The tail every conditioning operation shares: restore the raster's own
+        no-data sentinel over the cells the kernel left empty and cast back to
+        the source dtype, so conditioning never silently widens the band.
+
+        Args:
+            elev: The original elevation array, read for its dtype.
+            z: The conditioned surface, modified in place.
+            inplace: Update this instance instead of returning a new `DEM`.
+            gaps: Boolean mask of the cells to stamp as no-data. Defaults to
+                `np.isnan(z)`; pass `~np.isfinite(z)` for a kernel that can also
+                produce infinities.
+
+        Returns:
+            A new `DEM`, or `None` when `inplace` is True.
+        """
+        z[np.isnan(z) if gaps is None else gaps] = self.no_data_value[0]
         plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
         if inplace:
             self._update_inplace(plain_ds.raster)
@@ -936,13 +976,7 @@ class DEM(Dataset):
         crossings = road_mask & stream_mask
         z = elev.astype(np.float64, copy=True)
         z[crossings] = z[crossings] - culvert_drop
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def _polygon_cell_indices(self, geom, gt, rows, cols):
         """Return `(rows_idx, cols_idx)` of cells whose centre is inside `geom`.
@@ -970,12 +1004,16 @@ class DEM(Dataset):
 
                 >>> import numpy as np
                 >>> from shapely.geometry import Polygon
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.zeros((5, 5), dtype=np.float32),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> # Tight polygon around cell-centre (col=2, row=2) at (2.5, -2.5).
@@ -991,12 +1029,16 @@ class DEM(Dataset):
 
                 >>> import numpy as np
                 >>> from shapely.geometry import Polygon
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.zeros((5, 5), dtype=np.float32),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> far = Polygon(
@@ -1011,12 +1053,16 @@ class DEM(Dataset):
 
                 >>> import numpy as np
                 >>> from shapely.geometry import Polygon
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.zeros((5, 5), dtype=np.float32),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> poly = Polygon([(0, 0), (3, 0), (3, -3), (0, -3)])
@@ -1095,13 +1141,7 @@ class DEM(Dataset):
                 target = float(np.median(vals))
             z[rs, cs] = target
 
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def burn_buildings(
         self,
@@ -1136,13 +1176,7 @@ class DEM(Dataset):
             if rs.size:
                 z[rs, cs] = z[rs, cs] + lift
 
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def enforce_breaklines(
         self,
@@ -1178,13 +1212,7 @@ class DEM(Dataset):
 
         z = elev.astype(np.float64, copy=True)
         z[mask] = z[mask] + lift
-        no_val = self.no_data_value[0]
-        z[np.isnan(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace)
 
     def subgrid_bathymetry(
         self,
@@ -1220,12 +1248,16 @@ class DEM(Dataset):
               (B1 regression — the columns are always present):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.full((4, 4), 5.0, dtype=np.float32),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> df = DEM(ds.raster).subgrid_bathymetry(scale_factor=2, n_bins=3)
                 >>> sorted(df.columns.tolist())
@@ -1369,13 +1401,12 @@ class DEM(Dataset):
         if target == "hec_ras":
             # HEC-RAS Mapper expects a single-band float32 GeoTIFF in the
             # dataset CRS with consistent geotransform — exactly what
-            # Dataset.create_from_array(driver_type="GTiff", path=...) writes.
-            Dataset.create_from_array(
+            # Dataset.from_array(path=...) writes (the driver comes from the
+            # `.tif` extension).
+            Dataset.from_array(
                 out.astype(np.float32, copy=False),
-                geo=gt,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=gt, epsg=self.epsg),
                 no_data_value=nodata,
-                driver_type="GTiff",
                 path=path,
             )
             return {"dem_tif": path}
@@ -1508,16 +1539,20 @@ class DEM(Dataset):
               the filled value sits inside the bracketing range:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.where(np.isnan(z), -9999.0, z),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> filled = DEM(ds.raster).anudem_interpolate(
                 ...     method="laplacian", max_iter=200, tol=1e-6,
@@ -1530,16 +1565,20 @@ class DEM(Dataset):
               1989's Delta^2 z = 0 by alternating Laplacian sweeps:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[1.0, 2.0, 3.0], [4.0, np.nan, 6.0], [7.0, 8.0, 9.0]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.where(np.isnan(z), -9999.0, z),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> filled = DEM(ds.raster).anudem_interpolate(
                 ...     method="biharmonic", max_iter=200, tol=1e-5,
@@ -1550,12 +1589,16 @@ class DEM(Dataset):
             - Unknown method raises ValueError:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.ones((2, 2), dtype=np.float32),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> DEM(ds.raster).anudem_interpolate(method="bogus")
                 Traceback (most recent call last):
@@ -1568,16 +1611,20 @@ class DEM(Dataset):
               contamination from the opposite edge:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> # Top-left NaN with very different anchor at bottom-right.
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
                 >>> z[-1, -1] = -100.0
                 >>> z[0, 0] = np.nan
-                >>> ds = Dataset.create_from_array(
+                >>> ds = Dataset.from_array(
                 ...     np.where(np.isnan(z), -9999.0, z),
-                ...     top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> filled = DEM(ds.raster).anudem_interpolate(
                 ...     method="laplacian", max_iter=300, tol=1e-6,
@@ -1652,13 +1699,7 @@ class DEM(Dataset):
                 if diff < tol:
                     break
 
-        no_val = self.no_data_value[0]
-        z[~np.isfinite(z)] = no_val
-        plain_ds = Dataset.dataset_like(self, z.astype(elev.dtype, copy=False))
-        if inplace:
-            self._update_inplace(plain_ds.raster)
-            return None
-        return DEM(plain_ds.raster)
+        return self._conditioned_result(elev, z, inplace, gaps=~np.isfinite(z))
 
     def fill_sinks(self, inplace: bool = False) -> DEM | None:
         """Deprecated alias for `fill_depressions(method="priority_flood", epsilon=0.1)`.
@@ -1872,10 +1913,9 @@ class DEM(Dataset):
 
         no_val = -9999.0
         arr = np.where(np.isfinite(arr), arr, no_val).astype(np.float32)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -1947,12 +1987,17 @@ class DEM(Dataset):
             - A flat surface has every cell at its focal mean → TPI = 0:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> tpi = DEM(ds.raster).tpi(window=3).read_array()
                 >>> bool(np.allclose(tpi, 0.0))
@@ -1962,13 +2007,18 @@ class DEM(Dataset):
               pit reports negative:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.zeros((5, 5), dtype=np.float32)
                 >>> z[2, 2] = 9.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(DEM(ds.raster).tpi(window=3).read_array()[2, 2] > 0)
                 True
@@ -1977,10 +2027,9 @@ class DEM(Dataset):
         out = (z - focal_mean).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2003,12 +2052,17 @@ class DEM(Dataset):
             - Flat terrain yields zero deviation everywhere:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((4, 4), 5.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(np.allclose(
                 ...     DEM(ds.raster).deviation_from_mean(window=3).read_array(), 0.0
@@ -2018,13 +2072,18 @@ class DEM(Dataset):
             - A peak reports positive standardised deviation:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.zeros((5, 5), dtype=np.float32)
                 >>> z[2, 2] = 10.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> out = DEM(ds.raster).deviation_from_mean(window=3).read_array()
                 >>> bool(out[2, 2] > 0)
@@ -2035,10 +2094,9 @@ class DEM(Dataset):
         out = out.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2059,12 +2117,17 @@ class DEM(Dataset):
             - Flat terrain reports zero SD everywhere:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((4, 4), 5.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(np.allclose(
                 ...     DEM(ds.raster).elev_std(window=3).read_array(), 0.0
@@ -2074,13 +2137,18 @@ class DEM(Dataset):
             - A step in elevation produces non-zero SD along the boundary:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.zeros((5, 5), dtype=np.float32)
                 >>> z[:, 3:] = 10.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> sd = DEM(ds.raster).elev_std(window=3).read_array()
                 >>> bool((sd[:, 2] > 0).all())
@@ -2090,10 +2158,9 @@ class DEM(Dataset):
         out = focal_sd.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2135,12 +2202,17 @@ class DEM(Dataset):
             - Every curvature variant is zero on a flat DEM:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(np.allclose(
                 ...     DEM(ds.raster).curvature(kind="total").read_array(), 0.0
@@ -2150,13 +2222,18 @@ class DEM(Dataset):
             - Mean curvature equals total / 2 on a paraboloid (interior):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> x, y = np.meshgrid(np.arange(-3, 4), np.arange(-3, 4))
                 >>> z = (-(x * x + y * y)).astype(np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> total = dem.curvature(kind="total").read_array()[2:-2, 2:-2]
@@ -2198,10 +2275,9 @@ class DEM(Dataset):
         out = arr.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z) | ~np.isfinite(out), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2226,12 +2302,17 @@ class DEM(Dataset):
             - Flat terrain yields zero angular deviation:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(np.allclose(
                 ...     DEM(ds.raster).normal_vector_deviation(window=3).read_array(),
@@ -2243,13 +2324,18 @@ class DEM(Dataset):
               interior, so deviation there is ~0:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> x, y = np.meshgrid(np.arange(7), np.arange(7))
                 >>> z = (2.0 * x + y).astype(np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> arr = DEM(ds.raster).normal_vector_deviation(window=3).read_array()
                 >>> bool(np.allclose(arr[2:-2, 2:-2], 0.0, atol=1e-4))
@@ -2286,10 +2372,9 @@ class DEM(Dataset):
         out = np.arccos(cos_theta).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2336,12 +2421,17 @@ class DEM(Dataset):
               is `π/2` at every cell:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> arr = DEM(ds.raster).openness(search_radius=2).read_array()
                 >>> bool(np.allclose(arr, np.pi / 2.0, atol=1e-5))
@@ -2351,13 +2441,18 @@ class DEM(Dataset):
               than its neighbours (which look up at it):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.zeros((5, 5), dtype=np.float32)
                 >>> z[2, 2] = 10.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> arr = DEM(ds.raster).openness(search_radius=3).read_array()
                 >>> bool(arr[2, 2] > arr[1, 2])
@@ -2383,10 +2478,9 @@ class DEM(Dataset):
         ).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2427,12 +2521,17 @@ class DEM(Dataset):
             - Flat terrain: nothing occludes the sky, SVF = 1 everywhere:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> arr = DEM(ds.raster).sky_view_factor(search_radius=2).read_array()
                 >>> bool(np.allclose(arr, 1.0, atol=1e-5))
@@ -2442,13 +2541,18 @@ class DEM(Dataset):
               than 1 (the walls occlude part of the sky):
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((5, 5), 10.0, dtype=np.float32)
                 >>> z[2, 2] = 0.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> arr = DEM(ds.raster).sky_view_factor(search_radius=2).read_array()
                 >>> bool(arr[2, 2] < 1.0)
@@ -2468,10 +2572,9 @@ class DEM(Dataset):
         ).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2513,12 +2616,17 @@ class DEM(Dataset):
             - Flat terrain has zero ruggedness everywhere:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.full((4, 4), 5.0, dtype=np.float32)
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> bool(np.allclose(
                 ...     DEM(ds.raster).ruggedness(window=3).read_array(), 0.0
@@ -2529,13 +2637,18 @@ class DEM(Dataset):
               ruggedness at the peak and its 8-neighbours:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.zeros((5, 5), dtype=np.float32)
                 >>> z[2, 2] = 9.0
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> tri = DEM(ds.raster).ruggedness(window=3).read_array()
                 >>> bool(tri[2, 2] > 0 and tri[1, 2] > 0 and tri[3, 2] > 0)
@@ -2558,10 +2671,9 @@ class DEM(Dataset):
         out = (total / float(count)).astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(z), no_val, out)
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             out,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=no_val,
         )
 
@@ -2577,6 +2689,17 @@ class DEM(Dataset):
         Calculates slopes in all eight D8 directions via
         `_get_8_direction_slopes` and returns a raster whose cell
         values are the maximum slope across the eight neighbours.
+
+        Args:
+            engine: `"auto"` (default) picks the whole-array path and switches
+                to the tiled one only for rasters large enough to risk
+                exhausting RAM; `"tiled"` forces the streaming path and
+                requires `out_path`; `"in_memory"` forces the whole-array one.
+            out_path: Destination for the tiled path, which writes as it
+                streams rather than materialising the result. Required when
+                the tiled engine runs, ignored otherwise.
+            tile_size: Tile shape for the tiled path, as an edge length or an
+                explicit `(rows, columns)`. Defaults to 2048.
 
         Returns:
             Dataset: Single-band raster with the same geometry as the
@@ -2717,10 +2840,9 @@ class DEM(Dataset):
                 indices = self.map_to_array_coordinates(forced)
                 for i, ind in enumerate(indices):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
-            plain_ds = Dataset.create_from_array(
+            plain_ds = Dataset.from_array(
                 arr,
-                geo=self.geotransform,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="d8")
@@ -2735,10 +2857,9 @@ class DEM(Dataset):
                 indices = self.map_to_array_coordinates(forced)
                 for i, ind in enumerate(indices):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
-            plain_ds = Dataset.create_from_array(
+            plain_ds = Dataset.from_array(
                 arr.astype(np.int32, copy=False),
-                geo=self.geotransform,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="rho8")
@@ -2748,10 +2869,9 @@ class DEM(Dataset):
             stacked = np.stack([angle, magnitude], axis=0).astype(
                 np.float32, copy=False
             )
-            plain_ds = Dataset.create_from_array(
+            plain_ds = Dataset.from_array(
                 stacked,
-                geo=self.geotransform,
-                epsg=self.epsg,
+                geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
                 no_data_value=self.default_no_data_value,
             )
             return FlowDirection.from_dataset(plain_ds, routing="dinf")
@@ -2767,10 +2887,9 @@ class DEM(Dataset):
         )
         # Transpose (rows, cols, 8) -> (8, rows, cols) for pyramids's band-first layout.
         bands = np.transpose(fractions, (2, 0, 1)).astype(np.float32, copy=False)
-        plain_ds = Dataset.create_from_array(
+        plain_ds = Dataset.from_array(
             bands,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=self.default_no_data_value,
         )
         return FlowDirection.from_dataset(plain_ds, routing=method)
@@ -2918,15 +3037,20 @@ class DEM(Dataset):
               and inspect the outlet value:
 
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="d8")
@@ -2938,15 +3062,20 @@ class DEM(Dataset):
 
                 >>> import warnings
                 >>> import numpy as np
-                >>> from pyramids.dataset import Dataset
+                >>> from pyramids.dataset import Dataset, GeoReference
                 >>> from digitalrivers import DEM
                 >>> z = np.array(
                 ...     [[9, 9, 9, 9], [9, 5, 4, 1], [9, 9, 9, 9]],
                 ...     dtype=np.float32,
                 ... )
-                >>> ds = Dataset.create_from_array(
-                ...     z, top_left_corner=(0.0, 0.0), cell_size=1.0,
-                ...     epsg=4326, no_data_value=-9999.0,
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
                 ... )
                 >>> dem = DEM(ds.raster)
                 >>> fd = dem.flow_direction(method="dinf")
@@ -2993,10 +3122,9 @@ class DEM(Dataset):
         elev = self.values
         nodata_mask = np.isnan(elev)
         arr[nodata_mask] = Dataset.default_no_data_value
-        return Dataset.create_from_array(
+        return Dataset.from_array(
             arr,
-            geo=self.geotransform,
-            epsg=self.epsg,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
             no_data_value=self.default_no_data_value,
         )
 
