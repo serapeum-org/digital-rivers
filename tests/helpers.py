@@ -66,3 +66,29 @@ def channel_z() -> np.ndarray:
         ],
         dtype=np.float32,
     )
+
+
+def twin_channel_z() -> np.ndarray:
+    """Return the 6x6 two-channel grid the upscaling tests use.
+
+    Two identical parallel channels (rows 2 and 3) between walls of `9`. The pair
+    is what makes a 2x upscale meaningful: both fine rows fall into one coarse
+    row, so the coarse flow direction has an unambiguous answer to check against.
+
+    A fresh array is returned on every call, so a test that conditions the grid
+    cannot affect any other.
+
+    Returns:
+        A `(6, 6)` `float32` array.
+    """
+    return np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )

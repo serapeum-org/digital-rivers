@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from digitalrivers import DEM, FlowDirection
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import make_dem as _make_dem, twin_channel_z
 
 
 def test_scale_factor_one_is_noop():
@@ -27,17 +27,7 @@ def test_scale_factor_one_is_noop():
 
 
 def test_scale_factor_two_halves_dimensions():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = twin_channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -46,17 +36,7 @@ def test_scale_factor_two_halves_dimensions():
 
 
 def test_cotat_returns_dem_when_input_dem_supplied():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = twin_channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()

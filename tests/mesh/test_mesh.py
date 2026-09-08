@@ -18,6 +18,21 @@ def two_triangle_quad() -> Mesh:
     return Mesh(vertices, triangles)
 
 
+def _fan_mesh() -> Mesh:
+    """A square with one off-centre interior vertex, fanned into four triangles.
+
+    Vertex 4 at `(1.5, 1.5)` is the only interior one, and is deliberately off the
+    centre `(1.0, 1.0)`, so any operation that moves interior vertices has a
+    visible, signed effect.
+    """
+    vertices = np.array(
+        [[0.0, 0.0], [2.0, 0.0], [2.0, 2.0], [0.0, 2.0], [1.5, 1.5]],
+        dtype=np.float64,
+    )
+    triangles = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64)
+    return Mesh(vertices, triangles)
+
+
 def test_init_records_counts(two_triangle_quad):
     assert two_triangle_quad.n_vertices == 4
     assert two_triangle_quad.n_triangles == 2
@@ -137,43 +152,23 @@ def test_smooth_no_iterations_returns_copy(two_triangle_quad):
 
 def test_smooth_zero_relaxation_is_identity():
     """`relaxation=0` leaves all vertices unchanged even for many iters."""
-    vertices = np.array(
-        [
-            [0.0, 0.0],
-            [2.0, 0.0],
-            [2.0, 2.0],
-            [0.0, 2.0],
-            [1.5, 1.5],
-        ],
-        dtype=np.float64,
-    )
-    triangles = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64)
-    mesh = Mesh(vertices, triangles)
+    mesh = _fan_mesh()
+    before = mesh.vertices.copy()
     smoothed = mesh.laplacian_smooth(n_iterations=10, relaxation=0.0)
-    np.testing.assert_allclose(smoothed.vertices, vertices)
+    np.testing.assert_allclose(smoothed.vertices, before)
 
 
 def test_smooth_hold_boundary_false_moves_all_vertices():
     """With `hold_boundary=False` and `relaxation=1.0`, every vertex
     snaps onto its neighbour centroid each iteration."""
-    vertices = np.array(
-        [
-            [0.0, 0.0],
-            [2.0, 0.0],
-            [2.0, 2.0],
-            [0.0, 2.0],
-            [1.5, 1.5],
-        ],
-        dtype=np.float64,
-    )
-    triangles = np.array([[0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4]], dtype=np.int64)
-    mesh = Mesh(vertices, triangles)
+    mesh = _fan_mesh()
+    before = mesh.vertices.copy()
     smoothed = mesh.laplacian_smooth(
         n_iterations=1,
         relaxation=1.0,
         hold_boundary=False,
     )
-    moved = ~np.all(np.isclose(smoothed.vertices, vertices), axis=1)
+    moved = ~np.all(np.isclose(smoothed.vertices, before), axis=1)
     assert moved.all(), f"Expected all 5 vertices to move; moved={moved}"
 
 
