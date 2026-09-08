@@ -108,8 +108,13 @@ class TestReadFileAcceptsHandleConfig:
             file (threadsafe reads, lazy chunked reads, unpickling on a worker).
         """
         env = {"GDAL_HTTP_MAX_RETRY": "3"}
-        result = cls.read_file(tif_path, gdal_env=env)
+        result = cls.read_file(
+            tif_path, gdal_env=env, open_options={"NUM_THREADS": "1"}
+        )
         assert result.gdal_env == env, f"gdal_env not captured: {result.gdal_env}"
+        assert result.open_options == [
+            "NUM_THREADS=1"
+        ], f"open_options not captured: {result.open_options}"
 
 
 class TestFromDatasetCarriesConfig:
@@ -135,8 +140,10 @@ class TestFromDatasetCarriesConfig:
         ), f"{cls.__name__} changed access {source.access!r} -> {promoted.access!r}"
 
     @pytest.mark.parametrize("cls", TYPED_CLASSES)
-    def test_from_dataset_preserves_gdal_env(self, cls, grid: np.ndarray, tmp_path):
-        """Test the source's `gdal_env` reaches the promoted wrapper.
+    def test_from_dataset_preserves_driver_config(
+        self, cls, grid: np.ndarray, tmp_path
+    ):
+        """Test the source's `gdal_env` and `open_options` reach the wrapper.
 
         Args:
             cls: The typed wrapper under test.
@@ -144,17 +151,26 @@ class TestFromDatasetCarriesConfig:
             tmp_path: pytest temporary directory.
 
         Test scenario:
-            A signed remote raster carries its credentials in `gdal_env`; losing
-            them on promotion breaks every later reopen.
+            A signed remote raster carries its credentials in `gdal_env` and its
+            driver settings in `open_options`; losing either on promotion breaks
+            every later reopen. Both are asserted, since only one of the pair was
+            covered when these tests were first written.
         """
         path = str(tmp_path / f"{cls.__name__}_env.tif")
         _plain(grid, path=path)
         gc.collect()
-        source = Dataset.read_file(path, gdal_env={"GDAL_HTTP_MAX_RETRY": "3"})
+        source = Dataset.read_file(
+            path,
+            gdal_env={"GDAL_HTTP_MAX_RETRY": "3"},
+            open_options={"NUM_THREADS": "1"},
+        )
         promoted = _promote(cls, source)
         assert (
             promoted.gdal_env == source.gdal_env
         ), f"{cls.__name__} dropped gdal_env: {promoted.gdal_env}"
+        assert (
+            promoted.open_options == source.open_options
+        ), f"{cls.__name__} dropped open_options: {promoted.open_options}"
 
     def test_persist_metadata_succeeds_on_promoted_file_handle(
         self, grid: np.ndarray, tmp_path
@@ -192,11 +208,20 @@ class TestToDatasetCarriesConfig:
             `to_dataset` used to build `Dataset(self.raster)`, defaulting to
             `"read_only"`, so a round trip silently downgraded a writable handle.
         """
-        source = _plain(grid, path=str(tmp_path / f"{cls.__name__}_out.tif"))
+        path = str(tmp_path / f"{cls.__name__}_out.tif")
+        _plain(grid, path=path)
+        gc.collect()
+        source = Dataset.read_file(
+            path, read_only=False, open_options={"NUM_THREADS": "1"}
+        )
         wrapper = _promote(cls, source)
+        unwrapped = wrapper.to_dataset()
         assert (
-            wrapper.to_dataset().access == wrapper.access
+            unwrapped.access == wrapper.access
         ), f"{cls.__name__}.to_dataset dropped access {wrapper.access!r}"
+        assert (
+            unwrapped.open_options == wrapper.open_options
+        ), f"{cls.__name__}.to_dataset dropped open_options"
 
 
 class TestOpenAcceptsHandleConfig:

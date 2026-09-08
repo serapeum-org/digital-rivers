@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.lidar import LasPoints, grid_lidar_points
 
@@ -403,8 +404,6 @@ class TestDetectTrees:
     """Tests for `lidar.detect_trees` (local-maxima on a CHM)."""
 
     def _make_chm(self, arr: np.ndarray, cell_size: float = 1.0):
-        from pyramids.dataset import Dataset, GeoReference
-
         ds = Dataset.from_array(
             arr.astype(np.float32),
             geo_ref=GeoReference(
