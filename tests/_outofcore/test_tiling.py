@@ -8,7 +8,7 @@ import types
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset, GeoReference
+from pyramids.dataset import Dataset, GeoReference, Window
 
 from digitalrivers._outofcore.tiling import (
     TileSpec,
@@ -50,7 +50,10 @@ class TestPlanTiles:
         )
         win = list(tile_windows(ds, tile_rows=16, tile_cols=16, overlap=0))
         specs = plan_tiles(37, 53, 16, 16, halo=0)
-        assert [(s.row_off, s.col_off, s.n_rows, s.n_cols) for s in specs] == win
+        assert [
+            Window(col_off=s.col_off, row_off=s.row_off, cols=s.n_cols, rows=s.n_rows)
+            for s in specs
+        ] == win
 
     def test_cores_cover_domain_exactly(self):
         rows, cols = 30, 40
