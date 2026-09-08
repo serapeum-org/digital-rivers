@@ -18,8 +18,34 @@ Deferred (umbrella raises `NotImplementedError` with a deferral note):
 
 from __future__ import annotations
 
+import re
+from functools import lru_cache
+
+from osgeo import gdal
 from pyramids.dataset import Window
 from pyramids.dataset.cog import Compression
+
+
+@lru_cache(maxsize=1)
+def _cog_compression_methods() -> frozenset[str]:
+    """Return the `COMPRESS` values the installed GDAL's COG driver declares.
+
+    Read from the driver's own creation-option list rather than hard-coded, so the
+    accepted set tracks whatever GDAL is installed instead of drifting from it.
+
+    Returns:
+        Upper-case method names, or an empty set if the driver does not publish
+        its option list (in which case the caller skips validation rather than
+        rejecting everything).
+    """
+    driver = gdal.GetDriverByName("COG")
+    options = driver.GetMetadataItem("DMD_CREATIONOPTIONLIST") if driver else None
+    if not options:
+        return frozenset()
+    block = re.search(r"<Option name='COMPRESS'.*?</Option>", options, re.S)
+    if block is None:
+        return frozenset()
+    return frozenset(re.findall(r"<Value>([^<]+)</Value>", block.group(0)))
 
 
 def tile_windows(
@@ -149,15 +175,20 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
         dataset: Any `pyramids.Dataset` (or subclass — DEM,
             FlowDirection, Accumulation, etc.).
         path: Output `.tif` path.
-        compress: GDAL compression method (`"deflate"` default, `"lzw"`,
-            `"zstd"`, `"none"`). Case-insensitive. The method alone is set;
-            the compression *level* is left at GDAL's default, and the
-            predictor is resolved from the band dtype by pyramids.
+        compress: GDAL compression method — `"deflate"` (default), `"lzw"`,
+            `"zstd"`, `"lerc"`, `"none"`, or any other method the installed
+            GDAL's COG driver declares. Case-insensitive, and validated: an
+            unrecognised value raises rather than silently writing an
+            uncompressed file. Only the method is set — the compression
+            *level* is left at GDAL's default, and pyramids resolves the
+            predictor from the band dtype where the method supports one.
 
     Returns:
         The output path on success.
 
     Raises:
+        ValueError: If `compress` is not a compression method the COG driver
+            supports.
         DriverNotExistError: If the GDAL build lacks the COG driver.
         FileNotFoundError: If the parent directory does not exist.
         FailedToSaveError: If GDAL's COG `CreateCopy` fails.
@@ -184,10 +215,20 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
             ...     os.path.exists(result)
             True
     """
+    method = compress.upper()
+    supported = _cog_compression_methods()
+    # GDAL does not fail on an unknown COMPRESS — it warns and writes the file
+    # uncompressed. On a helper for continental DEMs a silent typo is expensive,
+    # so reject it here instead.
+    if supported and method not in supported:
+        raise ValueError(
+            f"compress={compress!r} is not a COG compression method; "
+            f"choose from {sorted(m.lower() for m in supported)}"
+        )
     # `Compression(compress=...)` sets the method only. Passing the bare string
     # would select a named pyramids *profile* instead, and the "deflate" profile
     # pins LEVEL=9 — maximum effort on a helper meant for continental DEMs.
-    return str(dataset.to_cog(path, compression=Compression(compress=compress.upper())))
+    return str(dataset.to_cog(path, compression=Compression(compress=method)))
 
 
 def cloud_storage(*args, **kwargs):

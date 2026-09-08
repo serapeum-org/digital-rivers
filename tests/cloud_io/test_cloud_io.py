@@ -130,7 +130,7 @@ class TestWriteCogCompression:
 
         Test scenario:
             Pins the wrapper's accepted value set. `"none"` is included because
-            the named-profile route dropped it — its replacement there is `"raw"`.
+            it is how a caller asks for an uncompressed COG.
         """
         written = cloud_io.write_cog(
             dataset, str(tmp_path / f"{compress}.tif"), compress=compress
@@ -160,6 +160,39 @@ class TestWriteCogCompression:
         actual = handle.GetMetadata("IMAGE_STRUCTURE").get("COMPRESSION")
         handle = None
         assert actual == "DEFLATE", f"Expected DEFLATE, got {actual!r}"
+
+    def test_only_methods_this_gdal_declares_are_parametrised(self):
+        """Test the parametrised methods are ones the installed COG driver declares.
+
+        Test scenario:
+            Guards the case above against a GDAL build compiled without one of the
+            optional codecs, where the write would silently fall back rather than
+            produce the asserted tag.
+        """
+        declared = cloud_io._cog_compression_methods()
+        for method in ("DEFLATE", "LZW", "ZSTD", "NONE"):
+            assert (
+                method in declared
+            ), f"{method} not declared by this GDAL's COG driver"
+
+    @pytest.mark.parametrize("bad", ["bogus", "raw", ""])
+    def test_unknown_compress_raises(self, dataset: Dataset, tmp_path, bad: str):
+        """Test an unrecognised value raises instead of writing an uncompressed file.
+
+        Args:
+            dataset: Fixture raster.
+            tmp_path: pytest temporary directory.
+            bad: A value the COG driver does not accept.
+
+        Test scenario:
+            GDAL does not fail on an unknown COMPRESS — it warns and writes the
+            file with no compression at all. On a helper meant for continental
+            DEMs that turns a typo into a silently enormous output, so the
+            wrapper rejects it up front. `"raw"` is covered explicitly: it reads
+            like "no compression" but is not a GDAL method.
+        """
+        with pytest.raises(ValueError, match="not a COG compression method"):
+            cloud_io.write_cog(dataset, str(tmp_path / "bad.tif"), compress=bad)
 
     def test_compression_level_is_left_to_gdal(
         self, dataset: Dataset, tmp_path, mocker
