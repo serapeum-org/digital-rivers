@@ -214,7 +214,6 @@ python = "3.13.*"
 python = "3.14.*"
 
 [tool.pixi.dependencies]
-numba = ">=0.60.0,<1"
 # No conda `gdal` here on purpose. The pyramids-gis wheel vendors its own
 # osgeo, and `import pyramids` prepends that directory to sys.path[0]
 # (activate_vendored_osgeo); `digitalrivers/__init__.py` imports pyramids at
