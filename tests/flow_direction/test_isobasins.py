@@ -17,6 +17,22 @@ def _build_pipeline(z: np.ndarray, threshold: int, cell_size: float = 1.0):
     return dem, fd, acc, sr
 
 
+def _long_chain_z() -> np.ndarray:
+    """A 3x7 grid whose middle row falls `5 4 3 2 1 0` to an outlet at (1, 6).
+
+    One cell longer than the shared `channel_z()` fixture, so a sub-basin split
+    has somewhere to land. Fresh per call — these tests condition the grid.
+    """
+    return np.array(
+        [
+            [9, 9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1, 0],
+            [9, 9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )
+
+
 class TestFlowDirectionIsobasins:
     """Tests for `FlowDirection.isobasins`."""
 
@@ -47,14 +63,7 @@ class TestFlowDirectionIsobasins:
         # roughly the cell-area-in-degrees-squared / 1e6 km² which is tiny
         # (since EPSG 4326 is degrees). Use a 30-m equivalent by setting
         # cell_size=30 m via target / cell_area calc directly.
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1, 0],
-                [9, 9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = _long_chain_z()
         dem, fd, acc, sr = _build_pipeline(z, threshold=1)
         # target so small that every stream cell is its own seed bucket.
         # cell_area_km2 for a 4326 1-degree cell is ~12000 km² — too big to
@@ -74,14 +83,7 @@ class TestFlowDirectionIsobasins:
             Whatever the number of seeds placed, the resulting outlets dict
             maps basin_id -> (row, col) for each label.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1, 0],
-                [9, 9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = _long_chain_z()
         dem, fd, acc, sr = _build_pipeline(z, threshold=1)
         gt = fd.geotransform
         cell_area_km2 = abs(gt[1] * gt[5]) / 1e6

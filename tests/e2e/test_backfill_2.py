@@ -12,7 +12,7 @@ from digitalrivers._numba import (
     _DIR_DC_I32,
     cotat_upscale_numba,
 )
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import make_dem as _make_dem, twin_channel_z
 
 
 def _line_world(rows_cols: list[tuple[int, int]]) -> LineString:
@@ -53,17 +53,7 @@ def test_topological_breach_returns_dem_with_finite_values():
 def test_native_cotat_matches_pure_python():
     """The Numba COTAT kernel produces the same output as the pure-Python
     P18 loop on a small fixture."""
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = twin_channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()

@@ -8,6 +8,7 @@ from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import StreamRaster
 from tests.helpers import channel_z, make_dem as _make_dem
+from digitalrivers import FlowDirection
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -25,6 +26,25 @@ def _stream_raster_from_mask(sm: np.ndarray) -> StreamRaster:
         no_data_value=0,
     )
     return StreamRaster.from_dataset(ds, threshold=1, routing="d8")
+
+
+def _top_row_stream():
+    """A 3x3 raster whose top row is a stream draining east to (0, 2).
+
+    Returns:
+        Tuple `(stream_raster, flow_direction)` over the same 3x3 grid.
+    """
+    sm = np.zeros((3, 3), dtype=bool)
+    sm[0, :] = True
+    fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
+    fdir_ds = Dataset.from_array(
+        fdir,
+        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        no_data_value=-1,
+    )
+    return _stream_raster_from_mask(sm), FlowDirection.from_dataset(
+        fdir_ds, routing="d8"
+    )
 
 
 class TestStreamRasterMainStem:
@@ -98,18 +118,7 @@ class TestStreamRasterMainStem:
             outlet=(100, 100) outside the raster bounds must raise
             ValueError with a clear message.
         """
-        sm = np.zeros((3, 3), dtype=bool)
-        sm[0, :] = True
-        from digitalrivers import FlowDirection
-
-        fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
-        sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.from_array(
-            fdir,
-            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
-            no_data_value=-1,
-        )
-        fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
+        sr, fd = _top_row_stream()
         with pytest.raises(ValueError, match="outside the raster"):
             sr.main_stem(fd, outlet=(100, 100))
 
@@ -120,18 +129,7 @@ class TestStreamRasterMainStem:
             outlet pointing at a cell where the stream mask is False must
             raise ValueError.
         """
-        sm = np.zeros((3, 3), dtype=bool)
-        sm[0, :] = True
-        from digitalrivers import FlowDirection
-
-        fdir = np.array([[6, 6, -1], [-1, -1, -1], [-1, -1, -1]], dtype=np.int32)
-        sr = _stream_raster_from_mask(sm)
-        fdir_ds = Dataset.from_array(
-            fdir,
-            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
-            no_data_value=-1,
-        )
-        fd = FlowDirection.from_dataset(fdir_ds, routing="d8")
+        sr, fd = _top_row_stream()
         with pytest.raises(ValueError, match="not a stream cell"):
             sr.main_stem(fd, outlet=(1, 1))
 
