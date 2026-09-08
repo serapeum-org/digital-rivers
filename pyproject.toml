@@ -93,6 +93,14 @@ docs = [
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
 ]
+# Dask backend for the out-of-core path. A group rather than the `distributed`
+# extra: that extra is `pyramids-gis[lazy]`, the whole lazy stack (zarr, s3fs,
+# kerchunk, h5py), where the tiled tests need only dask and distributed. The
+# environments reference this by name and pixi resolves it like `dev` / `docs`.
+lazy = [
+    "dask >=2024.1.0",
+    "distributed >=2024.1.0",
+]
 notebook = [
     "pip",
     "jupyterlab",
@@ -241,8 +249,3 @@ python = "3.13.*"
 python = { version = "3.14.*", build = "*_cp314" }
 
 
-# Dask backend for the out-of-core B7 path, via conda-forge `dask-core`. Named `lazy` (not `distributed`) so it
-# does not collide with the `distributed` PyPI extra and trigger pixi to auto-activate it.
-[tool.pixi.feature.lazy.dependencies]
-dask-core = ">=2024.1.0"
-distributed = ">=2024.1.0"
