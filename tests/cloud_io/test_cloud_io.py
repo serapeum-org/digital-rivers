@@ -6,7 +6,9 @@ import os
 
 import numpy as np
 import pytest
+from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference, Window
+from pyramids.dataset.cog import Compression
 
 from digitalrivers import cloud_io
 
@@ -95,10 +97,102 @@ def test_write_cog_writes_a_file(tmp_path):
     assert os.path.exists(written)
 
 
+class TestWriteCogCompression:
+    """`write_cog`'s `compress` argument selects the GDAL compression method."""
+
+    @pytest.fixture()
+    def dataset(self) -> Dataset:
+        """An 8x8 float32 raster, the smallest thing the COG driver will take."""
+        return Dataset.from_array(
+            np.arange(64, dtype=np.float32).reshape(8, 8),
+            geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
+        )
+
+    @pytest.mark.parametrize(
+        "compress, expected",
+        [
+            ("deflate", "DEFLATE"),
+            ("lzw", "LZW"),
+            ("zstd", "ZSTD"),
+            ("none", None),
+        ],
+    )
+    def test_compress_reaches_the_written_file(
+        self, dataset: Dataset, tmp_path, compress: str, expected: str | None
+    ):
+        """Test each accepted value produces that compression on disk.
+
+        Args:
+            dataset: Fixture raster.
+            tmp_path: pytest temporary directory.
+            compress: The value passed to `write_cog`.
+            expected: GDAL's `IMAGE_STRUCTURE` COMPRESSION tag, `None` for none.
+
+        Test scenario:
+            Pins the wrapper's accepted value set. `"none"` is included because
+            the named-profile route dropped it — its replacement there is `"raw"`.
+        """
+        written = cloud_io.write_cog(
+            dataset, str(tmp_path / f"{compress}.tif"), compress=compress
+        )
+        handle = gdal.Open(written)
+        actual = handle.GetMetadata("IMAGE_STRUCTURE").get("COMPRESSION")
+        handle = None
+        assert (
+            actual == expected
+        ), f"compress={compress!r} wrote COMPRESSION={actual!r}, expected {expected!r}"
+
+    def test_compress_is_case_insensitive(self, dataset: Dataset, tmp_path):
+        """Test an upper-case value is accepted and behaves like its lower-case form.
+
+        Args:
+            dataset: Fixture raster.
+            tmp_path: pytest temporary directory.
+
+        Test scenario:
+            The docstring promises case-insensitivity, so `"DEFLATE"` must land the
+            same as `"deflate"`.
+        """
+        written = cloud_io.write_cog(
+            dataset, str(tmp_path / "upper.tif"), compress="DEFLATE"
+        )
+        handle = gdal.Open(written)
+        actual = handle.GetMetadata("IMAGE_STRUCTURE").get("COMPRESSION")
+        handle = None
+        assert actual == "DEFLATE", f"Expected DEFLATE, got {actual!r}"
+
+    def test_compression_level_is_left_to_gdal(
+        self, dataset: Dataset, tmp_path, mocker
+    ):
+        """Test the method is passed as a `Compression`, not as a named profile.
+
+        Args:
+            dataset: Fixture raster.
+            tmp_path: pytest temporary directory.
+            mocker: pytest-mock fixture.
+
+        Test scenario:
+            Passing the bare string `"deflate"` selects a pyramids *profile*, which
+            pins `LEVEL: 9` — maximum effort on a helper meant for continental DEMs.
+            An explicit `Compression(compress=...)` leaves the level unset, so GDAL
+            picks its own default. Guards the argument's meaning, not just its name.
+        """
+        spy = mocker.spy(type(dataset), "to_cog")
+        cloud_io.write_cog(dataset, str(tmp_path / "level.tif"))
+        passed = spy.call_args.kwargs["compression"]
+        assert isinstance(
+            passed, Compression
+        ), f"Expected a Compression, got {type(passed).__name__}"
+        assert (
+            passed.compress == "DEFLATE"
+        ), f"Expected DEFLATE, got {passed.compress!r}"
+        assert (
+            passed.level is None
+        ), f"Compression level should be GDAL's default, got {passed.level!r}"
+
+
 def test_write_cog_output_is_internally_tiled(tmp_path):
     """The COG writer's output must have block-tiled internal layout."""
-    from osgeo import gdal
-
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
     ds = Dataset.from_array(
         z,
