@@ -136,7 +136,7 @@ class Accumulation(Dataset):
 
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str) -> Accumulation:
-        """Promote a plain `Dataset` into a `Accumulation`.
+        """Promote a plain `Dataset` into an `Accumulation`.
 
         The source's access mode, `gdal_env` and `open_options` are carried onto
         the wrapper. Dropping them left a promoted file-backed raster unable to
@@ -153,15 +153,15 @@ class Accumulation(Dataset):
         Examples:
             - Promote an in-memory raster and read the provenance back:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import Accumulation
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
                 >>> wrapped.routing
                 'd8'
@@ -169,15 +169,15 @@ class Accumulation(Dataset):
                 ```
             - The source's access mode survives the promotion:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import Accumulation
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
                 >>> wrapped.access == plain.access
                 True
@@ -205,15 +205,15 @@ class Accumulation(Dataset):
         Examples:
             - Unwrap and read the grid straight off the plain `Dataset`:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import Accumulation
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
                 >>> plain_again = wrapped.to_dataset()
                 >>> plain_again.read_array().tolist()
@@ -222,15 +222,15 @@ class Accumulation(Dataset):
                 ```
             - The access mode round-trips unchanged:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import Accumulation
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import Accumulation
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = Accumulation.from_dataset(plain, routing="d8")
                 >>> wrapped.to_dataset().access == wrapped.access
                 True

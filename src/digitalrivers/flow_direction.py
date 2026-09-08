@@ -115,13 +115,55 @@ class FlowDirection(Dataset):
     ) -> FlowDirection:
         """Promote a plain `Dataset` into a `FlowDirection`.
 
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
         Args:
-            ds: Dataset wrapping the flow-direction raster.
+            ds: Dataset wrapping the flow-direction raster. Its raster handle is
+                reused, not copied.
             routing: Routing scheme. Required keyword-only.
             encoding: Cell-value encoding convention.
 
         Returns:
-            A `FlowDirection` sharing the same underlying GDAL dataset.
+            A `FlowDirection` over the same raster, with `ds`'s handle
+            configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [2, 3]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = FlowDirection.from_dataset(plain, routing="d8")
+                >>> wrapped.routing, wrapped.encoding
+                ('d8', 'digitalrivers')
+
+                ```
+            - The source's access mode survives the promotion:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [2, 3]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> FlowDirection.from_dataset(
+                ...     plain, routing="d8"
+                ... ).access == plain.access
+                True
+
+                ```
         """
         return cls(
             ds.raster,
@@ -145,15 +187,15 @@ class FlowDirection(Dataset):
         Examples:
             - Unwrap and read the grid straight off the plain `Dataset`:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import FlowDirection
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = FlowDirection.from_dataset(plain, routing="d8")
                 >>> plain_again = wrapped.to_dataset()
                 >>> plain_again.read_array().tolist()
@@ -162,15 +204,15 @@ class FlowDirection(Dataset):
                 ```
             - The access mode round-trips unchanged:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import FlowDirection
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import FlowDirection
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = FlowDirection.from_dataset(plain, routing="d8")
                 >>> wrapped.to_dataset().access == wrapped.access
                 True

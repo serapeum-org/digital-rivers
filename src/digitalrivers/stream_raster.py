@@ -101,7 +101,63 @@ class StreamRaster(Dataset):
         threshold: float | int,
         routing: str,
     ) -> StreamRaster:
-        """Promote a plain `Dataset` into a `StreamRaster`."""
+        """Promote a plain `Dataset` into a `StreamRaster`.
+
+        The source's access mode, `gdal_env` and `open_options` are carried onto
+        the wrapper. Dropping them left a promoted file-backed raster unable to
+        write its own metadata tags, and stripped the credentials a signed remote
+        raster needs when pyramids reopens it.
+
+        Args:
+            ds: Dataset wrapping the stream raster. Its raster handle is reused,
+                not copied.
+            threshold: Accumulation threshold the network was extracted at, kept
+                for provenance. Required keyword-only.
+            routing: Routing scheme of the flow direction behind the
+                accumulation. Required keyword-only, and must be
+                single-direction.
+
+        Returns:
+            A `StreamRaster` over the same raster, with `ds`'s handle
+            configuration.
+
+        Examples:
+            - Promote an in-memory raster and read the provenance back:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [1, 0]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> wrapped = StreamRaster.from_dataset(
+                ...     plain, threshold=10, routing="d8"
+                ... )
+                >>> wrapped.threshold, wrapped.routing
+                (10, 'd8')
+
+                ```
+            - The source's access mode survives the promotion:
+                ```python
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[0, 1], [1, 0]], dtype=np.int32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
+                >>> StreamRaster.from_dataset(
+                ...     plain, threshold=10, routing="d8"
+                ... ).access == plain.access
+                True
+
+                ```
+        """
         return cls(
             ds.raster,
             ds.access,
@@ -124,15 +180,15 @@ class StreamRaster(Dataset):
         Examples:
             - Unwrap and read the grid straight off the plain `Dataset`:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import StreamRaster
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = StreamRaster.from_dataset(plain, threshold=10, routing="d8")
                 >>> plain_again = wrapped.to_dataset()
                 >>> plain_again.read_array().tolist()
@@ -141,15 +197,15 @@ class StreamRaster(Dataset):
                 ```
             - The access mode round-trips unchanged:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers import StreamRaster
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import StreamRaster
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = StreamRaster.from_dataset(plain, threshold=10, routing="d8")
                 >>> wrapped.to_dataset().access == wrapped.access
                 True

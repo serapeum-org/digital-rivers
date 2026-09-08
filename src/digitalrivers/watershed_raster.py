@@ -131,20 +131,20 @@ class WatershedRaster(Dataset):
         Examples:
             - Promote an in-memory raster and read the provenance back:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> import geopandas as gpd
-            >>> from shapely.geometry import Point
-            >>> from digitalrivers import WatershedRaster
-            >>> outlets = gpd.GeoDataFrame(
-            ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
-            ... )
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import Point
+                >>> from digitalrivers import WatershedRaster
+                >>> outlets = gpd.GeoDataFrame(
+                ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
+                ... )
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = WatershedRaster.from_dataset(
                 ...     plain, routing="d8", outlets=outlets
                 ... )
@@ -154,20 +154,20 @@ class WatershedRaster(Dataset):
                 ```
             - The source's access mode survives the promotion:
                 ```python
-            >>> import numpy as np
-            >>> from pyramids.dataset import Dataset, GeoReference
-            >>> import geopandas as gpd
-            >>> from shapely.geometry import Point
-            >>> from digitalrivers import WatershedRaster
-            >>> outlets = gpd.GeoDataFrame(
-            ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
-            ... )
-            >>> plain = Dataset.from_array(
-            ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
-            ...     geo_ref=GeoReference(
-            ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
-            ...     ),
-            ... )
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> import geopandas as gpd
+                >>> from shapely.geometry import Point
+                >>> from digitalrivers import WatershedRaster
+                >>> outlets = gpd.GeoDataFrame(
+                ...     {"geometry": [Point(0.5, -0.5)]}, crs="EPSG:4326"
+                ... )
+                >>> plain = Dataset.from_array(
+                ...     np.array([[1, 2], [3, 4]], dtype=np.float32),
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326
+                ...     ),
+                ... )
                 >>> wrapped = WatershedRaster.from_dataset(
                 ...     plain, routing="d8", outlets=outlets
                 ... )

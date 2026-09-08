@@ -102,6 +102,11 @@ class Terrain(Dataset):
                 classmethod; the bare constructor accepts a `gdal.Dataset`
                 only.
             access: `"read_only"` (default) or `"write"`.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
+                the dataset and re-installed around its reads, so the paths that
+                reopen the file authenticate the same way. Default `None`.
+            open_options: GDAL open options captured on the dataset and
+                reapplied when it is reopened. Default `None`.
 
         Examples:
             - Wrap an in-memory raster and read its grid dimensions:
