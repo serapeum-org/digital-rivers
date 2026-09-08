@@ -169,18 +169,46 @@ class GlobalSpillGraph:
             self.add_edge(int(lo[s]), int(hi[s]), float(mins[k]))
 
 
+def _join_tile_corner(graph, strips, tid_a: int, tid_b: int, corner: int) -> None:
+    """Add the single corner-to-corner edge between two diagonally adjacent tiles.
+
+    Where four tiles meet, the upper tile's bottom strip touches the lower tile's
+    top strip at exactly one cell, which no orthogonal strip join covers. The edge
+    is taken at the higher of the two fill levels, since that is the level water
+    must reach to cross the corner. Labels below 1 are background, not depressions,
+    so a corner touching either is skipped.
+
+    Args:
+        graph: The graph to add the edge to. Mutated in place.
+        strips: `tile id` -> side -> `(labels, filled)`, in global label numbering.
+        tid_a: The upper tile, contributing its `bottom` strip.
+        tid_b: The lower tile, contributing its `top` strip.
+        corner: `-1` for the down-right diagonal (upper tile's east end meets the
+            lower tile's west end), `0` for the down-left.
+    """
+    a_lab, a_fil = strips[tid_a]["bottom"]
+    d_lab, d_fil = strips[tid_b]["top"]
+    other = -1 - corner
+    if a_lab[corner] < 1 or d_lab[other] < 1:
+        return
+    graph.add_edge(
+        int(a_lab[corner]),
+        int(d_lab[other]),
+        max(float(a_fil[corner]), float(d_fil[other])),
+    )
+
+
 def stitch_seams(specs, by_grid, strips, graph) -> None:
     """Join every tile's perimeter labels to its neighbours' in the spill graph.
 
     Each tile is flooded in isolation, so a depression spanning a seam appears as
     two unrelated labels until they are joined here. Orthogonal neighbours share a
-    whole edge and go through `join_strips`; the two diagonals share exactly one
-    corner cell, which no strip join covers, so they get a single explicit edge at
-    the higher of the two fill levels.
+    whole edge and go through `join_strips`; the diagonals share one corner cell
+    and go through :func:`_join_tile_corner`.
 
-    Only the down-right and down-left diagonals are walked: every tile pair is
-    reached once from the upper tile, so adding the mirrored pair would double the
-    edges without changing the solve.
+    Only the eastward and downward neighbours are walked: every tile pair is
+    reached once from its upper-left member, so adding the mirrored pairs would
+    double the edges without changing the solve.
 
     Args:
         specs: Every tile, in any order.
@@ -189,33 +217,19 @@ def stitch_seams(specs, by_grid, strips, graph) -> None:
             with labels already offset into the global numbering.
         graph: The `GlobalSpillGraph` to add the seam edges to. Mutated in place.
     """
+    # (row offset, col offset, this tile's side, the neighbour's facing side)
+    ORTHOGONAL = ((0, 1, "right", "left"), (1, 0, "bottom", "top"))
+    # (col offset, which end of the bottom strip the corner sits at)
+    DIAGONAL = ((1, -1), (-1, 0))
     for s in specs:
-        right = by_grid.get((s.row, s.col + 1))
-        if right is not None:
-            graph.join_strips(*strips[s.tid]["right"], *strips[right.tid]["left"])
-        below = by_grid.get((s.row + 1, s.col))
-        if below is not None:
-            graph.join_strips(*strips[s.tid]["bottom"], *strips[below.tid]["top"])
-        diag = by_grid.get((s.row + 1, s.col + 1))
-        if diag is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[diag.tid]["top"]
-            if a_lab[-1] >= 1 and d_lab[0] >= 1:
-                graph.add_edge(
-                    int(a_lab[-1]),
-                    int(d_lab[0]),
-                    max(float(a_fil[-1]), float(d_fil[0])),
-                )
-        anti = by_grid.get((s.row + 1, s.col - 1))
-        if anti is not None:
-            a_lab, a_fil = strips[s.tid]["bottom"]
-            d_lab, d_fil = strips[anti.tid]["top"]
-            if a_lab[0] >= 1 and d_lab[-1] >= 1:
-                graph.add_edge(
-                    int(a_lab[0]),
-                    int(d_lab[-1]),
-                    max(float(a_fil[0]), float(d_fil[-1])),
-                )
+        for d_row, d_col, side, facing in ORTHOGONAL:
+            nb = by_grid.get((s.row + d_row, s.col + d_col))
+            if nb is not None:
+                graph.join_strips(*strips[s.tid][side], *strips[nb.tid][facing])
+        for d_col, corner in DIAGONAL:
+            nb = by_grid.get((s.row + 1, s.col + d_col))
+            if nb is not None:
+                _join_tile_corner(graph, strips, s.tid, nb.tid, corner)
 
 
 def solve_drain_levels(graph, label_offset: int) -> np.ndarray:
