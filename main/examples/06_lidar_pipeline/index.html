@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -3422,16 +3422,20 @@ print(f"CHM range: [{valid_chm.min():.3f}, {valid_chm.max():.3f}] m")</div>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
-<span class="n">chm</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">chm_arr</span><span class="p">,</span> <span class="n">geo</span><span class="o">=</span><span class="n">dtm</span><span class="o">.</span><span class="n">geotransform</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">dtm</span><span class="o">.</span><span class="n">epsg</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
+<span class="n">chm</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">chm_arr</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">geo</span><span class="o">=</span><span class="n">dtm</span><span class="o">.</span><span class="n">geotransform</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">dtm</span><span class="o">.</span><span class="n">epsg</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">tops</span> <span class="o">=</span> <span class="n">detect_trees</span><span class="p">(</span><span class="n">chm</span><span class="p">,</span> <span class="n">min_height_m</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tops</span><span class="p">[[</span><span class="s2">"height_m"</span><span class="p">,</span> <span class="s2">"row"</span><span class="p">,</span> <span class="s2">"col"</span><span class="p">]])</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-9">from pyramids.dataset import Dataset
-chm = Dataset.create_from_array(
-    chm_arr, geo=dtm.geotransform, epsg=dtm.epsg, no_data_value=-9999.0,
+<div class="clipboard-copy-txt" id="cell-9">from pyramids.dataset import Dataset, GeoReference
+chm = Dataset.from_array(
+    chm_arr,
+    geo_ref=GeoReference(geo=dtm.geotransform, epsg=dtm.epsg),
+    no_data_value=-9999.0,
 )
 tops = detect_trees(chm, min_height_m=2.0)
 print(tops[["height_m", "row", "col"]])</div>
@@ -3735,7 +3739,7 @@ record), (Zhang ground filter), (interpolation gridders), (clip/merge/filter), a
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

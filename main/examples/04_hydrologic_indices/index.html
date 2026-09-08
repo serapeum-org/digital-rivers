@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2827,7 +2827,7 @@ plt.rcParams["savefig.dpi"] = 80
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
 
 <span class="c1"># Catchment with a clear main-stem chain and tributaries.</span>
@@ -2840,9 +2840,10 @@ plt.rcParams["savefig.dpi"] = 80
 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">cols</span><span class="p">):</span>
     <span class="n">z</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">20</span> <span class="o">-</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="mi">8</span><span class="p">))</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">z</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span>
-    <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">z</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span>
 <span class="n">filled</span> <span class="o">=</span> <span class="n">dem</span><span class="o">.</span><span class="n">fill_depressions</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s2">"priority_flood"</span><span class="p">)</span>
@@ -2851,7 +2852,7 @@ plt.rcParams["savefig.dpi"] = 80
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Accumulation max: </span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">read_array</span><span class="p">()</span><span class="o">.</span><span class="n">max</span><span class="p">())</span><span class="si">}</span><span class="s2"> cells"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from digitalrivers import DEM
 
 # Catchment with a clear main-stem chain and tributaries.
@@ -2864,9 +2865,10 @@ for c in range(7):
 for c in range(8, cols):
     z[10, c] = float(20 - (c - 8))
 
-ds = Dataset.create_from_array(
-    z, top_left_corner=(0.0, 0.0), cell_size=30.0,
-    epsg=32618, no_data_value=-9999.0,
+ds = Dataset.from_array(
+    z,
+    geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=30.0, epsg=32618),
+    no_data_value=-9999.0,
 )
 dem = DEM(ds.raster)
 filled = dem.fill_depressions(method="priority_flood")
@@ -2931,6 +2933,7 @@ print(f"Accumulation max: {int(acc.read_array().max())} cells")</div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColorScaling</span>
 
 <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
 
@@ -2942,7 +2945,7 @@ print(f"Accumulation max: {int(acc.read_array().max())} cells")</div>
 <span class="n">acc_masked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">acc_arr</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">acc_arr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">acc_masked</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Flow accumulation (log)"</span><span class="p">,</span>
-    <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"power"</span><span class="p">,</span>
+    <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">power</span><span class="p">(),</span>
 <span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
@@ -2952,6 +2955,7 @@ print(f"Accumulation max: {int(acc.read_array().max())} cells")</div>
 <div class="clipboard-copy-txt" id="cell-3">import matplotlib.pyplot as plt
 import numpy as np
 from pyramids.dataset import Dataset
+from pyramids.plot import ColorScaling
 
 fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 
@@ -2963,7 +2967,7 @@ acc_arr = acc.read_array()
 acc_masked = np.where(acc_arr &lt; 1, np.nan, acc_arr).astype(np.float32)
 Dataset.dataset_like(acc, acc_masked).plot(
     band=0, ax=axes[1], title="Flow accumulation (log)",
-    cmap="viridis", color_scale="power",
+    cmap="viridis", color=ColorScaling.power(),
 )
 axes[1].set_xticks([])
 axes[1].set_yticks([])
@@ -3217,6 +3221,7 @@ Mean STI:      0.323
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColorScaling</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_mask</span><span class="p">(</span><span class="n">a</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">a</span> <span class="o">==</span> <span class="o">-</span><span class="mf">9999.0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">a</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -3233,7 +3238,7 @@ Mean STI:      0.323
 <span class="n">spi_show</span> <span class="o">=</span> <span class="n">_mask</span><span class="p">(</span><span class="n">spi</span><span class="p">)</span>
 <span class="n">spi_show</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">spi_show</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">spi_show</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">spi_show</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"SPI (log)"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"power"</span><span class="p">,</span>
+    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"SPI (log)"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">power</span><span class="p">(),</span>
 <span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
@@ -3241,7 +3246,7 @@ Mean STI:      0.323
 <span class="n">sti_show</span> <span class="o">=</span> <span class="n">_mask</span><span class="p">(</span><span class="n">sti</span><span class="p">)</span>
 <span class="n">sti_show</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sti_show</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sti_show</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">sti_show</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
-    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"STI (log)"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color_scale</span><span class="o">=</span><span class="s2">"power"</span><span class="p">,</span>
+    <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"STI (log)"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"hot_r"</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">power</span><span class="p">(),</span>
 <span class="p">)</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
@@ -3251,6 +3256,7 @@ Mean STI:      0.323
 <div class="clipboard-copy-txt" id="cell-7">import matplotlib.pyplot as plt
 import numpy as np
 from pyramids.dataset import Dataset
+from pyramids.plot import ColorScaling
 
 def _mask(a):
     return np.where((a == -9999.0) | (~np.isfinite(a)), np.nan, a).astype(np.float32)
@@ -3267,7 +3273,7 @@ axes[0].set_yticks([])
 spi_show = _mask(spi)
 spi_show = np.where(spi_show &gt; 0, spi_show, np.nan).astype(np.float32)
 Dataset.dataset_like(filled, spi_show).plot(
-    band=0, ax=axes[1], title="SPI (log)", cmap="hot_r", color_scale="power",
+    band=0, ax=axes[1], title="SPI (log)", cmap="hot_r", color=ColorScaling.power(),
 )
 axes[1].set_xticks([])
 axes[1].set_yticks([])
@@ -3275,7 +3281,7 @@ axes[1].set_yticks([])
 sti_show = _mask(sti)
 sti_show = np.where(sti_show &gt; 0, sti_show, np.nan).astype(np.float32)
 Dataset.dataset_like(filled, sti_show).plot(
-    band=0, ax=axes[2], title="STI (log)", cmap="hot_r", color_scale="power",
+    band=0, ax=axes[2], title="STI (log)", cmap="hot_r", color=ColorScaling.power(),
 )
 axes[2].set_xticks([])
 axes[2].set_yticks([])
@@ -3342,9 +3348,10 @@ slope raster handy.</p>
 <span class="n">slope_deg_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">degrees</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
     <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">slope_ratio</span><span class="p">),</span> <span class="n">slope_ratio</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
 <span class="p">)))</span>
-<span class="n">slope_deg</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
+<span class="n">slope_deg</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
     <span class="n">slope_deg_arr</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-    <span class="n">geo</span><span class="o">=</span><span class="n">filled</span><span class="o">.</span><span class="n">geotransform</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">filled</span><span class="o">.</span><span class="n">epsg</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">geo</span><span class="o">=</span><span class="n">filled</span><span class="o">.</span><span class="n">geotransform</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="n">filled</span><span class="o">.</span><span class="n">epsg</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">twi_reused</span> <span class="o">=</span> <span class="n">filled</span><span class="o">.</span><span class="n">twi</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">slope_deg</span><span class="o">=</span><span class="n">slope_deg</span><span class="p">)</span><span class="o">.</span><span class="n">read_array</span><span class="p">()</span>
 <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span>
@@ -3358,9 +3365,10 @@ slope raster handy.</p>
 slope_deg_arr = np.degrees(np.arctan(np.where(
     np.isfinite(slope_ratio), slope_ratio, 0.0,
 )))
-slope_deg = Dataset.create_from_array(
+slope_deg = Dataset.from_array(
     slope_deg_arr.astype(np.float32),
-    geo=filled.geotransform, epsg=filled.epsg, no_data_value=-9999.0,
+    geo_ref=GeoReference(geo=filled.geotransform, epsg=filled.epsg),
+    no_data_value=-9999.0,
 )
 twi_reused = filled.twi(acc, slope_deg=slope_deg).read_array()
 np.testing.assert_allclose(
@@ -3521,7 +3529,7 @@ no-data masking, slope-floor clamping (to avoid <code>log(0)</code> on flats), a
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

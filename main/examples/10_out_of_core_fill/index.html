@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2756,7 +2756,7 @@ plt.rcParams["savefig.dpi"] = 80</div>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
 
 
@@ -2789,9 +2789,11 @@ plt.rcParams["savefig.dpi"] = 80</div>
 <span class="n">crop</span> <span class="o">=</span> <span class="n">raw</span><span class="p">[</span><span class="mi">940</span><span class="p">:</span><span class="mi">1300</span><span class="p">,</span> <span class="mi">1080</span><span class="p">:</span><span class="mi">1440</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <span class="n">WORK</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tempfile</span><span class="o">.</span><span class="n">mkdtemp</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="s2">"dr_ooc_"</span><span class="p">))</span>
 <span class="n">DEM_PATH</span> <span class="o">=</span> <span class="n">WORK</span> <span class="o">/</span> <span class="s2">"mt_hood_dem.tif"</span>
-<span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">crop</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">121.9</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">,</span>
-    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">32768.0</span><span class="p">,</span> <span class="n">driver_type</span><span class="o">=</span><span class="s2">"GTiff"</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">DEM_PATH</span><span class="p">),</span>
+<span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">crop</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">121.9</span><span class="p">,</span> <span class="mf">45.5</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">3600</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">32768.0</span><span class="p">,</span>
+    <span class="n">path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">DEM_PATH</span><span class="p">),</span>
 <span class="p">)</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">(</span><span class="n">Dataset</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">DEM_PATH</span><span class="p">))</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"DEM: </span><span class="si">{</span><span class="n">dem</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> x </span><span class="si">{</span><span class="n">dem</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> cells, elevation </span><span class="si">{</span><span class="n">crop</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">crop</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2"> m"</span><span class="p">)</span>
@@ -2800,7 +2802,7 @@ plt.rcParams["savefig.dpi"] = 80</div>
 from pathlib import Path
 
 import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from digitalrivers import DEM
 
 
@@ -2833,9 +2835,11 @@ raw = np.fromfile(hgt, dtype="&gt;i2").reshape(3601, 3601).astype(np.float32)
 crop = raw[940:1300, 1080:1440].copy()
 WORK = Path(tempfile.mkdtemp(prefix="dr_ooc_"))
 DEM_PATH = WORK / "mt_hood_dem.tif"
-Dataset.create_from_array(
-    crop, top_left_corner=(-121.9, 45.5), cell_size=1 / 3600, epsg=4326,
-    no_data_value=-32768.0, driver_type="GTiff", path=str(DEM_PATH),
+Dataset.from_array(
+    crop,
+    geo_ref=GeoReference(top_left_corner=(-121.9, 45.5), cell_size=1 / 3600, epsg=4326),
+    no_data_value=-32768.0,
+    path=str(DEM_PATH),
 ).close()
 dem = DEM(Dataset.read_file(str(DEM_PATH)).raster)
 print(f"DEM: {dem.rows} x {dem.columns} cells, elevation {crop.min():.0f}-{crop.max():.0f} m")</div>
@@ -3320,7 +3324,7 @@ print("interior flats after epsilon=1e-3 fill :", interior_flats(surf))</div>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

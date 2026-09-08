@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2941,7 +2941,7 @@ plt.rcParams["savefig.dpi"] = 80
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
 
 <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">20</span>
@@ -2953,14 +2953,16 @@ plt.rcParams["savefig.dpi"] = 80
 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span> <span class="n">cols</span><span class="p">):</span>
     <span class="n">z</span><span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mi">25</span> <span class="o">-</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="mi">11</span><span class="p">))</span>  <span class="c1"># east tributary into (13, 10)</span>
 
-<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">z</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">z</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="n">dem</span> <span class="o">=</span> <span class="n">DEM</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"DEM shape=</span><span class="si">{</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">  elevation range=[</span><span class="si">{</span><span class="n">z</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">z</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">] m"</span><span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import numpy as np
-from pyramids.dataset import Dataset
+from pyramids.dataset import Dataset, GeoReference
 from digitalrivers import DEM
 
 rows, cols = 20, 20
@@ -2972,8 +2974,10 @@ for c in range(10):
 for c in range(11, cols):
     z[13, c] = float(25 - (c - 11))  # east tributary into (13, 10)
 
-ds = Dataset.create_from_array(
-    z, top_left_corner=(0.0, 0.0), cell_size=30.0, epsg=32618, no_data_value=-9999.0,
+ds = Dataset.from_array(
+    z,
+    geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=30.0, epsg=32618),
+    no_data_value=-9999.0,
 )
 dem = DEM(ds.raster)
 print(f"DEM shape={z.shape}  elevation range=[{z.min():.1f}, {z.max():.1f}] m")</div>
@@ -3208,6 +3212,7 @@ streams     cells=35  threshold=4.0
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColorScaling</span>
 
 <span class="n">sm</span> <span class="o">=</span> <span class="n">streams</span><span class="o">.</span><span class="n">read_array</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
 <span class="n">fd_arr</span> <span class="o">=</span> <span class="n">fdir</span><span class="o">.</span><span class="n">read_array</span><span class="p">()</span>
@@ -3227,7 +3232,7 @@ streams     cells=35  threshold=4.0
 <span class="n">acc_show</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">acc_arr</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">acc_arr</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 <span class="n">Dataset</span><span class="o">.</span><span class="n">dataset_like</span><span class="p">(</span><span class="n">filled</span><span class="p">,</span> <span class="n">acc_show</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
     <span class="n">band</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Flow accumulation (log)"</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="s2">"viridis"</span><span class="p">,</span>
-    <span class="n">color_scale</span><span class="o">=</span><span class="s2">"power"</span><span class="p">)</span>
+    <span class="n">color</span><span class="o">=</span><span class="n">ColorScaling</span><span class="o">.</span><span class="n">power</span><span class="p">())</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
 <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
 
@@ -3241,6 +3246,7 @@ streams     cells=35  threshold=4.0
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-5">import matplotlib.pyplot as plt
 from pyramids.dataset import Dataset
+from pyramids.plot import ColorScaling
 
 sm = streams.read_array().astype(bool)
 fd_arr = fdir.read_array()
@@ -3260,7 +3266,7 @@ axes[0, 1].set_yticks([])
 acc_show = np.where(acc_arr &lt; 1, np.nan, acc_arr).astype(np.float32)
 Dataset.dataset_like(filled, acc_show).plot(
     band=0, ax=axes[1, 0], title="Flow accumulation (log)", cmap="viridis",
-    color_scale="power")
+    color=ColorScaling.power())
 axes[1, 0].set_xticks([])
 axes[1, 0].set_yticks([])
 
@@ -4030,7 +4036,7 @@ plt.show()
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

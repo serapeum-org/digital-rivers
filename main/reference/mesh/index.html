@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2464,7 +2464,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <span class="normal"><a href="#__codelineno-0-314">314</a></span>
 <span class="normal"><a href="#__codelineno-0-315">315</a></span>
 <span class="normal"><a href="#__codelineno-0-316">316</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">Mesh</span><span class="p">:</span>
-<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A triangle mesh with vertex and triangle index arrays.</span>
+<a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="sd">"""A triangle mesh with vertex and triangle index arrays.</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    Performance note. `boundary_vertex_mask`, `neighbour_lists` and</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="sd">    `aspect_ratios` iterate triangles in pure Python — fine for</span>
@@ -2513,22 +2513,22 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a><span class="sd">    See Also:</span>
 <a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="sd">        Mesh.laplacian_smooth: iterative quality-improvement smoothing.</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a><span class="sd">        Mesh.aspect_ratios: per-triangle quality metric.</span>
-<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-76" name="__codelineno-0-76"></a><span class="sd">    """</span>
 <a id="__codelineno-0-77" name="__codelineno-0-77"></a>
 <a id="__codelineno-0-78" name="__codelineno-0-78"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vertices</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">triangles</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">vertices</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">triangles</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">):</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-83" name="__codelineno-0-83"></a>                <span class="sa">f</span><span class="s2">&quot;vertices must be (N, 2) or (N, 3); got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-83" name="__codelineno-0-83"></a>                <span class="sa">f</span><span class="s2">"vertices must be (N, 2) or (N, 3); got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a>            <span class="p">)</span>
 <a id="__codelineno-0-85" name="__codelineno-0-85"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
-<a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;triangles must be (M, 3); got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-86" name="__codelineno-0-86"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"triangles must be (M, 3); got </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-89" name="__codelineno-0-89"></a>
 <a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">boundary_vertex_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Boolean `(n_vertices,)` mask of boundary vertices.</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">        </span><span class="sd">"""Boolean `(n_vertices,)` mask of boundary vertices.</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">        A vertex is on the boundary iff at least one of its incident</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">        edges belongs to only one triangle (the canonical mesh-boundary</span>
@@ -2567,7 +2567,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="sd">                &gt;&gt;&gt; mask = Mesh(v, t).boundary_vertex_mask()</span>
 <a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="sd">                &gt;&gt;&gt; mask.tolist()</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="sd">                [True, True, True, True, False]</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">        """</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>        <span class="n">edge_count</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 <a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">:</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
@@ -2582,7 +2582,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-142" name="__codelineno-0-142"></a>        <span class="k">return</span> <span class="n">out</span>
 <a id="__codelineno-0-143" name="__codelineno-0-143"></a>
 <a id="__codelineno-0-144" name="__codelineno-0-144"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">neighbour_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Per-vertex list of neighbour vertex indices (1-ring).</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="w">        </span><span class="sd">"""Per-vertex list of neighbour vertex indices (1-ring).</span>
 <a id="__codelineno-0-146" name="__codelineno-0-146"></a>
 <a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">        Examples:</span>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">            - Inspect the shared diagonal of a two-triangle quad:</span>
@@ -2599,7 +2599,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">                [1, 2, 3]</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">                &gt;&gt;&gt; adj[1]</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">                [0, 2]</span>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">        """</span>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>        <span class="n">adj</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">)]</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>        <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">:</span>
 <a id="__codelineno-0-165" name="__codelineno-0-165"></a>            <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
@@ -2613,8 +2613,8 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a>        <span class="n">n_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a>        <span class="n">relaxation</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a>        <span class="n">hold_boundary</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Mesh&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterative Laplacian smoothing.</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Mesh"</span><span class="p">:</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="w">        </span><span class="sd">"""Iterative Laplacian smoothing.</span>
 <a id="__codelineno-0-178" name="__codelineno-0-178"></a>
 <a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">        Each iteration moves every non-boundary vertex toward the</span>
 <a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        centroid of its 1-ring neighbours by `relaxation` of the</span>
@@ -2663,9 +2663,9 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">                [1.0, 1.0]</span>
 <a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">                &gt;&gt;&gt; smoothed.vertices[0].tolist()</span>
 <a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">                [0.0, 0.0]</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">        """</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">relaxation</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;relaxation must be in [0, 1]; got </span><span class="si">{</span><span class="n">relaxation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"relaxation must be in [0, 1]; got </span><span class="si">{</span><span class="n">relaxation</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-0-229" name="__codelineno-0-229"></a>        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <a id="__codelineno-0-230" name="__codelineno-0-230"></a>        <span class="n">adj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour_lists</span><span class="p">()</span>
 <a id="__codelineno-0-231" name="__codelineno-0-231"></a>        <span class="k">if</span> <span class="n">hold_boundary</span><span class="p">:</span>
@@ -2686,7 +2686,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-246" name="__codelineno-0-246"></a>        <span class="k">return</span> <span class="n">Mesh</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">)</span>
 <a id="__codelineno-0-247" name="__codelineno-0-247"></a>
 <a id="__codelineno-0-248" name="__codelineno-0-248"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">aspect_ratios</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Per-triangle aspect ratio `circumradius / (2 * inradius)`.</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="w">        </span><span class="sd">"""Per-triangle aspect ratio `circumradius / (2 * inradius)`.</span>
 <a id="__codelineno-0-250" name="__codelineno-0-250"></a>
 <a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">        Equilateral triangles score 1.0 (the optimum). Higher values</span>
 <a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">        indicate worse quality. Degenerate triangles (zero area) score</span>
@@ -2727,7 +2727,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">                &gt;&gt;&gt; t = np.array([[0, 1, 2]], dtype=np.int64)</span>
 <a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">                &gt;&gt;&gt; float(Mesh(v, t).aspect_ratios()[0])</span>
 <a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">                inf</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        """</span>
 <a id="__codelineno-0-291" name="__codelineno-0-291"></a>        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a>        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-293" name="__codelineno-0-293"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tri</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">):</span>
@@ -2753,7 +2753,7 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-313" name="__codelineno-0-313"></a>        <span class="k">return</span> <span class="n">out</span>
 <a id="__codelineno-0-314" name="__codelineno-0-314"></a>
 <a id="__codelineno-0-315" name="__codelineno-0-315"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-316" name="__codelineno-0-316"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> &quot;</span> <span class="sa">f</span><span class="s2">&quot;triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;&quot;</span>
+<a id="__codelineno-0-316" name="__codelineno-0-316"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> "</span> <span class="sa">f</span><span class="s2">"triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;"</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -2892,7 +2892,7 @@ mask.tolist()
 <span class="normal"><a href="#__codelineno-0-140">140</a></span>
 <span class="normal"><a href="#__codelineno-0-141">141</a></span>
 <span class="normal"><a href="#__codelineno-0-142">142</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-90" name="__codelineno-0-90"></a><span class="k">def</span><span class="w"> </span><span class="nf">boundary_vertex_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Boolean `(n_vertices,)` mask of boundary vertices.</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="w">    </span><span class="sd">"""Boolean `(n_vertices,)` mask of boundary vertices.</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>
 <a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">    A vertex is on the boundary iff at least one of its incident</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">    edges belongs to only one triangle (the canonical mesh-boundary</span>
@@ -2931,7 +2931,7 @@ mask.tolist()
 <a id="__codelineno-0-127" name="__codelineno-0-127"></a><span class="sd">            &gt;&gt;&gt; mask = Mesh(v, t).boundary_vertex_mask()</span>
 <a id="__codelineno-0-128" name="__codelineno-0-128"></a><span class="sd">            &gt;&gt;&gt; mask.tolist()</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a><span class="sd">            [True, True, True, True, False]</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a><span class="sd">    """</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">edge_count</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 <a id="__codelineno-0-132" name="__codelineno-0-132"></a>    <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">:</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
@@ -3016,7 +3016,7 @@ adj[1][0, 2]</p>
 <span class="normal"><a href="#__codelineno-0-167">167</a></span>
 <span class="normal"><a href="#__codelineno-0-168">168</a></span>
 <span class="normal"><a href="#__codelineno-0-169">169</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-144" name="__codelineno-0-144"></a><span class="k">def</span><span class="w"> </span><span class="nf">neighbour_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-vertex list of neighbour vertex indices (1-ring).</span>
+<a id="__codelineno-0-145" name="__codelineno-0-145"></a><span class="w">    </span><span class="sd">"""Per-vertex list of neighbour vertex indices (1-ring).</span>
 <a id="__codelineno-0-146" name="__codelineno-0-146"></a>
 <a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="sd">    Examples:</span>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a><span class="sd">        - Inspect the shared diagonal of a two-triangle quad:</span>
@@ -3033,7 +3033,7 @@ adj[1][0, 2]</p>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a><span class="sd">            [1, 2, 3]</span>
 <a id="__codelineno-0-160" name="__codelineno-0-160"></a><span class="sd">            &gt;&gt;&gt; adj[1]</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a><span class="sd">            [0, 2]</span>
-<a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-162" name="__codelineno-0-162"></a><span class="sd">    """</span>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="n">adj</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">set</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="p">)]</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a>    <span class="k">for</span> <span class="n">tri</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">:</span>
 <a id="__codelineno-0-165" name="__codelineno-0-165"></a>        <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">tri</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
@@ -3306,8 +3306,8 @@ smoothed.vertices[0].tolist()
 <a id="__codelineno-0-173" name="__codelineno-0-173"></a>    <span class="n">n_iterations</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a>    <span class="n">relaxation</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a>    <span class="n">hold_boundary</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Mesh&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Iterative Laplacian smoothing.</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"Mesh"</span><span class="p">:</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="w">    </span><span class="sd">"""Iterative Laplacian smoothing.</span>
 <a id="__codelineno-0-178" name="__codelineno-0-178"></a>
 <a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">    Each iteration moves every non-boundary vertex toward the</span>
 <a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">    centroid of its 1-ring neighbours by `relaxation` of the</span>
@@ -3356,9 +3356,9 @@ smoothed.vertices[0].tolist()
 <a id="__codelineno-0-223" name="__codelineno-0-223"></a><span class="sd">            [1.0, 1.0]</span>
 <a id="__codelineno-0-224" name="__codelineno-0-224"></a><span class="sd">            &gt;&gt;&gt; smoothed.vertices[0].tolist()</span>
 <a id="__codelineno-0-225" name="__codelineno-0-225"></a><span class="sd">            [0.0, 0.0]</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a><span class="sd">    """</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">relaxation</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
-<a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;relaxation must be in [0, 1]; got </span><span class="si">{</span><span class="n">relaxation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-228" name="__codelineno-0-228"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"relaxation must be in [0, 1]; got </span><span class="si">{</span><span class="n">relaxation</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 <a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="n">adj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbour_lists</span><span class="p">()</span>
 <a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="k">if</span> <span class="n">hold_boundary</span><span class="p">:</span>
@@ -3546,7 +3546,7 @@ inf</p>
 <span class="normal"><a href="#__codelineno-0-311">311</a></span>
 <span class="normal"><a href="#__codelineno-0-312">312</a></span>
 <span class="normal"><a href="#__codelineno-0-313">313</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-248" name="__codelineno-0-248"></a><span class="k">def</span><span class="w"> </span><span class="nf">aspect_ratios</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Per-triangle aspect ratio `circumradius / (2 * inradius)`.</span>
+<a id="__codelineno-0-249" name="__codelineno-0-249"></a><span class="w">    </span><span class="sd">"""Per-triangle aspect ratio `circumradius / (2 * inradius)`.</span>
 <a id="__codelineno-0-250" name="__codelineno-0-250"></a>
 <a id="__codelineno-0-251" name="__codelineno-0-251"></a><span class="sd">    Equilateral triangles score 1.0 (the optimum). Higher values</span>
 <a id="__codelineno-0-252" name="__codelineno-0-252"></a><span class="sd">    indicate worse quality. Degenerate triangles (zero area) score</span>
@@ -3587,7 +3587,7 @@ inf</p>
 <a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">            &gt;&gt;&gt; t = np.array([[0, 1, 2]], dtype=np.int64)</span>
 <a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">            &gt;&gt;&gt; float(Mesh(v, t).aspect_ratios()[0])</span>
 <a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">            inf</span>
-<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">    """</span>
 <a id="__codelineno-0-291" name="__codelineno-0-291"></a>    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vertices</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a>    <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-293" name="__codelineno-0-293"></a>    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tri</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">triangles</span><span class="p">):</span>
@@ -3738,7 +3738,7 @@ inf</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

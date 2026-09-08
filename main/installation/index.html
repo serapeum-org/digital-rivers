@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -540,6 +540,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#development-dependency-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development dependency groups
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -574,21 +585,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#alternative-conda-pip" class="md-nav__link">
+  <a href="#alternative-conda" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Alternative: conda + pip
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pip-only-advanced" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        pip-only (advanced)
+        Alternative: conda
       
     </span>
   </a>
@@ -1982,6 +1982,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#development-dependency-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development dependency groups
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2016,21 +2027,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#alternative-conda-pip" class="md-nav__link">
+  <a href="#alternative-conda" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Alternative: conda + pip
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#pip-only-advanced" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        pip-only (advanced)
+        Alternative: conda
       
     </span>
   </a>
@@ -2123,11 +2123,11 @@
 </tr>
 <tr>
 <td>Current version</td>
-<td><code>0.1.0</code> (pre-release)</td>
+<td><code>0.4.0</code></td>
 </tr>
 <tr>
 <td>Supported Python</td>
-<td><strong>3.11 – 3.13</strong></td>
+<td><strong>3.11 – 3.14</strong></td>
 </tr>
 <tr>
 <td>License</td>
@@ -2143,8 +2143,10 @@
 <ul>
 <li><code>numpy &gt;= 2.0.0</code></li>
 <li><code>geopandas &gt;= 1.0.0</code></li>
-<li><code>pyramids-gis &gt;= 0.18.0</code> (provides the <code>pyramids</code> import; pulled from PyPI)</li>
-<li><code>gdal &gt;= 3.10, &lt; 4</code> (best installed from conda-forge — pip wheels are platform-fragile)</li>
+<li><code>pyramids-gis &gt;= 0.60.0</code> (provides the <code>pyramids</code> import; pulled from PyPI)</li>
+<li><code>gdal &gt;= 3.13.3, &lt; 3.13.4</code> (best installed from conda-forge — pip wheels are
+  platform-fragile). The narrow pin matches <code>pyramids-gis</code>, which builds against
+  one GDAL minor at a time.</li>
 </ul>
 <h3 id="optional-extras"><a class="toclink" href="#optional-extras">Optional extras</a><a class="headerlink" href="#optional-extras" title="Permanent link">#</a></h3>
 <table>
@@ -2159,41 +2161,44 @@
 <tr>
 <td><code>viz</code></td>
 <td>plotting / color tables</td>
-<td><code>pyramids-gis[viz]</code> → <code>cleopatra</code></td>
+<td><code>pyramids-gis[viz]</code>, <code>cleopatra</code></td>
 </tr>
 <tr>
-<td><code>dev</code></td>
-<td>tests, linting, build tooling</td>
-<td>pytest, pre-commit, mypy, build, twine, …</td>
+<td><code>distributed</code></td>
+<td>out-of-core / Dask backend</td>
+<td><code>pyramids-gis[lazy]</code></td>
 </tr>
 <tr>
-<td><code>docs</code></td>
-<td>documentation toolchain</td>
-<td>mkdocs, mkdocs-material, mkdocstrings, mike, …</td>
-</tr>
-<tr>
-<td><code>notebook</code></td>
-<td>Jupyter</td>
-<td>jupyterlab, notebook, ipykernel</td>
+<td><code>all</code></td>
+<td>both of the above</td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
+<h3 id="development-dependency-groups"><a class="toclink" href="#development-dependency-groups">Development dependency groups</a><a class="headerlink" href="#development-dependency-groups" title="Permanent link">#</a></h3>
+<p><code>dev</code>, <code>docs</code> and <code>notebook</code> are <a href="https://peps.python.org/pep-0735/">PEP 735</a> dependency
+groups, not extras — they are local tooling and are deliberately not published in the
+package metadata. Pixi maps each to an environment of the same name:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev<span class="w">      </span><span class="c1"># tests, linting, build tooling</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>docs<span class="w">     </span><span class="c1"># mkdocs toolchain</span>
+</code></pre></div>
 <h2 id="recommended-pixi"><a class="toclink" href="#recommended-pixi">Recommended: Pixi</a><a class="headerlink" href="#recommended-pixi" title="Permanent link">#</a></h2>
-<p>This repository ships a <a href="https://pixi.sh/">Pixi</a> configuration that resolves GDAL from conda-forge and <code>pyramids-gis</code> from PyPI, avoiding the usual GDAL-wheel headaches.</p>
+<p>This repository ships a <a href="https://pixi.sh/">Pixi</a> configuration that resolves GDAL from conda-forge and
+<code>pyramids-gis</code> from PyPI, avoiding the usual GDAL-wheel headaches.</p>
 <p>Prerequisites: install <a href="https://pixi.sh/latest/#installation">Pixi</a>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># Solve and install the dev environment</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="c1"># Drop into a shell with everything available</span>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>pixi<span class="w"> </span>shell<span class="w"> </span>-e<span class="w"> </span>dev
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="c1"># Or run a task directly</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>pixi<span class="w"> </span>run<span class="w"> </span>main<span class="w">          </span><span class="c1"># main test suite</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>pixi<span class="w"> </span>run<span class="w"> </span>plot<span class="w">          </span><span class="c1"># plot/visualization tests</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>pixi<span class="w"> </span>run<span class="w"> </span>notebooks<span class="w">     </span><span class="c1"># validate example notebooks</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Solve and install the dev environment</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Drop into a shell with everything available</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>pixi<span class="w"> </span>shell<span class="w"> </span>-e<span class="w"> </span>dev
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Or run a task directly</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>pixi<span class="w"> </span>run<span class="w"> </span>main<span class="w">          </span><span class="c1"># main test suite</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>pixi<span class="w"> </span>run<span class="w"> </span>plot<span class="w">          </span><span class="c1"># plot/visualization tests</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>pixi<span class="w"> </span>run<span class="w"> </span>notebooks<span class="w">     </span><span class="c1"># validate example notebooks</span>
 </code></pre></div>
 <h3 id="available-pixi-environments"><a class="toclink" href="#available-pixi-environments">Available Pixi environments</a><a class="headerlink" href="#available-pixi-environments" title="Permanent link">#</a></h3>
 <table>
@@ -2230,42 +2235,50 @@
 <td><code>py312</code> + <code>dev</code></td>
 <td>pinned Python 3.12</td>
 </tr>
+<tr>
+<td><code>py313</code></td>
+<td><code>py313</code> + <code>dev</code></td>
+<td>pinned Python 3.13</td>
+</tr>
+<tr>
+<td><code>py314</code></td>
+<td><code>py314</code> + <code>dev</code></td>
+<td>pinned Python 3.14</td>
+</tr>
 </tbody>
 </table>
-<h2 id="alternative-conda-pip"><a class="toclink" href="#alternative-conda-pip">Alternative: conda + pip</a><a class="headerlink" href="#alternative-conda-pip" title="Permanent link">#</a></h2>
-<p>If you'd rather use conda directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">&quot;gdal&gt;=3.10,&lt;4&quot;</span><span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>mamba<span class="w"> </span>activate<span class="w"> </span>digital-rivers
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/serapeum-org/digital-rivers.git
+<h2 id="alternative-conda"><a class="toclink" href="#alternative-conda">Alternative: conda</a><a class="headerlink" href="#alternative-conda" title="Permanent link">#</a></h2>
+<p>If you'd rather manage the environment yourself, install the native stack from
+conda-forge and add the package from source:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w">     </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">"gdal&gt;=3.13.3,&lt;3.13.4"</span><span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>mamba<span class="w"> </span>activate<span class="w"> </span>digital-rivers
 </code></pre></div>
-<h2 id="pip-only-advanced"><a class="toclink" href="#pip-only-advanced">pip-only (advanced)</a><a class="headerlink" href="#pip-only-advanced" title="Permanent link">#</a></h2>
-<p>GDAL is hard to install via pip alone. If you must:</p>
-<ol>
-<li>Make sure <code>gdal</code> and <code>osgeo</code> are importable in your environment (system package, prebuilt wheel, etc.).</li>
-<li>Then:</li>
-</ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/serapeum-org/digital-rivers.git
-</code></pre></div>
-<p>With the <code>viz</code> extra:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;digital-rivers[viz] @ git+https://github.com/serapeum-org/digital-rivers.git&quot;</span>
-</code></pre></div>
+<p>The repository's own environments are defined in <code>pyproject.toml</code> and resolved by
+pixi; <code>pixi install -e dev</code> is the supported way to reproduce them exactly, and the
+only one that honours <code>pixi.lock</code>.</p>
 <h2 id="editable-development-install"><a class="toclink" href="#editable-development-install">Editable / development install</a><a class="headerlink" href="#editable-development-install" title="Permanent link">#</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev<span class="w">          </span><span class="c1"># or: pip install -e &quot;.[dev]&quot;</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>pre-commit<span class="w"> </span>install
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>pixi<span class="w"> </span>run<span class="w"> </span>-e<span class="w"> </span>dev<span class="w"> </span>pre-commit<span class="w"> </span>install
 </code></pre></div>
+<p>The package itself is registered as an editable pixi pypi-dependency, so
+<code>pixi install -e dev</code> already puts your checkout on the path — there is no separate
+editable-install step.</p>
 <h2 id="quick-check"><a class="toclink" href="#quick-check">Quick check</a><a class="headerlink" href="#quick-check" title="Permanent link">#</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">digitalrivers</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">digitalrivers</span><span class="o">.</span><span class="n">__version__</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="s1">&#39;0.1.0&#39;</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span><span class="p">,</span> <span class="n">Terrain</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">import</span><span class="w"> </span><span class="nn">digitalrivers</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">digitalrivers</span><span class="o">.</span><span class="n">__version__</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="s1">'0.4.0'</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span><span class="p">,</span> <span class="n">Terrain</span>
 </code></pre></div>
 <h2 id="notes"><a class="toclink" href="#notes">Notes</a><a class="headerlink" href="#notes" title="Permanent link">#</a></h2>
 <ul>
-<li><code>pyramids</code> (conda-forge name) and <code>pyramids-gis</code> (PyPI name) are the <strong>same package</strong>. digital-rivers depends on the PyPI distribution name (<code>pyramids-gis</code>) so it works regardless of how pyramids itself was installed.</li>
-<li>For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if <code>pixi update</code> reports "No candidates were found for pyramids", either wait for the mapping to refresh or temporarily comment out the conda <code>pyramids</code> pin in <code>[tool.pixi.dependencies]</code>.</li>
+<li><code>pyramids</code> (conda-forge name) and <code>pyramids-gis</code> (PyPI name) are the <strong>same package</strong>. digital-rivers
+  depends on the PyPI distribution name (<code>pyramids-gis</code>) so it works regardless of how pyramids itself was
+  installed.</li>
+<li>For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if
+  <code>pixi update</code> reports "No candidates were found for pyramids", either wait for the mapping to refresh or
+  temporarily comment out the conda <code>pyramids</code> pin in <code>[tool.pixi.dependencies]</code>.</li>
 <li>Documentation: <a href="https://serapeum-org.github.io/digital-rivers/latest">https://serapeum-org.github.io/digital-rivers/latest</a></li>
 <li>Source repository: <a href="https://github.com/serapeum-org/digital-rivers">https://github.com/serapeum-org/digital-rivers</a></li>
 </ul>
@@ -2383,7 +2396,7 @@
       <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../assets/javascripts/panzoom.min.js"></script>
       

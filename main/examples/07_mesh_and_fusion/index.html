@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -3118,7 +3118,7 @@ but with a 5-m mismatch in the overlap zone. Exercise every blend mode.</p>
 </div>
 </clipboard-copy>
 </div>
-<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">topobathy_fusion</span>
 
 <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span>
@@ -3131,16 +3131,18 @@ but with a 5-m mismatch in the overlap zone. Exercise every blend mode.</p>
 <span class="n">bathy</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">:]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">20.0</span>
 <span class="n">bathy</span><span class="p">[</span><span class="n">topo</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-<span class="n">topo_ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">topo</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span>
-    <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+<span class="n">topo_ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">topo</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="n">bathy_ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">create_from_array</span><span class="p">(</span>
-    <span class="n">bathy</span><span class="p">,</span> <span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span>
-    <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">,</span> <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
+<span class="n">bathy_ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
+    <span class="n">bathy</span><span class="p">,</span>
+    <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32618</span><span class="p">),</span>
+    <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
-<div class="clipboard-copy-txt" id="cell-6">from pyramids.dataset import Dataset
+<div class="clipboard-copy-txt" id="cell-6">from pyramids.dataset import Dataset, GeoReference
 from digitalrivers.fusion import topobathy_fusion
 
 rows, cols = 6, 6
@@ -3153,13 +3155,15 @@ bathy = np.full((rows, cols), -10.0, dtype=np.float32)
 bathy[:, 3:] = -20.0
 bathy[topo &gt; 0] = 0.0
 
-topo_ds = Dataset.create_from_array(
-    topo, top_left_corner=(0.0, 0.0), cell_size=30.0,
-    epsg=32618, no_data_value=-9999.0,
+topo_ds = Dataset.from_array(
+    topo,
+    geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=30.0, epsg=32618),
+    no_data_value=-9999.0,
 )
-bathy_ds = Dataset.create_from_array(
-    bathy, top_left_corner=(0.0, 0.0), cell_size=30.0,
-    epsg=32618, no_data_value=-9999.0,
+bathy_ds = Dataset.from_array(
+    bathy,
+    geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=30.0, epsg=32618),
+    no_data_value=-9999.0,
 )</div>
 </div>
 </div>
@@ -3433,7 +3437,7 @@ shoreline.</li>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       
