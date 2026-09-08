@@ -2705,6 +2705,17 @@ class DEM(Dataset):
         `_get_8_direction_slopes` and returns a raster whose cell
         values are the maximum slope across the eight neighbours.
 
+        Args:
+            engine: `"auto"` (default) picks the whole-array path and switches
+                to the tiled one only for rasters large enough to risk
+                exhausting RAM; `"tiled"` forces the streaming path and
+                requires `out_path`; `"in_memory"` forces the whole-array one.
+            out_path: Destination for the tiled path, which writes as it
+                streams rather than materialising the result. Required when
+                the tiled engine runs, ignored otherwise.
+            tile_size: Tile shape for the tiled path, as an edge length or an
+                explicit `(rows, columns)`. Defaults to 2048.
+
         Returns:
             Dataset: Single-band raster with the same geometry as the
                 DEM, containing the maximum slope value per cell.
