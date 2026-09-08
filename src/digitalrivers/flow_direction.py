@@ -118,11 +118,23 @@ class FlowDirection(Dataset):
         Returns:
             A `FlowDirection` sharing the same underlying GDAL dataset.
         """
-        return cls(ds.raster, ds.access, routing=routing, encoding=encoding)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=routing,
+            encoding=encoding,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def to_dataset(self) -> Dataset:
         """Drop the typed wrapper and return the underlying `Dataset`."""
-        return Dataset(self.raster)
+        return Dataset(
+            self.raster,
+            self.access,
+            gdal_env=self.gdal_env or None,
+            open_options=self.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Write `routing` and `encoding` to the underlying raster tags.
@@ -143,6 +155,9 @@ class FlowDirection(Dataset):
         *,
         routing: str | None = None,
         encoding: str | None = None,
+        read_only: bool = True,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ) -> FlowDirection:
         """Open a `FlowDirection` GeoTIFF.
 
@@ -163,6 +178,14 @@ class FlowDirection(Dataset):
                 the `DR_ROUTING` tag.
             encoding: Explicit encoding override. If `None`, falls back to
                 the `DR_ENCODING` tag, then to `"digitalrivers"`.
+            read_only: Open the file read-only (default). Pass `False` to
+                get a writable handle — required before `persist_metadata()`
+                can stamp the `DR_*` tags onto an existing file.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) installed
+                for the open and captured on the result, so pyramids' reopen
+                paths re-authenticate. Default `None`.
+            open_options: GDAL open options forwarded to the driver and
+                captured on the result. Default `None`.
 
         Returns:
             A `FlowDirection` wrapping the opened raster.
@@ -171,7 +194,9 @@ class FlowDirection(Dataset):
             ValueError: If neither `routing=` nor a `DR_ROUTING` tag is
                 available.
         """
-        ds = Dataset.read_file(path)
+        ds = Dataset.read_file(
+            path, read_only, gdal_env=gdal_env, open_options=open_options
+        )
         md = ds.meta_data or {}
         resolved_routing = routing or md.get(META_ROUTING)
         resolved_encoding = encoding or md.get(META_ENCODING) or "digitalrivers"
@@ -181,7 +206,14 @@ class FlowDirection(Dataset):
                 f"Pass routing= explicitly (one of {sorted(VALID_ROUTING)}) to "
                 f"avoid silent misinterpretation of cell values."
             )
-        return cls(ds.raster, routing=resolved_routing, encoding=resolved_encoding)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=resolved_routing,
+            encoding=resolved_encoding,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def accumulate(
         self,

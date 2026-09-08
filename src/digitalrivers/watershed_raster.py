@@ -108,7 +108,14 @@ class WatershedRaster(Dataset):
     @classmethod
     def from_dataset(cls, ds: Dataset, *, routing: str, outlets) -> "WatershedRaster":
         """Promote a plain `Dataset` into a `WatershedRaster`."""
-        return cls(ds.raster, ds.access, routing=routing, outlets=outlets)
+        return cls(
+            ds.raster,
+            ds.access,
+            routing=routing,
+            outlets=outlets,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Persist the routing and class tags to the raster metadata."""

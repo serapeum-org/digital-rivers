@@ -97,11 +97,23 @@ class StreamRaster(Dataset):
         routing: str,
     ) -> StreamRaster:
         """Promote a plain `Dataset` into a `StreamRaster`."""
-        return cls(ds.raster, ds.access, threshold=threshold, routing=routing)
+        return cls(
+            ds.raster,
+            ds.access,
+            threshold=threshold,
+            routing=routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def to_dataset(self) -> Dataset:
         """Drop the typed wrapper and return the underlying `Dataset`."""
-        return Dataset(self.raster)
+        return Dataset(
+            self.raster,
+            self.access,
+            gdal_env=self.gdal_env or None,
+            open_options=self.open_options or None,
+        )
 
     def persist_metadata(self) -> None:
         """Write `routing` and `threshold` to the raster's metadata tags."""
@@ -118,6 +130,9 @@ class StreamRaster(Dataset):
         *,
         threshold: float | int | None = None,
         routing: str | None = None,
+        read_only: bool = True,
+        gdal_env: dict[str, str] | None = None,
+        open_options: tuple[str, ...] | list[str] | None = None,
     ) -> StreamRaster:
         """Open a `StreamRaster` GeoTIFF.
 
@@ -125,11 +140,28 @@ class StreamRaster(Dataset):
         `threshold` is parsed from the tag as a float (it was written via
         `str(self.threshold)`).
 
+        Args:
+            path: Path to the GeoTIFF.
+            threshold: Explicit threshold override. If `None`, falls back
+                to the `DR_THRESHOLD` tag.
+            routing: Explicit routing override. If `None`, falls back to
+                the `DR_ROUTING` tag.
+            read_only: Open the file read-only (default). Pass `False` to
+                get a writable handle — required before `persist_metadata()`
+                can stamp the `DR_*` tags onto an existing file.
+            gdal_env: GDAL config (cloud credentials, HTTP knobs) installed
+                for the open and captured on the result, so pyramids' reopen
+                paths re-authenticate. Default `None`.
+            open_options: GDAL open options forwarded to the driver and
+                captured on the result. Default `None`.
+
         Raises:
             ValueError: If either `routing` or `threshold` cannot be
                 resolved from kwargs or metadata tags.
         """
-        ds = Dataset.read_file(path)
+        ds = Dataset.read_file(
+            path, read_only, gdal_env=gdal_env, open_options=open_options
+        )
         md = ds.meta_data or {}
         resolved_routing = routing or md.get(META_ROUTING)
         if resolved_routing is None:
@@ -145,7 +177,14 @@ class StreamRaster(Dataset):
                     f"passed."
                 )
             threshold = float(tag)
-        return cls(ds.raster, threshold=threshold, routing=resolved_routing)
+        return cls(
+            ds.raster,
+            ds.access,
+            threshold=threshold,
+            routing=resolved_routing,
+            gdal_env=ds.gdal_env or None,
+            open_options=ds.open_options or None,
+        )
 
     def subbasins(
         self,
