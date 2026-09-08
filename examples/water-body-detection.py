@@ -44,7 +44,7 @@ aweish = gdal_calc.Calc(
 aweish = Terrain(aweish)
 print(aweish)
 aweish.stats()
-# color=ColorScaling.boundary(bounds=[0, 0.2, 0.4, 0.6, 0.8, 1])
+# For a classed ramp instead of a linear one, pass a boundary ColorScaling.
 aweish.plot(color=ColorScaling.linear())  # vmin=0, vmax=1,
 
 # aweish = aweish.change_no_data_value(-9999, aweish.no_data_value[0])

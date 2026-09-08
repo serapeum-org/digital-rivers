@@ -100,7 +100,7 @@ def test_write_cog_writes_a_file(tmp_path):
 class TestWriteCogCompression:
     """`write_cog`'s `compress` argument selects the GDAL compression method."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def dataset(self) -> Dataset:
         """An 8x8 float32 raster, the smallest thing the COG driver will take."""
         return Dataset.from_array(

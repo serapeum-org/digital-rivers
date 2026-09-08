@@ -42,7 +42,7 @@ ndvi = gdal_calc.Calc(
 # %%
 ndvi = Dataset(ndvi)
 print(ndvi)
-# color=ColorScaling.boundary(bounds=[0, 0.2, 0.4, 0.6, 0.8, 1])
+# For a classed ramp instead of a linear one, pass a boundary ColorScaling.
 ndvi.plot(vmin=0, vmax=1, color=ColorScaling.linear())
 ndvi.stats()
 ndvi = ndvi.change_no_data_value(-9999, ndvi.no_data_value[0])

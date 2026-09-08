@@ -33,13 +33,13 @@ from digitalrivers import (
 GEO_REF = GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326)
 
 
-@pytest.fixture()
+@pytest.fixture
 def grid() -> np.ndarray:
     """A small deterministic float32 grid used for every raster here."""
     return np.arange(9, dtype=np.float32).reshape(3, 3)
 
 
-@pytest.fixture()
+@pytest.fixture
 def tif_path(tmp_path, grid: np.ndarray) -> str:
     """Write `grid` to a GeoTIFF and return its path, with the handle flushed."""
     path = str(tmp_path / "raster.tif")
@@ -227,7 +227,7 @@ class TestToDatasetCarriesConfig:
 class TestOpenAcceptsHandleConfig:
     """The `open()` classmethods expose the access and config knobs."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def tagged_tif(self, grid: np.ndarray, tmp_path) -> str:
         """A GeoTIFF carrying `DR_ROUTING`, flushed so a reopen sees the tags."""
         path = str(tmp_path / "tagged.tif")
