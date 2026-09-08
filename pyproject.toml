@@ -210,9 +210,16 @@ python = "3.14.*"
 
 [tool.pixi.dependencies]
 numba = ">=0.60.0,<1"
-# Provide GDAL from conda-forge so `from osgeo import gdal` resolves to one
-# libgdal shared with the rest of the environment. Pin matches pyramids' own
-# gdal feature (>=3.13.3,<3.13.4) — pyramids 0.59 moved to GDAL 3.13.
+# NOTE: this conda GDAL is currently SHADOWED, not used. The pyramids-gis
+# wheel vendors its own osgeo, and `import pyramids` prepends that directory
+# to sys.path[0] (activate_vendored_osgeo); `digitalrivers/__init__.py`
+# imports pyramids at load, so by the time anything says `from osgeo import
+# gdal` the vendored copy wins. Verified: osgeo resolves under
+# site-packages/pyramids/_vendor/. Both stacks are the same 3.13.3 here, so
+# the pin costs disk rather than correctness — but it is dead weight, and the
+# version match is what stops it becoming a real skew. Kept pinned to
+# pyramids' own gdal feature until we decide whether to drop it (the
+# conda-forge feedstock build does want a real GDAL; the wheel does not).
 gdal = ">=3.13.3,<3.13.4"
 
 # Force the standard (GIL) CPython build for the unpinned `default`
