@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2174,7 +2174,7 @@
 
 <h1 id="lidar"><a class="toclink" href="#lidar">LiDAR</a><a class="headerlink" href="#lidar" title="Permanent link">#</a></h1>
 <p>LiDAR point-cloud I/O, classification, gridding, and analysis. The LAS / LAZ I/O surface
-soft-imports <code>laspy</code> — install with <code>pip install laspy[lazrs]</code> to enable file read/write.
+soft-imports <code>laspy</code> — add <code>laspy[lazrs]</code> to the environment to enable file read/write.
 Everything else (gridding, ground filtering, clipping, tree detection) operates on the
 in-memory <code>LasPoints</code> record without any external dependency beyond NumPy / SciPy.</p>
 <h2 id="module-level-functions"><a class="toclink" href="#module-level-functions">Module-level functions</a><a class="headerlink" href="#module-level-functions" title="Permanent link">#</a></h2>
@@ -2411,7 +2411,7 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <span class="normal"><a href="#__codelineno-0-95">95</a></span>
 <span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="nd">@dataclass</span>
 <a id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="k">class</span><span class="w"> </span><span class="nc">LasPoints</span><span class="p">:</span>
-<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;In-memory LiDAR point cloud.</span>
+<a id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="sd">"""In-memory LiDAR point cloud.</span>
 <a id="__codelineno-0-34" name="__codelineno-0-34"></a>
 <a id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="sd">    Numeric arrays are all parallel — index `i` selects the i-th point</span>
 <a id="__codelineno-0-36" name="__codelineno-0-36"></a><span class="sd">    across every field. `classification` follows the ASPRS LAS standard</span>
@@ -2427,7 +2427,7 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <a id="__codelineno-0-46" name="__codelineno-0-46"></a><span class="sd">            or empty.</span>
 <a id="__codelineno-0-47" name="__codelineno-0-47"></a><span class="sd">        crs: Optional CRS object (whatever `laspy.LasHeader.parse_crs`</span>
 <a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="sd">            returns; typically `pyproj.CRS`).</span>
-<a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="sd">    """</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50"></a>
 <a id="__codelineno-0-51" name="__codelineno-0-51"></a>    <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
 <a id="__codelineno-0-52" name="__codelineno-0-52"></a>    <span class="n">y</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
@@ -2447,33 +2447,33 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <a id="__codelineno-0-66" name="__codelineno-0-66"></a>        <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
 <a id="__codelineno-0-67" name="__codelineno-0-67"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span><span class="p">):</span>
 <a id="__codelineno-0-68" name="__codelineno-0-68"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-69" name="__codelineno-0-69"></a>                <span class="sa">f</span><span class="s2">&quot;x/y/z must have the same length; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
-<a id="__codelineno-0-70" name="__codelineno-0-70"></a>                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-69" name="__codelineno-0-69"></a>                <span class="sa">f</span><span class="s2">"x/y/z must have the same length; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
+<a id="__codelineno-0-70" name="__codelineno-0-70"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a>            <span class="p">)</span>
 <a id="__codelineno-0-72" name="__codelineno-0-72"></a>
 <a id="__codelineno-0-73" name="__codelineno-0-73"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of points in the cloud.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-74" name="__codelineno-0-74"></a><span class="w">        </span><span class="sd">"""Number of points in the cloud."""</span>
 <a id="__codelineno-0-75" name="__codelineno-0-75"></a>        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 <a id="__codelineno-0-76" name="__codelineno-0-76"></a>
-<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LasPoints&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a new `LasPoints` containing only the points where `mask` is True.</span>
+<a id="__codelineno-0-77" name="__codelineno-0-77"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LasPoints"</span><span class="p">:</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="w">        </span><span class="sd">"""Return a new `LasPoints` containing only the points where `mask` is True.</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">        Args:</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">            mask: `(N,)` bool array (same length as the point cloud).</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">        Returns:</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">            A new `LasPoints` with the selected subset across every field.</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">        &quot;&quot;&quot;</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">        """</span>
 <a id="__codelineno-0-86" name="__codelineno-0-86"></a>        <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 <a id="__codelineno-0-87" name="__codelineno-0-87"></a>        <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mask shape </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> != points shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">mask</span><span class="p">]}</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mask shape </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> != points shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>        <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">mask</span><span class="p">]}</span>
 <a id="__codelineno-0-90" name="__codelineno-0-90"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;intensity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">"intensity"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;classification&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">"classification"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;return_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>            <span class="n">kw</span><span class="p">[</span><span class="s2">"return_number"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>        <span class="k">return</span> <span class="n">LasPoints</span><span class="p">(</span><span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
@@ -2580,25 +2580,25 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <span class="normal"><a href="#__codelineno-0-93">93</a></span>
 <span class="normal"><a href="#__codelineno-0-94">94</a></span>
 <span class="normal"><a href="#__codelineno-0-95">95</a></span>
-<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;LasPoints&quot;</span><span class="p">:</span>
-<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a new `LasPoints` containing only the points where `mask` is True.</span>
+<span class="normal"><a href="#__codelineno-0-96">96</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-77" name="__codelineno-0-77"></a><span class="k">def</span><span class="w"> </span><span class="nf">subset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">"LasPoints"</span><span class="p">:</span>
+<a id="__codelineno-0-78" name="__codelineno-0-78"></a><span class="w">    </span><span class="sd">"""Return a new `LasPoints` containing only the points where `mask` is True.</span>
 <a id="__codelineno-0-79" name="__codelineno-0-79"></a>
 <a id="__codelineno-0-80" name="__codelineno-0-80"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-81" name="__codelineno-0-81"></a><span class="sd">        mask: `(N,)` bool array (same length as the point cloud).</span>
 <a id="__codelineno-0-82" name="__codelineno-0-82"></a>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a><span class="sd">        A new `LasPoints` with the selected subset across every field.</span>
-<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    """</span>
 <a id="__codelineno-0-86" name="__codelineno-0-86"></a>    <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 <a id="__codelineno-0-87" name="__codelineno-0-87"></a>    <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
-<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;mask shape </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> != points shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">&quot;z&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">mask</span><span class="p">]}</span>
+<a id="__codelineno-0-88" name="__codelineno-0-88"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"mask shape </span><span class="si">{</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> != points shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-89" name="__codelineno-0-89"></a>    <span class="n">kw</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">"y"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">mask</span><span class="p">],</span> <span class="s2">"z"</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">z</span><span class="p">[</span><span class="n">mask</span><span class="p">]}</span>
 <a id="__codelineno-0-90" name="__codelineno-0-90"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-91" name="__codelineno-0-91"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;intensity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-91" name="__codelineno-0-91"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"intensity"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intensity</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;classification&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"classification"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;return_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+<a id="__codelineno-0-95" name="__codelineno-0-95"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"return_number"</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_number</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a>    <span class="k">return</span> <span class="n">LasPoints</span><span class="p">(</span><span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2784,18 +2784,18 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <span class="normal"><a href="#__codelineno-0-152">152</a></span>
 <span class="normal"><a href="#__codelineno-0-153">153</a></span>
 <span class="normal"><a href="#__codelineno-0-154">154</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-99" name="__codelineno-0-99"></a><span class="k">def</span><span class="w"> </span><span class="nf">read_las</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LasPoints</span><span class="p">:</span>
-<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a LAS or LAZ file into a `LasPoints` record.</span>
+<a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="w">    </span><span class="sd">"""Read a LAS or LAZ file into a `LasPoints` record.</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101"></a>
 <a id="__codelineno-0-102" name="__codelineno-0-102"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">        path: Filesystem path to a `.las` / `.laz` file.</span>
 <a id="__codelineno-0-104" name="__codelineno-0-104"></a>
 <a id="__codelineno-0-105" name="__codelineno-0-105"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-106" name="__codelineno-0-106"></a><span class="sd">        `LasPoints` populated from the file. xyz are scaled+offset by</span>
-<a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">        `laspy` so values are in the file&#39;s CRS units.</span>
+<a id="__codelineno-0-107" name="__codelineno-0-107"></a><span class="sd">        `laspy` so values are in the file's CRS units.</span>
 <a id="__codelineno-0-108" name="__codelineno-0-108"></a>
 <a id="__codelineno-0-109" name="__codelineno-0-109"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">        ImportError: If `laspy` is not installed.</span>
-<a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">    """</span>
 <a id="__codelineno-0-112" name="__codelineno-0-112"></a>    <span class="k">try</span><span class="p">:</span>
 <a id="__codelineno-0-113" name="__codelineno-0-113"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">laspy</span>  <span class="c1"># type: ignore</span>
 <a id="__codelineno-0-114" name="__codelineno-0-114"></a>    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover — environment-specific</span>
@@ -2809,25 +2809,25 @@ returns; typically <code>pyproj.CRS</code>).</p>
 <a id="__codelineno-0-122" name="__codelineno-0-122"></a>        <span class="n">crs</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">header</span><span class="o">.</span><span class="n">parse_crs</span><span class="p">()</span>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a>    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">KeyError</span><span class="p">,</span> <span class="ne">AttributeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a>        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-<a id="__codelineno-0-125" name="__codelineno-0-125"></a>            <span class="sa">f</span><span class="s2">&quot;Could not parse CRS from LAS header </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">!r}</span><span class="s2">. &quot;</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a>            <span class="sa">f</span><span class="s2">&quot;Returning `crs=None`.&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-125" name="__codelineno-0-125"></a>            <span class="sa">f</span><span class="s2">"Could not parse CRS from LAS header </span><span class="si">{</span><span class="n">path</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc</span><span class="si">!r}</span><span class="s2">. "</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a>            <span class="sa">f</span><span class="s2">"Returning `crs=None`."</span><span class="p">,</span>
 <a id="__codelineno-0-127" name="__codelineno-0-127"></a>            <span class="ne">UserWarning</span><span class="p">,</span>
 <a id="__codelineno-0-128" name="__codelineno-0-128"></a>            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a>        <span class="p">)</span>
 <a id="__codelineno-0-130" name="__codelineno-0-130"></a>        <span class="n">crs</span> <span class="o">=</span> <span class="kc">None</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="n">intensity</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">intensity</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
-<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;intensity&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-133" name="__codelineno-0-133"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"intensity"</span><span class="p">)</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="p">)</span>
 <a id="__codelineno-0-136" name="__codelineno-0-136"></a>    <span class="n">classification</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-0-137" name="__codelineno-0-137"></a>        <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">classification</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-138" name="__codelineno-0-138"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;classification&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-138" name="__codelineno-0-138"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"classification"</span><span class="p">)</span>
 <a id="__codelineno-0-139" name="__codelineno-0-139"></a>        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
 <a id="__codelineno-0-140" name="__codelineno-0-140"></a>    <span class="p">)</span>
 <a id="__codelineno-0-141" name="__codelineno-0-141"></a>    <span class="n">return_number</span> <span class="o">=</span> <span class="p">(</span>
 <a id="__codelineno-0-142" name="__codelineno-0-142"></a>        <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">return_number</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
-<a id="__codelineno-0-143" name="__codelineno-0-143"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">&quot;return_number&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-143" name="__codelineno-0-143"></a>        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s2">"return_number"</span><span class="p">)</span>
 <a id="__codelineno-0-144" name="__codelineno-0-144"></a>        <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
 <a id="__codelineno-0-145" name="__codelineno-0-145"></a>    <span class="p">)</span>
 <a id="__codelineno-0-146" name="__codelineno-0-146"></a>    <span class="k">return</span> <span class="n">LasPoints</span><span class="p">(</span>
@@ -2849,7 +2849,7 @@ returns; typically <code>pyproj.CRS</code>).</p>
 
 
 <h3 id="digitalrivers.lidar.classify_ground" class="doc doc-heading"><a href="#digitalrivers.lidar.classify_ground" class="toclink">
-            <code class="highlight language-python"><span class="n">classify_ground</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;zhang&#39;</span><span class="p">,</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">window_cells</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">slope_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">classify_ground</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">'zhang'</span><span class="p">,</span> <span class="n">cell_size</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">window_cells</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">slope_threshold</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span></code>
 
 </a><a href="#digitalrivers.lidar.classify_ground" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -3134,27 +3134,27 @@ invalid.</p>
 <span class="normal"><a href="#__codelineno-0-246">246</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="k">def</span><span class="w"> </span><span class="nf">classify_ground</span><span class="p">(</span>
 <a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="n">points</span><span class="p">:</span> <span class="n">LasPoints</span><span class="p">,</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>    <span class="o">*</span><span class="p">,</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;zhang&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"zhang"</span><span class="p">,</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="n">cell_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-0-162" name="__codelineno-0-162"></a>    <span class="n">window_cells</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
 <a id="__codelineno-0-163" name="__codelineno-0-163"></a>    <span class="n">slope_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
 <a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Classify each LiDAR point as ground or non-ground.</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="w">    </span><span class="sd">"""Classify each LiDAR point as ground or non-ground.</span>
 <a id="__codelineno-0-166" name="__codelineno-0-166"></a>
 <a id="__codelineno-0-167" name="__codelineno-0-167"></a><span class="sd">    Two algorithm families are available:</span>
 <a id="__codelineno-0-168" name="__codelineno-0-168"></a>
-<a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="sd">    * **`&quot;zhang&quot;`** (Zhang 2003) — morphological tophat filter on a min-grid</span>
+<a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="sd">    * **`"zhang"`** (Zhang 2003) — morphological tophat filter on a min-grid</span>
 <a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">      DEM. Points whose elevation rises more than `slope_threshold` above</span>
 <a id="__codelineno-0-171" name="__codelineno-0-171"></a><span class="sd">      the morphological opening at their cell are non-ground. Fast; works</span>
 <a id="__codelineno-0-172" name="__codelineno-0-172"></a><span class="sd">      well on relatively flat terrain. Implementation uses a single</span>
-<a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">      structuring-element scale rather than the original paper&#39;s</span>
+<a id="__codelineno-0-173" name="__codelineno-0-173"></a><span class="sd">      structuring-element scale rather than the original paper's</span>
 <a id="__codelineno-0-174" name="__codelineno-0-174"></a><span class="sd">      multi-scale stack.</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">    * **`&quot;axelsson&quot;`** — Axelsson 2000 progressive TIN densification.</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">    * **`"axelsson"`** — Axelsson 2000 progressive TIN densification.</span>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">      Not yet implemented; raises NotImplementedError.</span>
 <a id="__codelineno-0-177" name="__codelineno-0-177"></a>
 <a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">        points: `LasPoints` cloud to classify.</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        method: `&quot;zhang&quot;` (default) or `&quot;axelsson&quot;`.</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">        method: `"zhang"` (default) or `"axelsson"`.</span>
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">        cell_size: Cell size in map units for the intermediate min-grid.</span>
 <a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">            Smaller values capture fine ground detail at the cost of memory.</span>
 <a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">        window_cells: Side length of the structuring element used for the</span>
@@ -3169,27 +3169,27 @@ invalid.</p>
 <a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">        ValueError: If `method` is unknown or geometry-arguments are</span>
 <a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">            invalid.</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">        NotImplementedError: If `method=&quot;axelsson&quot;` is requested.</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">    &quot;&quot;&quot;</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;zhang&quot;</span><span class="p">,</span> <span class="s2">&quot;axelsson&quot;</span><span class="p">):</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;method must be &#39;zhang&#39; or &#39;axelsson&#39;; got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">&quot;axelsson&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a><span class="sd">        NotImplementedError: If `method="axelsson"` is requested.</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">    """</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="k">if</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"zhang"</span><span class="p">,</span> <span class="s2">"axelsson"</span><span class="p">):</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"method must be 'zhang' or 'axelsson'; got </span><span class="si">{</span><span class="n">method</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s2">"axelsson"</span><span class="p">:</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a>        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>            <span class="s2">&quot;Axelsson 2000 TIN-progressive ground filter is not yet &quot;</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>            <span class="s2">&quot;implemented; use method=&#39;zhang&#39; for a morphological-tophat &quot;</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>            <span class="s2">&quot;ground filter, or pre-classify the input cloud with PDAL &quot;</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>            <span class="s2">&quot;or LASGround.&quot;</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a>            <span class="s2">"Axelsson 2000 TIN-progressive ground filter is not yet "</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a>            <span class="s2">"implemented; use method='zhang' for a morphological-tophat "</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>            <span class="s2">"ground filter, or pre-classify the input cloud with PDAL "</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a>            <span class="s2">"or LASGround."</span>
 <a id="__codelineno-0-205" name="__codelineno-0-205"></a>        <span class="p">)</span>
 <a id="__codelineno-0-206" name="__codelineno-0-206"></a>
 <a id="__codelineno-0-207" name="__codelineno-0-207"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.ndimage</span><span class="w"> </span><span class="kn">import</span> <span class="n">grey_opening</span>
 <a id="__codelineno-0-208" name="__codelineno-0-208"></a>
 <a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="k">if</span> <span class="n">cell_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;cell_size must be positive; got </span><span class="si">{</span><span class="n">cell_size</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"cell_size must be positive; got </span><span class="si">{</span><span class="n">cell_size</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="k">if</span> <span class="n">window_cells</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;window_cells must be &gt;= 1; got </span><span class="si">{</span><span class="n">window_cells</span><span class="si">!r}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"window_cells must be &gt;= 1; got </span><span class="si">{</span><span class="n">window_cells</span><span class="si">!r}</span><span class="s2">"</span><span class="p">)</span>
 <a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="k">if</span> <span class="n">slope_threshold</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>            <span class="sa">f</span><span class="s2">&quot;slope_threshold must be non-negative; got </span><span class="si">{</span><span class="n">slope_threshold</span><span class="si">!r}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>            <span class="sa">f</span><span class="s2">"slope_threshold must be non-negative; got </span><span class="si">{</span><span class="n">slope_threshold</span><span class="si">!r}</span><span class="s2">"</span>
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a>        <span class="p">)</span>
 <a id="__codelineno-0-217" name="__codelineno-0-217"></a>
 <a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span> <span class="o">=</span> <span class="n">points</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">z</span>
@@ -3203,7 +3203,7 @@ invalid.</p>
 <a id="__codelineno-0-226" name="__codelineno-0-226"></a>    <span class="n">row_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(((</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">ys</span><span class="p">)</span> <span class="o">/</span> <span class="n">cell_size</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">rows</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>
 <a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="c1"># Min-grid: lowest z per cell. Empty cells inherit the sentinel +inf so</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="c1"># the opening &quot;spreads&quot; the lowest neighbouring elevation across them.</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="c1"># the opening "spreads" the lowest neighbouring elevation across them.</span>
 <a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="n">min_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">min_grid</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="n">zs</span><span class="p">)</span>
 <a id="__codelineno-0-232" name="__codelineno-0-232"></a>    <span class="n">finite</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">min_grid</span><span class="p">)</span>
@@ -3443,11 +3443,11 @@ filtering and variable window size for estimating tree height."
 <a id="__codelineno-0-261" name="__codelineno-0-261"></a>    <span class="n">min_height_m</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
 <a id="__codelineno-0-262" name="__codelineno-0-262"></a>    <span class="n">radius_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <a id="__codelineno-0-263" name="__codelineno-0-263"></a><span class="p">):</span>
-<a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Detect individual tree tops on a canopy height model.</span>
+<a id="__codelineno-0-264" name="__codelineno-0-264"></a><span class="w">    </span><span class="sd">"""Detect individual tree tops on a canopy height model.</span>
 <a id="__codelineno-0-265" name="__codelineno-0-265"></a>
 <a id="__codelineno-0-266" name="__codelineno-0-266"></a><span class="sd">    Variable-window local-maxima search: for each candidate cell whose CHM</span>
 <a id="__codelineno-0-267" name="__codelineno-0-267"></a><span class="sd">    value is `&gt;= min_height_m`, scan a square window whose half-width</span>
-<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">    scales with the cell&#39;s height (`radius_fn(h)` map units, default</span>
+<a id="__codelineno-0-268" name="__codelineno-0-268"></a><span class="sd">    scales with the cell's height (`radius_fn(h)` map units, default</span>
 <a id="__codelineno-0-269" name="__codelineno-0-269"></a><span class="sd">    `_default_tree_radius` — ~5% of canopy height). The cell is reported</span>
 <a id="__codelineno-0-270" name="__codelineno-0-270"></a><span class="sd">    as a tree top iff its CHM value is the maximum in the window.</span>
 <a id="__codelineno-0-271" name="__codelineno-0-271"></a>
@@ -3463,14 +3463,14 @@ filtering and variable window size for estimating tree height."
 <a id="__codelineno-0-281" name="__codelineno-0-281"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-282" name="__codelineno-0-282"></a><span class="sd">        `geopandas.GeoDataFrame` of tree-top Point geometries with columns</span>
 <a id="__codelineno-0-283" name="__codelineno-0-283"></a><span class="sd">        `height_m` (canopy height at the top), `row`, `col` (raster</span>
-<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">        indices), and `geometry`. CRS is set from the CHM&#39;s EPSG.</span>
+<a id="__codelineno-0-284" name="__codelineno-0-284"></a><span class="sd">        indices), and `geometry`. CRS is set from the CHM's EPSG.</span>
 <a id="__codelineno-0-285" name="__codelineno-0-285"></a>
 <a id="__codelineno-0-286" name="__codelineno-0-286"></a><span class="sd">    References:</span>
-<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        Popescu, S. C. &amp; Wynne, R. H. (2004). &quot;Seeing the trees in the</span>
+<a id="__codelineno-0-287" name="__codelineno-0-287"></a><span class="sd">        Popescu, S. C. &amp; Wynne, R. H. (2004). "Seeing the trees in the</span>
 <a id="__codelineno-0-288" name="__codelineno-0-288"></a><span class="sd">        forest: Using LIDAR and multispectral data fusion with local</span>
-<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">        filtering and variable window size for estimating tree height.&quot;</span>
+<a id="__codelineno-0-289" name="__codelineno-0-289"></a><span class="sd">        filtering and variable window size for estimating tree height."</span>
 <a id="__codelineno-0-290" name="__codelineno-0-290"></a><span class="sd">        *Photogrammetric Engineering &amp; Remote Sensing* 70(5): 589–604.</span>
-<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-291" name="__codelineno-0-291"></a><span class="sd">    """</span>
 <a id="__codelineno-0-292" name="__codelineno-0-292"></a>    <span class="k">if</span> <span class="n">radius_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-293" name="__codelineno-0-293"></a>        <span class="n">radius_fn</span> <span class="o">=</span> <span class="n">_default_tree_radius</span>
 <a id="__codelineno-0-294" name="__codelineno-0-294"></a>
@@ -3507,10 +3507,10 @@ filtering and variable window size for estimating tree height."
 <a id="__codelineno-0-325" name="__codelineno-0-325"></a>    <span class="n">geometries</span> <span class="o">=</span> <span class="p">[</span><span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)]</span>
 <a id="__codelineno-0-326" name="__codelineno-0-326"></a>    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span>
 <a id="__codelineno-0-327" name="__codelineno-0-327"></a>        <span class="p">{</span>
-<a id="__codelineno-0-328" name="__codelineno-0-328"></a>            <span class="s2">&quot;height_m&quot;</span><span class="p">:</span> <span class="n">tops_h</span><span class="p">,</span>
-<a id="__codelineno-0-329" name="__codelineno-0-329"></a>            <span class="s2">&quot;row&quot;</span><span class="p">:</span> <span class="n">tops_r</span><span class="p">,</span>
-<a id="__codelineno-0-330" name="__codelineno-0-330"></a>            <span class="s2">&quot;col&quot;</span><span class="p">:</span> <span class="n">tops_c</span><span class="p">,</span>
-<a id="__codelineno-0-331" name="__codelineno-0-331"></a>            <span class="s2">&quot;geometry&quot;</span><span class="p">:</span> <span class="n">geometries</span><span class="p">,</span>
+<a id="__codelineno-0-328" name="__codelineno-0-328"></a>            <span class="s2">"height_m"</span><span class="p">:</span> <span class="n">tops_h</span><span class="p">,</span>
+<a id="__codelineno-0-329" name="__codelineno-0-329"></a>            <span class="s2">"row"</span><span class="p">:</span> <span class="n">tops_r</span><span class="p">,</span>
+<a id="__codelineno-0-330" name="__codelineno-0-330"></a>            <span class="s2">"col"</span><span class="p">:</span> <span class="n">tops_c</span><span class="p">,</span>
+<a id="__codelineno-0-331" name="__codelineno-0-331"></a>            <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">geometries</span><span class="p">,</span>
 <a id="__codelineno-0-332" name="__codelineno-0-332"></a>        <span class="p">},</span>
 <a id="__codelineno-0-333" name="__codelineno-0-333"></a>        <span class="n">crs</span><span class="o">=</span><span class="n">chm</span><span class="o">.</span><span class="n">epsg</span><span class="p">,</span>
 <a id="__codelineno-0-334" name="__codelineno-0-334"></a>    <span class="p">)</span>
@@ -3659,7 +3659,7 @@ True, keep only points OUTSIDE the polygon (i.e. erase).</p>
 <a id="__codelineno-0-340" name="__codelineno-0-340"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-341" name="__codelineno-0-341"></a>    <span class="n">inverse</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <a id="__codelineno-0-342" name="__codelineno-0-342"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LasPoints</span><span class="p">:</span>
-<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Clip a `LasPoints` cloud to a polygon (or its complement).</span>
+<a id="__codelineno-0-343" name="__codelineno-0-343"></a><span class="w">    </span><span class="sd">"""Clip a `LasPoints` cloud to a polygon (or its complement).</span>
 <a id="__codelineno-0-344" name="__codelineno-0-344"></a>
 <a id="__codelineno-0-345" name="__codelineno-0-345"></a><span class="sd">    Args:</span>
 <a id="__codelineno-0-346" name="__codelineno-0-346"></a><span class="sd">        points: Input `LasPoints`.</span>
@@ -3670,7 +3670,7 @@ True, keep only points OUTSIDE the polygon (i.e. erase).</p>
 <a id="__codelineno-0-351" name="__codelineno-0-351"></a>
 <a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="sd">    Returns:</span>
 <a id="__codelineno-0-353" name="__codelineno-0-353"></a><span class="sd">        A new `LasPoints` containing the surviving subset.</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a><span class="sd">    """</span>
 <a id="__codelineno-0-355" name="__codelineno-0-355"></a>    <span class="n">inside</span> <span class="o">=</span> <span class="n">shapely</span><span class="o">.</span><span class="n">contains_xy</span><span class="p">(</span><span class="n">polygon</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">points</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
 <a id="__codelineno-0-356" name="__codelineno-0-356"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">inside</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">inverse</span> <span class="k">else</span> <span class="o">~</span><span class="n">inside</span>
 <a id="__codelineno-0-357" name="__codelineno-0-357"></a>    <span class="k">return</span> <span class="n">points</span><span class="o">.</span><span class="n">subset</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
@@ -3817,7 +3817,7 @@ The CRS is taken from the first input.</p>
 <span class="normal"><a href="#__codelineno-0-387">387</a></span>
 <span class="normal"><a href="#__codelineno-0-388">388</a></span>
 <span class="normal"><a href="#__codelineno-0-389">389</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-360" name="__codelineno-0-360"></a><span class="k">def</span><span class="w"> </span><span class="nf">merge</span><span class="p">(</span><span class="o">*</span><span class="n">pointclouds</span><span class="p">:</span> <span class="n">LasPoints</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LasPoints</span><span class="p">:</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Concatenate two or more `LasPoints` into a single cloud.</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a><span class="w">    </span><span class="sd">"""Concatenate two or more `LasPoints` into a single cloud.</span>
 <a id="__codelineno-0-362" name="__codelineno-0-362"></a>
 <a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="sd">    Numeric arrays are stacked field-by-field. Optional fields (intensity /</span>
 <a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="sd">    classification / return_number) are preserved only when every input</span>
@@ -3832,19 +3832,19 @@ The CRS is taken from the first input.</p>
 <a id="__codelineno-0-373" name="__codelineno-0-373"></a>
 <a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">        ValueError: If fewer than one cloud is supplied.</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">    """</span>
 <a id="__codelineno-0-377" name="__codelineno-0-377"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">pointclouds</span><span class="p">:</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;merge requires at least one point cloud&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"merge requires at least one point cloud"</span><span class="p">)</span>
 <a id="__codelineno-0-379" name="__codelineno-0-379"></a>    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">x</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">y</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">z</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="n">kw</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
 <a id="__codelineno-0-383" name="__codelineno-0-383"></a>    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">intensity</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">):</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;intensity&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">intensity</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"intensity"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">intensity</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-385" name="__codelineno-0-385"></a>    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">):</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;classification&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">classification</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"classification"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">classification</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-387" name="__codelineno-0-387"></a>    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">return_number</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">):</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">&quot;return_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">return_number</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>        <span class="n">kw</span><span class="p">[</span><span class="s2">"return_number"</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">return_number</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pointclouds</span><span class="p">])</span>
 <a id="__codelineno-0-389" name="__codelineno-0-389"></a>    <span class="k">return</span> <span class="n">LasPoints</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">pointclouds</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">crs</span><span class="p">,</span> <span class="o">**</span><span class="n">kw</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -4003,7 +4003,7 @@ no class codes).</p>
 <a id="__codelineno-0-393" name="__codelineno-0-393"></a>    <span class="n">points</span><span class="p">:</span> <span class="n">LasPoints</span><span class="p">,</span>
 <a id="__codelineno-0-394" name="__codelineno-0-394"></a>    <span class="n">classes</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
 <a id="__codelineno-0-395" name="__codelineno-0-395"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LasPoints</span><span class="p">:</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Keep only points whose ASPRS classification is in `classes`.</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a><span class="w">    </span><span class="sd">"""Keep only points whose ASPRS classification is in `classes`.</span>
 <a id="__codelineno-0-397" name="__codelineno-0-397"></a>
 <a id="__codelineno-0-398" name="__codelineno-0-398"></a><span class="sd">    Standard ASPRS codes include `2` (ground), `3` (low vegetation), `4`</span>
 <a id="__codelineno-0-399" name="__codelineno-0-399"></a><span class="sd">    (medium vegetation), `5` (high vegetation), `6` (building), `9` (water).</span>
@@ -4019,9 +4019,9 @@ no class codes).</p>
 <a id="__codelineno-0-409" name="__codelineno-0-409"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-410" name="__codelineno-0-410"></a><span class="sd">        ValueError: If `points.classification` is empty (the cloud carries</span>
 <a id="__codelineno-0-411" name="__codelineno-0-411"></a><span class="sd">            no class codes).</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a><span class="sd">    """</span>
 <a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">points</span><span class="o">.</span><span class="n">classification</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;points carries no classification data; nothing to filter&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"points carries no classification data; nothing to filter"</span><span class="p">)</span>
 <a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="n">keep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">points</span><span class="o">.</span><span class="n">classification</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">classes</span><span class="p">))</span>
 <a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="k">return</span> <span class="n">points</span><span class="o">.</span><span class="n">subset</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
 </code></pre></div></td></tr></table></div>
@@ -4034,7 +4034,7 @@ no class codes).</p>
 
 
 <h3 id="digitalrivers.lidar.write_las" class="doc doc-heading"><a href="#digitalrivers.lidar.write_las" class="toclink">
-            <code class="highlight language-python"><span class="n">write_las</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">point_format</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s1">&#39;1.4&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">write_las</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">point_format</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="s1">'1.4'</span><span class="p">)</span></code>
 
 </a><a href="#digitalrivers.lidar.write_las" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -4198,9 +4198,9 @@ and high-precision returns; pick 0 for legacy compatibility).</p>
 <a id="__codelineno-0-421" name="__codelineno-0-421"></a>    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <a id="__codelineno-0-422" name="__codelineno-0-422"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="n">point_format</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
-<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;1.4&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"1.4"</span><span class="p">,</span>
 <a id="__codelineno-0-425" name="__codelineno-0-425"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Write a `LasPoints` cloud to a LAS or LAZ file.</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a><span class="w">    </span><span class="sd">"""Write a `LasPoints` cloud to a LAS or LAZ file.</span>
 <a id="__codelineno-0-427" name="__codelineno-0-427"></a>
 <a id="__codelineno-0-428" name="__codelineno-0-428"></a><span class="sd">    The file extension determines compression: `.laz` uses LAZ</span>
 <a id="__codelineno-0-429" name="__codelineno-0-429"></a><span class="sd">    (requires `lazrs`), `.las` is uncompressed.</span>
@@ -4210,11 +4210,11 @@ and high-precision returns; pick 0 for legacy compatibility).</p>
 <a id="__codelineno-0-433" name="__codelineno-0-433"></a><span class="sd">        path: Output filesystem path.</span>
 <a id="__codelineno-0-434" name="__codelineno-0-434"></a><span class="sd">        point_format: ASPRS LAS point format (default 6 — supports GPS time</span>
 <a id="__codelineno-0-435" name="__codelineno-0-435"></a><span class="sd">            and high-precision returns; pick 0 for legacy compatibility).</span>
-<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        version: LAS version string (default `&quot;1.4&quot;`).</span>
+<a id="__codelineno-0-436" name="__codelineno-0-436"></a><span class="sd">        version: LAS version string (default `"1.4"`).</span>
 <a id="__codelineno-0-437" name="__codelineno-0-437"></a>
 <a id="__codelineno-0-438" name="__codelineno-0-438"></a><span class="sd">    Raises:</span>
 <a id="__codelineno-0-439" name="__codelineno-0-439"></a><span class="sd">        ImportError: If `laspy` is not installed.</span>
-<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-440" name="__codelineno-0-440"></a><span class="sd">    """</span>
 <a id="__codelineno-0-441" name="__codelineno-0-441"></a>    <span class="k">try</span><span class="p">:</span>
 <a id="__codelineno-0-442" name="__codelineno-0-442"></a>        <span class="kn">import</span><span class="w"> </span><span class="nn">laspy</span>  <span class="c1"># type: ignore</span>
 <a id="__codelineno-0-443" name="__codelineno-0-443"></a>    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># pragma: no cover — environment-specific</span>
@@ -4241,7 +4241,7 @@ and high-precision returns; pick 0 for legacy compatibility).</p>
 
 
 <h3 id="digitalrivers.lidar.grid_lidar_points" class="doc doc-heading"><a href="#digitalrivers.lidar.grid_lidar_points" class="toclink">
-            <code class="highlight language-python"><span class="n">grid_lidar_points</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span><span class="p">,</span> <span class="n">cell_size</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">aggregate</span><span class="o">=</span><span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">idw_k</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">idw_power</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">rbf_kernel</span><span class="o">=</span><span class="s1">&#39;thin_plate_spline&#39;</span><span class="p">,</span> <span class="n">rbf_smoothing</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">grid_lidar_points</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">zs</span><span class="p">,</span> <span class="n">cell_size</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">aggregate</span><span class="o">=</span><span class="s1">'min'</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">idw_k</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">idw_power</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">rbf_kernel</span><span class="o">=</span><span class="s1">'thin_plate_spline'</span><span class="p">,</span> <span class="n">rbf_smoothing</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span></code>
 
 </a><a href="#digitalrivers.lidar.grid_lidar_points" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -4797,15 +4797,15 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-462" name="__codelineno-0-462"></a>    <span class="n">zs</span><span class="p">,</span>
 <a id="__codelineno-0-463" name="__codelineno-0-463"></a>    <span class="n">cell_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
 <a id="__codelineno-0-464" name="__codelineno-0-464"></a>    <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="n">aggregate</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;min&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-465" name="__codelineno-0-465"></a>    <span class="n">aggregate</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"min"</span><span class="p">,</span>
 <a id="__codelineno-0-466" name="__codelineno-0-466"></a>    <span class="n">epsg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4326</span><span class="p">,</span>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a>    <span class="o">*</span><span class="p">,</span>
 <a id="__codelineno-0-468" name="__codelineno-0-468"></a>    <span class="n">idw_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="n">idw_power</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
-<a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">rbf_kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;thin_plate_spline&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-470" name="__codelineno-0-470"></a>    <span class="n">rbf_kernel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"thin_plate_spline"</span><span class="p">,</span>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="n">rbf_smoothing</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
 <a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="p">):</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Grid a LiDAR point cloud to a DEM.</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a><span class="w">    </span><span class="sd">"""Grid a LiDAR point cloud to a DEM.</span>
 <a id="__codelineno-0-474" name="__codelineno-0-474"></a>
 <a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">    Pragmatic LiDAR-to-DEM step that operates on raw `(x, y, z)` arrays.</span>
 <a id="__codelineno-0-476" name="__codelineno-0-476"></a><span class="sd">    Useful when the caller has read LAS / LAZ externally (via `read_las`)</span>
@@ -4817,18 +4817,18 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-482" name="__codelineno-0-482"></a><span class="sd">    **Block aggregation** (one value per cell, based on points that land</span>
 <a id="__codelineno-0-483" name="__codelineno-0-483"></a><span class="sd">    inside the cell):</span>
 <a id="__codelineno-0-484" name="__codelineno-0-484"></a>
-<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    * `&quot;min&quot;` (default) — canonical bare-earth choice for first-return LiDAR.</span>
-<a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    * `&quot;max&quot;` — canopy / DSM choice.</span>
-<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    * `&quot;mean&quot;` / `&quot;median&quot;` — smoothed surfaces.</span>
-<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">    * `&quot;count&quot;` — point-density raster.</span>
+<a id="__codelineno-0-485" name="__codelineno-0-485"></a><span class="sd">    * `"min"` (default) — canonical bare-earth choice for first-return LiDAR.</span>
+<a id="__codelineno-0-486" name="__codelineno-0-486"></a><span class="sd">    * `"max"` — canopy / DSM choice.</span>
+<a id="__codelineno-0-487" name="__codelineno-0-487"></a><span class="sd">    * `"mean"` / `"median"` — smoothed surfaces.</span>
+<a id="__codelineno-0-488" name="__codelineno-0-488"></a><span class="sd">    * `"count"` — point-density raster.</span>
 <a id="__codelineno-0-489" name="__codelineno-0-489"></a>
 <a id="__codelineno-0-490" name="__codelineno-0-490"></a><span class="sd">    **Spatial interpolation** (one value per cell centre, computed from</span>
 <a id="__codelineno-0-491" name="__codelineno-0-491"></a><span class="sd">    nearby points regardless of cell membership):</span>
 <a id="__codelineno-0-492" name="__codelineno-0-492"></a>
-<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    * `&quot;idw&quot;` — inverse-distance-weighted mean of the K nearest points.</span>
-<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">    * `&quot;nn&quot;` — nearest-neighbour assignment.</span>
-<a id="__codelineno-0-495" name="__codelineno-0-495"></a><span class="sd">    * `&quot;tin&quot;` — barycentric interpolation on the Delaunay triangulation.</span>
-<a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">    * `&quot;rbf&quot;` — radial-basis-function interpolation (`scipy.interpolate.</span>
+<a id="__codelineno-0-493" name="__codelineno-0-493"></a><span class="sd">    * `"idw"` — inverse-distance-weighted mean of the K nearest points.</span>
+<a id="__codelineno-0-494" name="__codelineno-0-494"></a><span class="sd">    * `"nn"` — nearest-neighbour assignment.</span>
+<a id="__codelineno-0-495" name="__codelineno-0-495"></a><span class="sd">    * `"tin"` — barycentric interpolation on the Delaunay triangulation.</span>
+<a id="__codelineno-0-496" name="__codelineno-0-496"></a><span class="sd">    * `"rbf"` — radial-basis-function interpolation (`scipy.interpolate.</span>
 <a id="__codelineno-0-497" name="__codelineno-0-497"></a><span class="sd">      RBFInterpolator`).</span>
 <a id="__codelineno-0-498" name="__codelineno-0-498"></a>
 <a id="__codelineno-0-499" name="__codelineno-0-499"></a><span class="sd">    Args:</span>
@@ -4836,15 +4836,15 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-501" name="__codelineno-0-501"></a><span class="sd">        cell_size: output cell side length in map units (must match the</span>
 <a id="__codelineno-0-502" name="__codelineno-0-502"></a><span class="sd">            CRS).</span>
 <a id="__codelineno-0-503" name="__codelineno-0-503"></a><span class="sd">        bounds: `(x_min, y_min, x_max, y_max)` to clip the grid to. If</span>
-<a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">            `None`, the input points&#39; bounding box is used.</span>
-<a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">        aggregate: One of `&quot;min&quot;`, `&quot;max&quot;`, `&quot;mean&quot;`, `&quot;median&quot;`,</span>
-<a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">            `&quot;count&quot;`, `&quot;idw&quot;`, `&quot;nn&quot;`, `&quot;tin&quot;`, `&quot;rbf&quot;`.</span>
+<a id="__codelineno-0-504" name="__codelineno-0-504"></a><span class="sd">            `None`, the input points' bounding box is used.</span>
+<a id="__codelineno-0-505" name="__codelineno-0-505"></a><span class="sd">        aggregate: One of `"min"`, `"max"`, `"mean"`, `"median"`,</span>
+<a id="__codelineno-0-506" name="__codelineno-0-506"></a><span class="sd">            `"count"`, `"idw"`, `"nn"`, `"tin"`, `"rbf"`.</span>
 <a id="__codelineno-0-507" name="__codelineno-0-507"></a><span class="sd">        epsg: EPSG code of the input coordinates.</span>
-<a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">        idw_k: Neighbour count for `aggregate=&quot;idw&quot;`. Defaults to 8.</span>
+<a id="__codelineno-0-508" name="__codelineno-0-508"></a><span class="sd">        idw_k: Neighbour count for `aggregate="idw"`. Defaults to 8.</span>
 <a id="__codelineno-0-509" name="__codelineno-0-509"></a><span class="sd">        idw_power: Distance exponent for IDW weights `(1 / d**power)`.</span>
 <a id="__codelineno-0-510" name="__codelineno-0-510"></a><span class="sd">            Defaults to 2.0.</span>
 <a id="__codelineno-0-511" name="__codelineno-0-511"></a><span class="sd">        rbf_kernel: Kernel name passed to `scipy.interpolate.RBFInterpolator`</span>
-<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">            for `aggregate=&quot;rbf&quot;`. Defaults to `&quot;thin_plate_spline&quot;`.</span>
+<a id="__codelineno-0-512" name="__codelineno-0-512"></a><span class="sd">            for `aggregate="rbf"`. Defaults to `"thin_plate_spline"`.</span>
 <a id="__codelineno-0-513" name="__codelineno-0-513"></a><span class="sd">        rbf_smoothing: Smoothing parameter for the RBF kernel. Defaults</span>
 <a id="__codelineno-0-514" name="__codelineno-0-514"></a><span class="sd">            to 0.0 (exact interpolation).</span>
 <a id="__codelineno-0-515" name="__codelineno-0-515"></a>
@@ -4864,7 +4864,7 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-529" name="__codelineno-0-529"></a><span class="sd">            &gt;&gt;&gt; zs = np.array([5.0, 2.0, 4.0])</span>
 <a id="__codelineno-0-530" name="__codelineno-0-530"></a><span class="sd">            &gt;&gt;&gt; ds = grid_lidar_points(</span>
 <a id="__codelineno-0-531" name="__codelineno-0-531"></a><span class="sd">            ...     xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 2.0, 1.0),</span>
-<a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">            ...     aggregate=&quot;min&quot;, epsg=3857,</span>
+<a id="__codelineno-0-532" name="__codelineno-0-532"></a><span class="sd">            ...     aggregate="min", epsg=3857,</span>
 <a id="__codelineno-0-533" name="__codelineno-0-533"></a><span class="sd">            ... )</span>
 <a id="__codelineno-0-534" name="__codelineno-0-534"></a><span class="sd">            &gt;&gt;&gt; ds.read_array().tolist()</span>
 <a id="__codelineno-0-535" name="__codelineno-0-535"></a><span class="sd">            [[2.0, 4.0]]</span>
@@ -4878,48 +4878,48 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-543" name="__codelineno-0-543"></a><span class="sd">            &gt;&gt;&gt; zs = np.array([4.0, 6.0])</span>
 <a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            &gt;&gt;&gt; ds = grid_lidar_points(</span>
 <a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">            ...     xs, ys, zs, cell_size=1.0, bounds=(0.0, 0.0, 1.0, 1.0),</span>
-<a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            ...     aggregate=&quot;mean&quot;, epsg=3857,</span>
+<a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            ...     aggregate="mean", epsg=3857,</span>
 <a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            ... )</span>
 <a id="__codelineno-0-548" name="__codelineno-0-548"></a><span class="sd">            &gt;&gt;&gt; float(ds.read_array()[0, 0])</span>
 <a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            5.0</span>
 <a id="__codelineno-0-550" name="__codelineno-0-550"></a>
-<a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">        - Empty cells receive the dataset&#39;s no-data sentinel (-9999.0):</span>
+<a id="__codelineno-0-551" name="__codelineno-0-551"></a><span class="sd">        - Empty cells receive the dataset's no-data sentinel (-9999.0):</span>
 <a id="__codelineno-0-552" name="__codelineno-0-552"></a>
 <a id="__codelineno-0-553" name="__codelineno-0-553"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <a id="__codelineno-0-554" name="__codelineno-0-554"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.lidar import grid_lidar_points</span>
 <a id="__codelineno-0-555" name="__codelineno-0-555"></a><span class="sd">            &gt;&gt;&gt; ds = grid_lidar_points(</span>
 <a id="__codelineno-0-556" name="__codelineno-0-556"></a><span class="sd">            ...     np.array([0.5]), np.array([0.5]), np.array([3.0]),</span>
 <a id="__codelineno-0-557" name="__codelineno-0-557"></a><span class="sd">            ...     cell_size=1.0, bounds=(0.0, 0.0, 2.0, 2.0),</span>
-<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">            ...     aggregate=&quot;min&quot;,</span>
+<a id="__codelineno-0-558" name="__codelineno-0-558"></a><span class="sd">            ...     aggregate="min",</span>
 <a id="__codelineno-0-559" name="__codelineno-0-559"></a><span class="sd">            ... )</span>
 <a id="__codelineno-0-560" name="__codelineno-0-560"></a><span class="sd">            &gt;&gt;&gt; float(ds.no_data_value[0])</span>
 <a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="sd">            -9999.0</span>
 <a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="sd">            &gt;&gt;&gt; int((ds.read_array() == -9999.0).sum())</span>
 <a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="sd">            3</span>
-<a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-564" name="__codelineno-0-564"></a><span class="sd">    """</span>
 <a id="__codelineno-0-565" name="__codelineno-0-565"></a>    <span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-566" name="__codelineno-0-566"></a>    <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-567" name="__codelineno-0-567"></a>    <span class="n">zs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">zs</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-568" name="__codelineno-0-568"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)):</span>
 <a id="__codelineno-0-569" name="__codelineno-0-569"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-570" name="__codelineno-0-570"></a>            <span class="sa">f</span><span class="s2">&quot;xs, ys, zs must have the same length; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
-<a id="__codelineno-0-571" name="__codelineno-0-571"></a>            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-570" name="__codelineno-0-570"></a>            <span class="sa">f</span><span class="s2">"xs, ys, zs must have the same length; got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
+<a id="__codelineno-0-571" name="__codelineno-0-571"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 <a id="__codelineno-0-572" name="__codelineno-0-572"></a>        <span class="p">)</span>
 <a id="__codelineno-0-573" name="__codelineno-0-573"></a>    <span class="n">valid_aggregates</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-574" name="__codelineno-0-574"></a>        <span class="s2">&quot;min&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-575" name="__codelineno-0-575"></a>        <span class="s2">&quot;max&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-576" name="__codelineno-0-576"></a>        <span class="s2">&quot;mean&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-577" name="__codelineno-0-577"></a>        <span class="s2">&quot;median&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-578" name="__codelineno-0-578"></a>        <span class="s2">&quot;count&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a>        <span class="s2">&quot;idw&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-580" name="__codelineno-0-580"></a>        <span class="s2">&quot;nn&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-581" name="__codelineno-0-581"></a>        <span class="s2">&quot;tin&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-582" name="__codelineno-0-582"></a>        <span class="s2">&quot;rbf&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-574" name="__codelineno-0-574"></a>        <span class="s2">"min"</span><span class="p">,</span>
+<a id="__codelineno-0-575" name="__codelineno-0-575"></a>        <span class="s2">"max"</span><span class="p">,</span>
+<a id="__codelineno-0-576" name="__codelineno-0-576"></a>        <span class="s2">"mean"</span><span class="p">,</span>
+<a id="__codelineno-0-577" name="__codelineno-0-577"></a>        <span class="s2">"median"</span><span class="p">,</span>
+<a id="__codelineno-0-578" name="__codelineno-0-578"></a>        <span class="s2">"count"</span><span class="p">,</span>
+<a id="__codelineno-0-579" name="__codelineno-0-579"></a>        <span class="s2">"idw"</span><span class="p">,</span>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a>        <span class="s2">"nn"</span><span class="p">,</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a>        <span class="s2">"tin"</span><span class="p">,</span>
+<a id="__codelineno-0-582" name="__codelineno-0-582"></a>        <span class="s2">"rbf"</span><span class="p">,</span>
 <a id="__codelineno-0-583" name="__codelineno-0-583"></a>    <span class="p">}</span>
 <a id="__codelineno-0-584" name="__codelineno-0-584"></a>    <span class="k">if</span> <span class="n">aggregate</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_aggregates</span><span class="p">:</span>
 <a id="__codelineno-0-585" name="__codelineno-0-585"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-586" name="__codelineno-0-586"></a>            <span class="sa">f</span><span class="s2">&quot;aggregate must be one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">valid_aggregates</span><span class="p">)</span><span class="si">}</span><span class="s2">; &quot;</span>
-<a id="__codelineno-0-587" name="__codelineno-0-587"></a>            <span class="sa">f</span><span class="s2">&quot;got </span><span class="si">{</span><span class="n">aggregate</span><span class="si">!r}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-586" name="__codelineno-0-586"></a>            <span class="sa">f</span><span class="s2">"aggregate must be one of </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">valid_aggregates</span><span class="p">)</span><span class="si">}</span><span class="s2">; "</span>
+<a id="__codelineno-0-587" name="__codelineno-0-587"></a>            <span class="sa">f</span><span class="s2">"got </span><span class="si">{</span><span class="n">aggregate</span><span class="si">!r}</span><span class="s2">"</span>
 <a id="__codelineno-0-588" name="__codelineno-0-588"></a>        <span class="p">)</span>
 <a id="__codelineno-0-589" name="__codelineno-0-589"></a>    <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-590" name="__codelineno-0-590"></a>        <span class="n">x_min</span><span class="p">,</span> <span class="n">y_min</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">min</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">min</span><span class="p">())</span>
@@ -4933,15 +4933,15 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-598" name="__codelineno-0-598"></a>    <span class="n">nodata</span> <span class="o">=</span> <span class="o">-</span><span class="mf">9999.0</span>
 <a id="__codelineno-0-599" name="__codelineno-0-599"></a>
 <a id="__codelineno-0-600" name="__codelineno-0-600"></a>    <span class="c1"># Spatial-interpolation paths evaluate at cell centres and exit early —</span>
-<a id="__codelineno-0-601" name="__codelineno-0-601"></a>    <span class="c1"># they don&#39;t use the per-cell binning of the block-aggregation paths.</span>
-<a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="k">if</span> <span class="n">aggregate</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;idw&quot;</span><span class="p">,</span> <span class="s2">&quot;nn&quot;</span><span class="p">,</span> <span class="s2">&quot;tin&quot;</span><span class="p">,</span> <span class="s2">&quot;rbf&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-601" name="__codelineno-0-601"></a>    <span class="c1"># they don't use the per-cell binning of the block-aggregation paths.</span>
+<a id="__codelineno-0-602" name="__codelineno-0-602"></a>    <span class="k">if</span> <span class="n">aggregate</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"idw"</span><span class="p">,</span> <span class="s2">"nn"</span><span class="p">,</span> <span class="s2">"tin"</span><span class="p">,</span> <span class="s2">"rbf"</span><span class="p">):</span>
 <a id="__codelineno-0-603" name="__codelineno-0-603"></a>        <span class="c1"># Cell-centre coordinates in the output grid.</span>
 <a id="__codelineno-0-604" name="__codelineno-0-604"></a>        <span class="n">cx</span> <span class="o">=</span> <span class="n">x_min</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">cell_size</span>
 <a id="__codelineno-0-605" name="__codelineno-0-605"></a>        <span class="n">cy</span> <span class="o">=</span> <span class="n">y_max</span> <span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">cell_size</span>
 <a id="__codelineno-0-606" name="__codelineno-0-606"></a>        <span class="n">grid_x</span><span class="p">,</span> <span class="n">grid_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">)</span>
 <a id="__codelineno-0-607" name="__codelineno-0-607"></a>        <span class="n">xy_pts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">])</span>
 <a id="__codelineno-0-608" name="__codelineno-0-608"></a>        <span class="n">target</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">grid_x</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">grid_y</span><span class="o">.</span><span class="n">ravel</span><span class="p">()])</span>
-<a id="__codelineno-0-609" name="__codelineno-0-609"></a>        <span class="k">if</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;idw&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-609" name="__codelineno-0-609"></a>        <span class="k">if</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"idw"</span><span class="p">:</span>
 <a id="__codelineno-0-610" name="__codelineno-0-610"></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">cKDTree</span>
 <a id="__codelineno-0-611" name="__codelineno-0-611"></a>
 <a id="__codelineno-0-612" name="__codelineno-0-612"></a>            <span class="n">tree</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">xy_pts</span><span class="p">)</span>
@@ -4950,25 +4950,25 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-615" name="__codelineno-0-615"></a>            <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
 <a id="__codelineno-0-616" name="__codelineno-0-616"></a>                <span class="n">dists</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
 <a id="__codelineno-0-617" name="__codelineno-0-617"></a>                <span class="n">idxs</span> <span class="o">=</span> <span class="n">idxs</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-<a id="__codelineno-0-618" name="__codelineno-0-618"></a>            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-618" name="__codelineno-0-618"></a>            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
 <a id="__codelineno-0-619" name="__codelineno-0-619"></a>                <span class="c1"># Exact-hit points pin the result; weight them as infinity</span>
 <a id="__codelineno-0-620" name="__codelineno-0-620"></a>                <span class="c1"># so they dominate the weighted average. Replace 1/0 below.</span>
 <a id="__codelineno-0-621" name="__codelineno-0-621"></a>                <span class="n">weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">idw_power</span><span class="p">)</span>
-<a id="__codelineno-0-622" name="__codelineno-0-622"></a>            <span class="c1"># Cells with an exact hit (distance 0) take that point&#39;s z.</span>
+<a id="__codelineno-0-622" name="__codelineno-0-622"></a>            <span class="c1"># Cells with an exact hit (distance 0) take that point's z.</span>
 <a id="__codelineno-0-623" name="__codelineno-0-623"></a>            <span class="n">exact</span> <span class="o">=</span> <span class="p">(</span><span class="n">dists</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-624" name="__codelineno-0-624"></a>            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-624" name="__codelineno-0-624"></a>            <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
 <a id="__codelineno-0-625" name="__codelineno-0-625"></a>                <span class="n">z_interp</span> <span class="o">=</span> <span class="p">(</span><span class="n">weights</span> <span class="o">*</span> <span class="n">zs</span><span class="p">[</span><span class="n">idxs</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">weights</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-626" name="__codelineno-0-626"></a>            <span class="k">if</span> <span class="n">exact</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
 <a id="__codelineno-0-627" name="__codelineno-0-627"></a>                <span class="c1"># For exact hits, take the z at the matching nearest point.</span>
 <a id="__codelineno-0-628" name="__codelineno-0-628"></a>                <span class="n">z_interp</span><span class="p">[</span><span class="n">exact</span><span class="p">]</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="n">idxs</span><span class="p">[</span><span class="n">exact</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
 <a id="__codelineno-0-629" name="__codelineno-0-629"></a>            <span class="n">out</span> <span class="o">=</span> <span class="n">z_interp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
-<a id="__codelineno-0-630" name="__codelineno-0-630"></a>        <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;nn&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-630" name="__codelineno-0-630"></a>        <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"nn"</span><span class="p">:</span>
 <a id="__codelineno-0-631" name="__codelineno-0-631"></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.spatial</span><span class="w"> </span><span class="kn">import</span> <span class="n">cKDTree</span>
 <a id="__codelineno-0-632" name="__codelineno-0-632"></a>
 <a id="__codelineno-0-633" name="__codelineno-0-633"></a>            <span class="n">tree</span> <span class="o">=</span> <span class="n">cKDTree</span><span class="p">(</span><span class="n">xy_pts</span><span class="p">)</span>
 <a id="__codelineno-0-634" name="__codelineno-0-634"></a>            <span class="n">_</span><span class="p">,</span> <span class="n">idxs</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-635" name="__codelineno-0-635"></a>            <span class="n">out</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[</span><span class="n">idxs</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
-<a id="__codelineno-0-636" name="__codelineno-0-636"></a>        <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;tin&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-636" name="__codelineno-0-636"></a>        <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"tin"</span><span class="p">:</span>
 <a id="__codelineno-0-637" name="__codelineno-0-637"></a>            <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearNDInterpolator</span>
 <a id="__codelineno-0-638" name="__codelineno-0-638"></a>
 <a id="__codelineno-0-639" name="__codelineno-0-639"></a>            <span class="n">interp</span> <span class="o">=</span> <span class="n">LinearNDInterpolator</span><span class="p">(</span><span class="n">xy_pts</span><span class="p">,</span> <span class="n">zs</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="n">nodata</span><span class="p">)</span>
@@ -5002,22 +5002,22 @@ int((ds.read_array() == -9999.0).sum())
 <a id="__codelineno-0-667" name="__codelineno-0-667"></a>    <span class="c1"># `count` uses `np.add.at` with weight 1 — same kernel as the mean</span>
 <a id="__codelineno-0-668" name="__codelineno-0-668"></a>    <span class="c1"># denominator; `median` still requires per-cell bucketing because</span>
 <a id="__codelineno-0-669" name="__codelineno-0-669"></a>    <span class="c1"># there is no closed-form running median in NumPy.</span>
-<a id="__codelineno-0-670" name="__codelineno-0-670"></a>    <span class="k">if</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;min&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-670" name="__codelineno-0-670"></a>    <span class="k">if</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"min"</span><span class="p">:</span>
 <a id="__codelineno-0-671" name="__codelineno-0-671"></a>        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-672" name="__codelineno-0-672"></a>        <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="n">zs</span><span class="p">)</span>
 <a id="__codelineno-0-673" name="__codelineno-0-673"></a>        <span class="n">out</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">out</span><span class="p">)]</span> <span class="o">=</span> <span class="n">nodata</span>
-<a id="__codelineno-0-674" name="__codelineno-0-674"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-674" name="__codelineno-0-674"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"max"</span><span class="p">:</span>
 <a id="__codelineno-0-675" name="__codelineno-0-675"></a>        <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-676" name="__codelineno-0-676"></a>        <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="n">zs</span><span class="p">)</span>
 <a id="__codelineno-0-677" name="__codelineno-0-677"></a>        <span class="n">out</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">out</span><span class="p">)]</span> <span class="o">=</span> <span class="n">nodata</span>
-<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;mean&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-678" name="__codelineno-0-678"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"mean"</span><span class="p">:</span>
 <a id="__codelineno-0-679" name="__codelineno-0-679"></a>        <span class="n">sums</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
 <a id="__codelineno-0-680" name="__codelineno-0-680"></a>        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 <a id="__codelineno-0-681" name="__codelineno-0-681"></a>        <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">sums</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="n">zs</span><span class="p">)</span>
 <a id="__codelineno-0-682" name="__codelineno-0-682"></a>        <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
-<a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+<a id="__codelineno-0-683" name="__codelineno-0-683"></a>        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">invalid</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">,</span> <span class="n">divide</span><span class="o">=</span><span class="s2">"ignore"</span><span class="p">):</span>
 <a id="__codelineno-0-684" name="__codelineno-0-684"></a>            <span class="n">out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">counts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">sums</span> <span class="o">/</span> <span class="n">counts</span><span class="p">,</span> <span class="n">nodata</span><span class="p">)</span>
-<a id="__codelineno-0-685" name="__codelineno-0-685"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">&quot;count&quot;</span><span class="p">:</span>
+<a id="__codelineno-0-685" name="__codelineno-0-685"></a>    <span class="k">elif</span> <span class="n">aggregate</span> <span class="o">==</span> <span class="s2">"count"</span><span class="p">:</span>
 <a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">rows</span><span class="p">,</span> <span class="n">cols</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 <a id="__codelineno-0-687" name="__codelineno-0-687"></a>        <span class="n">np</span><span class="o">.</span><span class="n">add</span><span class="o">.</span><span class="n">at</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
 <a id="__codelineno-0-688" name="__codelineno-0-688"></a>        <span class="n">out</span> <span class="o">=</span> <span class="n">counts</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
@@ -5196,7 +5196,7 @@ int((ds.read_array() == -9999.0).sum())
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       

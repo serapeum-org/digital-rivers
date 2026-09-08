@@ -23,7 +23,7 @@
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
     
     
       
@@ -31,7 +31,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
@@ -2375,7 +2375,7 @@ True</p>
 <a id="__codelineno-0-54" name="__codelineno-0-54"></a>    <span class="n">tile_cols</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
 <a id="__codelineno-0-55" name="__codelineno-0-55"></a>    <span class="n">overlap</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
 <a id="__codelineno-0-56" name="__codelineno-0-56"></a><span class="p">):</span>
-<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Iterate `Window` tiles over a Dataset.</span>
+<a id="__codelineno-0-57" name="__codelineno-0-57"></a><span class="w">    </span><span class="sd">"""Iterate `Window` tiles over a Dataset.</span>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">    Yields one `pyramids.dataset.Window` per tile so callers can stream a</span>
 <a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">    continental DEM through any per-tile algorithm without ever</span>
@@ -2444,13 +2444,13 @@ True</p>
 <a id="__codelineno-0-123" name="__codelineno-0-123"></a><span class="sd">            &gt;&gt;&gt; tile = np.asarray(ds.read_array(window=win))</span>
 <a id="__codelineno-0-124" name="__codelineno-0-124"></a><span class="sd">            &gt;&gt;&gt; bool((tile == arr[0:3, 3:5]).all())</span>
 <a id="__codelineno-0-125" name="__codelineno-0-125"></a><span class="sd">            True</span>
-<a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-126" name="__codelineno-0-126"></a><span class="sd">    """</span>
 <a id="__codelineno-0-127" name="__codelineno-0-127"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">rows</span>
 <a id="__codelineno-0-128" name="__codelineno-0-128"></a>    <span class="n">cols</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">columns</span>
 <a id="__codelineno-0-129" name="__codelineno-0-129"></a>    <span class="k">if</span> <span class="n">tile_rows</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">tile_cols</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-130" name="__codelineno-0-130"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tile_rows and tile_cols must be positive&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-130" name="__codelineno-0-130"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"tile_rows and tile_cols must be positive"</span><span class="p">)</span>
 <a id="__codelineno-0-131" name="__codelineno-0-131"></a>    <span class="k">if</span> <span class="n">overlap</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;overlap must be &gt;= 0&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-132" name="__codelineno-0-132"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"overlap must be &gt;= 0"</span><span class="p">)</span>
 <a id="__codelineno-0-133" name="__codelineno-0-133"></a>    <span class="n">step_r</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tile_rows</span> <span class="o">-</span> <span class="n">overlap</span><span class="p">)</span>
 <a id="__codelineno-0-134" name="__codelineno-0-134"></a>    <span class="n">step_c</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tile_cols</span> <span class="o">-</span> <span class="n">overlap</span><span class="p">)</span>
 <a id="__codelineno-0-135" name="__codelineno-0-135"></a>    <span class="k">for</span> <span class="n">r_off</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rows</span><span class="p">,</span> <span class="n">step_r</span><span class="p">):</span>
@@ -2510,7 +2510,7 @@ rioxarray chunked I/O.</p>
 <span class="normal"><a href="#__codelineno-0-159">159</a></span>
 <span class="normal"><a href="#__codelineno-0-160">160</a></span>
 <span class="normal"><a href="#__codelineno-0-161">161</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-146" name="__codelineno-0-146"></a><span class="k">def</span><span class="w"> </span><span class="nf">dask_backend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Dask / chunked-tile backend for continental DEMs — umbrella stub.</span>
+<a id="__codelineno-0-147" name="__codelineno-0-147"></a><span class="w">    </span><span class="sd">"""Dask / chunked-tile backend for continental DEMs — umbrella stub.</span>
 <a id="__codelineno-0-148" name="__codelineno-0-148"></a>
 <a id="__codelineno-0-149" name="__codelineno-0-149"></a><span class="sd">    Full Dask-graph integration remains deferred. The chunked-iteration</span>
 <a id="__codelineno-0-150" name="__codelineno-0-150"></a><span class="sd">    half ships as :func:`tile_windows` — callers process continental DEMs</span>
@@ -2520,10 +2520,10 @@ rioxarray chunked I/O.</p>
 <a id="__codelineno-0-154" name="__codelineno-0-154"></a><span class="sd">    References:</span>
 <a id="__codelineno-0-155" name="__codelineno-0-155"></a><span class="sd">        Dask documentation: https://docs.dask.org/</span>
 <a id="__codelineno-0-156" name="__codelineno-0-156"></a><span class="sd">        rioxarray chunked I/O.</span>
-<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">    """</span>
 <a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-<a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="s2">&quot;dask_backend umbrella API deferred. Use &quot;</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="s2">&quot;digitalrivers.cloud_io.tile_windows for per-tile streaming.&quot;</span>
+<a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="s2">"dask_backend umbrella API deferred. Use "</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="s2">"digitalrivers.cloud_io.tile_windows for per-tile streaming."</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2535,7 +2535,7 @@ rioxarray chunked I/O.</p>
 
 
 <h3 id="digitalrivers.cloud_io.write_cog" class="doc doc-heading"><a href="#digitalrivers.cloud_io.write_cog" class="toclink">
-            <code class="highlight language-python"><span class="n">write_cog</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="s1">&#39;deflate&#39;</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">write_cog</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="s1">'deflate'</span><span class="p">)</span></code>
 
 </a><a href="#digitalrivers.cloud_io.write_cog" class="headerlink" title="Permanent link">#</a></h3>
 
@@ -2798,10 +2798,10 @@ True</p>
 <span class="normal"><a href="#__codelineno-0-228">228</a></span>
 <span class="normal"><a href="#__codelineno-0-229">229</a></span>
 <span class="normal"><a href="#__codelineno-0-230">230</a></span>
-<span class="normal"><a href="#__codelineno-0-231">231</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="k">def</span><span class="w"> </span><span class="nf">write_cog</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">compress</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;deflate&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Cloud-Optimised GeoTIFF writer.</span>
+<span class="normal"><a href="#__codelineno-0-231">231</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-164" name="__codelineno-0-164"></a><span class="k">def</span><span class="w"> </span><span class="nf">write_cog</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">compress</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"deflate"</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-165" name="__codelineno-0-165"></a><span class="w">    </span><span class="sd">"""Cloud-Optimised GeoTIFF writer.</span>
 <a id="__codelineno-0-166" name="__codelineno-0-166"></a>
-<a id="__codelineno-0-167" name="__codelineno-0-167"></a><span class="sd">    Thin convenience wrapper that delegates to pyramids&#39; `Dataset.to_cog`,</span>
+<a id="__codelineno-0-167" name="__codelineno-0-167"></a><span class="sd">    Thin convenience wrapper that delegates to pyramids' `Dataset.to_cog`,</span>
 <a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="sd">    the canonical COG writer. COG is the standard cloud-native format for</span>
 <a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="sd">    raster data: internally tiled, internally overviewed, and indexable by</span>
 <a id="__codelineno-0-170" name="__codelineno-0-170"></a><span class="sd">    HTTP range requests — the foundation of every modern STAC-based pipeline.</span>
@@ -2812,12 +2812,12 @@ True</p>
 <a id="__codelineno-0-175" name="__codelineno-0-175"></a><span class="sd">        dataset: Any `pyramids.Dataset` (or subclass — DEM,</span>
 <a id="__codelineno-0-176" name="__codelineno-0-176"></a><span class="sd">            FlowDirection, Accumulation, etc.).</span>
 <a id="__codelineno-0-177" name="__codelineno-0-177"></a><span class="sd">        path: Output `.tif` path.</span>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        compress: GDAL compression method — `&quot;deflate&quot;` (default), `&quot;lzw&quot;`,</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            `&quot;zstd&quot;`, `&quot;lerc&quot;`, `&quot;none&quot;`, or any other method the installed</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">            GDAL&#39;s COG driver declares. Case-insensitive, and validated: an</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a><span class="sd">        compress: GDAL compression method — `"deflate"` (default), `"lzw"`,</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a><span class="sd">            `"zstd"`, `"lerc"`, `"none"`, or any other method the installed</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a><span class="sd">            GDAL's COG driver declares. Case-insensitive, and validated: an</span>
 <a id="__codelineno-0-181" name="__codelineno-0-181"></a><span class="sd">            unrecognised value raises rather than silently writing an</span>
 <a id="__codelineno-0-182" name="__codelineno-0-182"></a><span class="sd">            uncompressed file. Only the method is set — the compression</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">            *level* is left at GDAL&#39;s default, and pyramids resolves the</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a><span class="sd">            *level* is left at GDAL's default, and pyramids resolves the</span>
 <a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="sd">            predictor from the band dtype where the method supports one.</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a>
 <a id="__codelineno-0-186" name="__codelineno-0-186"></a><span class="sd">    Returns:</span>
@@ -2828,7 +2828,7 @@ True</p>
 <a id="__codelineno-0-191" name="__codelineno-0-191"></a><span class="sd">            supports.</span>
 <a id="__codelineno-0-192" name="__codelineno-0-192"></a><span class="sd">        DriverNotExistError: If the GDAL build lacks the COG driver.</span>
 <a id="__codelineno-0-193" name="__codelineno-0-193"></a><span class="sd">        FileNotFoundError: If the parent directory does not exist.</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">        FailedToSaveError: If GDAL&#39;s COG `CreateCopy` fails.</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a><span class="sd">        FailedToSaveError: If GDAL's COG `CreateCopy` fails.</span>
 <a id="__codelineno-0-195" name="__codelineno-0-195"></a>
 <a id="__codelineno-0-196" name="__codelineno-0-196"></a><span class="sd">    Examples:</span>
 <a id="__codelineno-0-197" name="__codelineno-0-197"></a><span class="sd">        - Write a 5x5 DEM as a COG:</span>
@@ -2847,11 +2847,11 @@ True</p>
 <a id="__codelineno-0-210" name="__codelineno-0-210"></a><span class="sd">            ...     ),</span>
 <a id="__codelineno-0-211" name="__codelineno-0-211"></a><span class="sd">            ... )</span>
 <a id="__codelineno-0-212" name="__codelineno-0-212"></a><span class="sd">            &gt;&gt;&gt; with tempfile.TemporaryDirectory() as tmpdir:</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            ...     out_path = os.path.join(tmpdir, &quot;out.tif&quot;)</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a><span class="sd">            ...     out_path = os.path.join(tmpdir, "out.tif")</span>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">            ...     result = write_cog(ds, out_path)</span>
 <a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">            ...     os.path.exists(result)</span>
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">            True</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">    """</span>
 <a id="__codelineno-0-218" name="__codelineno-0-218"></a>    <span class="n">method</span> <span class="o">=</span> <span class="n">compress</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
 <a id="__codelineno-0-219" name="__codelineno-0-219"></a>    <span class="n">supported</span> <span class="o">=</span> <span class="n">_cog_compression_methods</span><span class="p">()</span>
 <a id="__codelineno-0-220" name="__codelineno-0-220"></a>    <span class="c1"># GDAL does not fail on an unknown COMPRESS — it warns and writes the file</span>
@@ -2859,11 +2859,11 @@ True</p>
 <a id="__codelineno-0-222" name="__codelineno-0-222"></a>    <span class="c1"># so reject it here instead.</span>
 <a id="__codelineno-0-223" name="__codelineno-0-223"></a>    <span class="k">if</span> <span class="n">supported</span> <span class="ow">and</span> <span class="n">method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">supported</span><span class="p">:</span>
 <a id="__codelineno-0-224" name="__codelineno-0-224"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="sa">f</span><span class="s2">&quot;compress=</span><span class="si">{</span><span class="n">compress</span><span class="si">!r}</span><span class="s2"> is not a COG compression method; &quot;</span>
-<a id="__codelineno-0-226" name="__codelineno-0-226"></a>            <span class="sa">f</span><span class="s2">&quot;choose from </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">supported</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+<a id="__codelineno-0-225" name="__codelineno-0-225"></a>            <span class="sa">f</span><span class="s2">"compress=</span><span class="si">{</span><span class="n">compress</span><span class="si">!r}</span><span class="s2"> is not a COG compression method; "</span>
+<a id="__codelineno-0-226" name="__codelineno-0-226"></a>            <span class="sa">f</span><span class="s2">"choose from </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">supported</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
 <a id="__codelineno-0-227" name="__codelineno-0-227"></a>        <span class="p">)</span>
 <a id="__codelineno-0-228" name="__codelineno-0-228"></a>    <span class="c1"># `Compression(compress=...)` sets the method only. Passing the bare string</span>
-<a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="c1"># would select a named pyramids *profile* instead, and the &quot;deflate&quot; profile</span>
+<a id="__codelineno-0-229" name="__codelineno-0-229"></a>    <span class="c1"># would select a named pyramids *profile* instead, and the "deflate" profile</span>
 <a id="__codelineno-0-230" name="__codelineno-0-230"></a>    <span class="c1"># pins LEVEL=9 — maximum effort on a helper meant for continental DEMs.</span>
 <a id="__codelineno-0-231" name="__codelineno-0-231"></a>    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">to_cog</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">compression</span><span class="o">=</span><span class="n">Compression</span><span class="p">(</span><span class="n">compress</span><span class="o">=</span><span class="n">method</span><span class="p">)))</span>
 </code></pre></div></td></tr></table></div>
@@ -2900,14 +2900,14 @@ and S3 / GCS read factories remain deferred pending a follow-up PR.</p>
 <span class="normal"><a href="#__codelineno-0-241">241</a></span>
 <span class="normal"><a href="#__codelineno-0-242">242</a></span>
 <span class="normal"><a href="#__codelineno-0-243">243</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-234" name="__codelineno-0-234"></a><span class="k">def</span><span class="w"> </span><span class="nf">cloud_storage</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Zarr / S3 / GCS factories — umbrella stub.</span>
+<a id="__codelineno-0-235" name="__codelineno-0-235"></a><span class="w">    </span><span class="sd">"""Zarr / S3 / GCS factories — umbrella stub.</span>
 <a id="__codelineno-0-236" name="__codelineno-0-236"></a>
 <a id="__codelineno-0-237" name="__codelineno-0-237"></a><span class="sd">    The COG write half is shipped under :func:`write_cog`. Zarr writers</span>
 <a id="__codelineno-0-238" name="__codelineno-0-238"></a><span class="sd">    and S3 / GCS read factories remain deferred pending a follow-up PR.</span>
-<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    &quot;&quot;&quot;</span>
+<a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    """</span>
 <a id="__codelineno-0-240" name="__codelineno-0-240"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-<a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="s2">&quot;cloud_storage umbrella API deferred. The COG write half is &quot;</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="s2">&quot;available via digitalrivers.cloud_io.write_cog.&quot;</span>
+<a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="s2">"cloud_storage umbrella API deferred. The COG write half is "</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="s2">"available via digitalrivers.cloud_io.write_cog."</span>
 <a id="__codelineno-0-243" name="__codelineno-0-243"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -3062,7 +3062,7 @@ and S3 / GCS read factories remain deferred pending a follow-up PR.</p>
       <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "navigation.footer", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "content.code.copy", "content.code.annotate", "content.action.edit", "content.action.view", "content.tooltips", "search.highlight", "search.suggest", "toc.follow", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
       
         <script src="../../assets/javascripts/panzoom.min.js"></script>
       
