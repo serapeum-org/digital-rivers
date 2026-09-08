@@ -194,6 +194,61 @@ class TestWriteCogCompression:
         with pytest.raises(ValueError, match="not a COG compression method"):
             cloud_io.write_cog(dataset, str(tmp_path / "bad.tif"), compress=bad)
 
+    def test_validation_is_skipped_when_gdal_publishes_no_option_list(
+        self, dataset: Dataset, tmp_path, monkeypatch
+    ):
+        """Test an unusual GDAL build degrades to no validation, not to rejecting all.
+
+        Args:
+            dataset: Fixture raster.
+            tmp_path: pytest temporary directory.
+            monkeypatch: pytest monkeypatch fixture.
+
+        Test scenario:
+            The accepted set is read from the COG driver's own creation-option
+            list. A build that publishes none must fall back to accepting the
+            value rather than refusing every write, or `write_cog` would be
+            unusable there.
+        """
+        cloud_io._cog_compression_methods.cache_clear()
+        monkeypatch.setattr(cloud_io, "_cog_compression_methods", lambda: frozenset())
+        written = cloud_io.write_cog(dataset, str(tmp_path / "nolist.tif"))
+        assert os.path.exists(
+            written
+        ), "write_cog should still write when validation is unavailable"
+
+    @pytest.mark.parametrize(
+        "options, expected_empty",
+        [(None, True), ("<CreationOptionList></CreationOptionList>", True)],
+    )
+    def test_methods_empty_when_driver_publishes_nothing_usable(
+        self, monkeypatch, options: str | None, expected_empty: bool
+    ):
+        """Test the helper returns an empty set rather than raising.
+
+        Args:
+            monkeypatch: pytest monkeypatch fixture.
+            options: The driver's `DMD_CREATIONOPTIONLIST`, or `None`.
+            expected_empty: Whether an empty set is expected.
+
+        Test scenario:
+            Covers both defensive exits — no option list at all, and an option
+            list with no COMPRESS block. An empty set is the signal that means
+            "skip validation".
+        """
+        cloud_io._cog_compression_methods.cache_clear()
+
+        class _Driver:
+            def GetMetadataItem(self, _name):
+                return options
+
+        monkeypatch.setattr(cloud_io.gdal, "GetDriverByName", lambda _n: _Driver())
+        try:
+            result = cloud_io._cog_compression_methods()
+            assert (len(result) == 0) is expected_empty, f"Unexpected set: {result}"
+        finally:
+            cloud_io._cog_compression_methods.cache_clear()
+
     def test_compression_level_is_left_to_gdal(
         self, dataset: Dataset, tmp_path, mocker
     ):
