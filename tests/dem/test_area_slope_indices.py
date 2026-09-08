@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray):
@@ -26,14 +26,7 @@ class TestTWI:
             On a simple east-flowing chain DEM, TWI returns a float32 raster
             of the same shape as the DEM.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.twi(acc)
         arr = out.read_array()
@@ -47,14 +40,7 @@ class TestTWI:
             On a single chain, the downstream cells with higher accumulation
             should carry larger TWI than upstream cells (at equal slope).
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.twi(acc)
         arr = out.read_array()
@@ -77,14 +63,7 @@ class TestSPI:
             On a simple east-flowing chain DEM, SPI returns a float32 raster
             of the same shape as the DEM.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.spi(acc)
         arr = out.read_array()
@@ -98,14 +77,7 @@ class TestSPI:
             SCA * tan(slope) is non-negative for any non-negative SCA and
             positive slope, so finite SPI values must be ≥ 0.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.spi(acc)
         arr = out.read_array()
@@ -123,14 +95,7 @@ class TestSTI:
             On a simple east-flowing chain DEM, STI returns a float32 raster
             of the same shape as the DEM.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.sti(acc)
         arr = out.read_array()
@@ -144,14 +109,7 @@ class TestSTI:
             (SCA/22.13)^0.6 * (sin(slope)/0.0896)^1.3 is non-negative for
             any non-negative SCA and slope, so finite STI values must be ≥ 0.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         out = dem.sti(acc)
         arr = out.read_array()
@@ -169,14 +127,7 @@ class TestSlopeShapeMismatch:
             slope_deg with a shape that doesn't match the DEM/accumulation
             must be rejected.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc = _build_pipeline(z)
         bad_slope_arr = np.zeros((2, 2), dtype=np.float32)
         bad_slope = Dataset.from_array(

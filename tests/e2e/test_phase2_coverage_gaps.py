@@ -20,6 +20,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
+from tests.helpers import channel_z
 
 
 def _make_dem(arr: np.ndarray, no_data_value: float = -9999.0) -> DEM:
@@ -117,10 +118,7 @@ def test_centroid_returned_with_no_inputs():
 def test_pfafstetter_outlets_have_non_placeholder_coords():
     """The Pfafstetter outlets GeoDataFrame must not be a column of
     `Point(0, 0)` placeholders."""
-    z = np.array(
-        [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -135,10 +133,7 @@ def test_pfafstetter_outlets_have_non_placeholder_coords():
 
 def test_streamraster_subbasins_outlets_have_non_placeholder_coords():
     """`StreamRaster.subbasins` outlets must also be real coordinates."""
-    z = np.array(
-        [[9, 9, 9, 9, 9, 9], [9, 5, 4, 3, 2, 1], [9, 9, 9, 9, 9, 9]],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()

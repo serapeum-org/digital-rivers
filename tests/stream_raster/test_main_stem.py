@@ -7,7 +7,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import StreamRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -37,14 +37,7 @@ class TestStreamRasterMainStem:
             With one head and one outlet, the longest path covers all stream
             cells. `main_stem` must return a mask matching the stream mask.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         mask = sr.main_stem(fd)
         sm = sr.read_array().astype(bool)
@@ -91,14 +84,7 @@ class TestStreamRasterMainStem:
             Pass the outlet location directly; the returned mask must contain
             that cell and walk upstream from it.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         # Pour-point at the rightmost stream cell.
         outlet_rc = (1, 5)
@@ -156,14 +142,7 @@ class TestStreamRasterMainStem:
             main_stem requires a single-direction FlowDirection; passing
             a dinf-routed one must be rejected.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd_dinf = dem.flow_direction(method="dinf")
         fd_d8 = dem.flow_direction(method="d8")

@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from digitalrivers import WatershedRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int, cell_size: float = 1.0):
@@ -27,14 +27,7 @@ class TestFlowDirectionIsobasins:
             A small east-flowing chain with target_area_km2 large enough to
             produce a single basin should still return a typed WatershedRaster.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc, sr = _build_pipeline(z, threshold=1)
         # cell_size=1.0 deg → cell_area_km2 ≈ tiny; pick a huge target so we
         # fall back to a single basin at the outlet.
@@ -101,14 +94,7 @@ class TestFlowDirectionIsobasins:
         Test scenario:
             Zero or negative target areas are not meaningful; reject them.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, acc, sr = _build_pipeline(z, threshold=1)
         with pytest.raises(ValueError, match="positive"):
             fd.isobasins(sr, acc, target_area_km2=0.0)
@@ -122,14 +108,7 @@ class TestFlowDirectionIsobasins:
             isobasins requires single-direction routing; passing a
             multi-flow FlowDirection raises.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd_dinf = dem.flow_direction(method="dinf")
         fd_d8 = dem.flow_direction(method="d8")

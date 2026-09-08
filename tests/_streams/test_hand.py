@@ -8,7 +8,7 @@ from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, StreamRaster
 from digitalrivers._streams.hand import hand_d8
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -91,28 +91,14 @@ class TestHandD8:
 
 class TestDEMHand:
     def test_returns_dataset(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         out = dem.hand(sr, fd)
         assert isinstance(out, Dataset)
         assert out.shape == dem.shape
 
     def test_stream_cells_have_zero_hand(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         out = dem.hand(sr, fd)
         out_arr = out.read_array()
@@ -121,14 +107,7 @@ class TestDEMHand:
         np.testing.assert_allclose(out_arr[sr_mask], 0.0, atol=1e-4)
 
     def test_hand_non_negative_in_catchment(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         out = dem.hand(sr, fd)
         out_arr = out.read_array()
@@ -137,28 +116,14 @@ class TestDEMHand:
         assert np.all(out_arr[valid] >= -1e-4)
 
     def test_multi_direction_routing_rejected(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd_d8, sr = _build_pipeline(z, threshold=1)
         fd_dinf = dem.flow_direction(method="dinf")
         with pytest.raises(ValueError, match="single-direction"):
             dem.hand(sr, fd_dinf)
 
     def test_shape_mismatch_rejected(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         # Build a smaller dem for size mismatch.
         small = _make_dem(np.zeros((2, 2), dtype=np.float32))
@@ -212,14 +177,7 @@ class TestHandOrphanMemoisation:
             With method='euclidean', stream cells must hold 0 (each is its
             own nearest stream cell).
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         out = dem.hand(sr, method="euclidean")
         arr = out.read_array()
@@ -340,14 +298,7 @@ class TestHandOrphanMemoisation:
         Test scenario:
             Caller passes method='bogus' — must raise with a clear message.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         with pytest.raises(ValueError, match="method must be"):
             dem.hand(sr, fd, method="bogus")

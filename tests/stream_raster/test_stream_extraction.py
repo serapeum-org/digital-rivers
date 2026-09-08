@@ -7,7 +7,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation, StreamRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_acc(dem: DEM) -> Accumulation:
@@ -19,14 +19,7 @@ def _build_acc(dem: DEM) -> Accumulation:
 
 
 def test_threshold_one_returns_every_non_headwater_cell():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     acc = _build_acc(dem)
     sr = acc.streams(threshold=1)
@@ -40,14 +33,7 @@ def test_threshold_one_returns_every_non_headwater_cell():
 
 
 def test_threshold_max_returns_outlet_only():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     acc = _build_acc(dem)
     acc_arr = acc.read_array()
@@ -58,14 +44,7 @@ def test_threshold_max_returns_outlet_only():
 
 
 def test_monotonic_decrease_in_stream_count_as_threshold_grows():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     acc = _build_acc(dem)
     counts = [acc.streams(threshold=t).read_array().sum() for t in (1, 2, 4, 8, 16)]
@@ -79,14 +58,7 @@ def test_monotonic_decrease_in_stream_count_as_threshold_grows():
 
 def test_km2_threshold_with_unit_cell_size():
     # With cell_size = 1000 m, one cell is 1 km². threshold_km2=2 → cells_threshold=2.
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z, cell_size=1000.0)
     acc = _build_acc(dem)
     sr_km2 = acc.streams(threshold=2.0, units="km2")
@@ -95,14 +67,7 @@ def test_km2_threshold_with_unit_cell_size():
 
 
 def test_m2_threshold_with_unit_cell_size():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z, cell_size=10.0)
     acc = _build_acc(dem)
     # cell_area = 100 m². threshold_m2=300 → cells_threshold=3.
@@ -115,14 +80,7 @@ def test_m2_threshold_with_unit_cell_size():
 
 
 def test_slope_area_criterion_filters_by_support():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     acc = _build_acc(dem)
     # Build a slope raster: all cells slope 0.5 except outlet which is 0.1. Then
@@ -167,14 +125,7 @@ def test_only_slope_dem_without_exponent_raises():
 
 
 def test_returns_typed_stream_raster():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     acc = _build_acc(dem)
     sr = acc.streams(threshold=2)

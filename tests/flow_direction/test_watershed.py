@@ -8,7 +8,7 @@ import pytest
 from shapely.geometry import Point
 
 from digitalrivers import WatershedRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _world_xy(row: int, col: int) -> tuple[float, float]:
@@ -16,16 +16,17 @@ def _world_xy(row: int, col: int) -> tuple[float, float]:
     return (col + 0.5, -(row + 0.5))
 
 
+CHANNEL_Z = channel_z()
+"""A single west-to-east channel: row 1 drains to the outlet at (1, 5)."""
+
+
+def _channel_dem():
+    """A `DEM` over `CHANNEL_Z`, rebuilt per test so none can mutate another's."""
+    return _make_dem(CHANNEL_Z)
+
+
 def test_single_pour_point_captures_chain():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     # Pour point at (row=1, col=5) — the outlet.
     pts = gpd.GeoDataFrame(
@@ -43,15 +44,7 @@ def test_single_pour_point_captures_chain():
 
 
 def test_two_pour_points_inner_outer():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     # Outer basin at the outlet (1, 5); inner at (1, 3).
     pts = gpd.GeoDataFrame(
@@ -70,15 +63,7 @@ def test_two_pour_points_inner_outer():
 
 
 def test_two_pour_points_unique_basins():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     pts = gpd.GeoDataFrame(
         {"id": [1, 2]},
@@ -96,15 +81,7 @@ def test_two_pour_points_unique_basins():
 
 
 def test_outlets_attribute_matches_input_count():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     pts = gpd.GeoDataFrame(
         {"id": [1, 2]},
@@ -116,15 +93,7 @@ def test_outlets_attribute_matches_input_count():
 
 
 def test_to_polygons_emits_one_geometry_per_basin():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     pts = gpd.GeoDataFrame(
         {"id": [1]},
@@ -158,15 +127,7 @@ def test_multi_direction_routing_rejected():
 
 
 def test_outside_envelope_point_skipped():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
-    dem = _make_dem(z)
+    dem = _channel_dem()
     fd = dem.flow_direction(method="d8")
     pts = gpd.GeoDataFrame(
         {"id": [1, 2]},

@@ -6,7 +6,7 @@ import geopandas as gpd
 import numpy as np
 import pytest
 
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build(z: np.ndarray, cell_size: float = 1.0):
@@ -16,14 +16,7 @@ def _build(z: np.ndarray, cell_size: float = 1.0):
 
 
 def test_area_km2_matches_cell_count_for_unit_cell():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics()
@@ -35,14 +28,7 @@ def test_area_km2_matches_cell_count_for_unit_cell():
 
 
 def test_elevation_stats_match_basin_dem_values():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem)
@@ -54,14 +40,7 @@ def test_elevation_stats_match_basin_dem_values():
 
 
 def test_drainage_density_uses_stream_length():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
@@ -74,14 +53,7 @@ def test_drainage_density_uses_stream_length():
 
 
 def test_metrics_subset_filters_columns():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem, metrics=["area_km2"])
@@ -89,14 +61,7 @@ def test_metrics_subset_filters_columns():
 
 
 def test_centroid_in_output_when_dem_passed():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem, fd = _build(z)
     ws = fd.basins()
     df = ws.statistics(dem=dem)

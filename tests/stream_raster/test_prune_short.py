@@ -7,6 +7,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, FlowDirection, StreamRaster
+from tests.helpers import channel_z
 
 
 def _stream_raster_from_mask(sm: np.ndarray, cell_size: float = 1.0) -> StreamRaster:
@@ -169,14 +170,7 @@ class TestStreamRasterPruneShort:
             prune_short requires single-direction routing; passing a dinf
             FlowDirection must raise.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         ds = Dataset.from_array(
             z,
             geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),

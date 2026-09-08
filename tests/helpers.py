@@ -42,3 +42,27 @@ def make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
         no_data_value=NO_DATA,
     )
     return DEM(ds.raster)
+
+
+def channel_z() -> np.ndarray:
+    """Return the 3x6 single-channel elevation grid the suite tests against.
+
+    Row 1 falls monotonically west to east (`5 4 3 2 1`) between two walls of
+    `9`, so D8 routes the whole row to the outlet at `(1, 5)` and every
+    derivative — flow direction, accumulation, streams, watersheds, ordering —
+    has one unambiguous answer.
+
+    A fresh array is returned on every call rather than a shared constant, so a
+    test that conditions or burns into the grid cannot affect any other.
+
+    Returns:
+        A `(3, 6)` `float32` array.
+    """
+    return np.array(
+        [
+            [9, 9, 9, 9, 9, 9],
+            [9, 5, 4, 3, 2, 1],
+            [9, 9, 9, 9, 9, 9],
+        ],
+        dtype=np.float32,
+    )

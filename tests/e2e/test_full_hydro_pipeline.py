@@ -10,7 +10,7 @@ from digitalrivers import (
     FlowDirection,
     StreamRaster,
 )
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestFullHydroPipeline:
@@ -23,14 +23,7 @@ class TestFullHydroPipeline:
             Without `stream_threshold_cells`, the result dict carries exactly
             three keys, each pointing at the matching typed class.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline()
         assert set(out.keys()) == {"filled_dem", "flow_direction", "accumulation"}
@@ -45,14 +38,7 @@ class TestFullHydroPipeline:
             With `stream_threshold_cells=1`, the result dict carries a
             `"streams"` key pointing at a StreamRaster.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline(stream_threshold_cells=1)
         assert "streams" in out
@@ -65,14 +51,7 @@ class TestFullHydroPipeline:
             Calling fill → flow_direction → accumulate manually with the same
             arguments produces identical rasters.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         bundle = dem.full_hydro_pipeline()
         # Manual chain.
@@ -93,14 +72,7 @@ class TestFullHydroPipeline:
             Passing `fill_method="wang_liu"` and `flow_method="rho8"` returns
             objects tagged with the corresponding routing scheme.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         out = dem.full_hydro_pipeline(
             fill_method="wang_liu",

@@ -8,7 +8,7 @@ import pytest
 from shapely.geometry import Point
 
 from digitalrivers import WatershedRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestPhase2EndToEndPipeline:
@@ -83,14 +83,7 @@ class TestPhase2EndToEndPipeline:
 
     def test_subbasins_align_with_streams(self):
         """Sub-basin labels include every stream cell."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         acc = fd.accumulate()
@@ -100,14 +93,7 @@ class TestPhase2EndToEndPipeline:
 
     def test_basin_statistics_include_area_km2(self):
         """statistics() emits area_km2 per basin."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         ws = fd.basins()
@@ -153,14 +139,7 @@ class TestPhase2CoverageGaps:
 
     def test_watershed_to_polygons_geometry(self):
         """to_polygons() returns Polygons / MultiPolygons."""
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd = dem.flow_direction(method="d8")
         ws = fd.basins()

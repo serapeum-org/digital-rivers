@@ -16,7 +16,7 @@ from digitalrivers._streams.order import (
     strahler,
     topological,
 )
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -381,14 +381,7 @@ class TestStreamOutlets:
 
 class TestStreamRasterOrder:
     def test_returns_typed_stream_raster_strahler(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="strahler", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -427,14 +420,7 @@ class TestStreamRasterOrder:
             produce a `StreamRaster` whose values strictly increase along the
             chain.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="topological", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -446,14 +432,7 @@ class TestStreamRasterOrder:
         assert len(values) == len(set(values)), "Indices must be unique"
 
     def test_hack_dispatcher_returns_typed_stream_raster(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd, sr = _build_pipeline(z, threshold=1)
         ordered = sr.order(method="hack", flow_direction=fd)
         assert type(ordered) is StreamRaster
@@ -473,14 +452,7 @@ class TestStreamRasterOrder:
             sr.order(method="strahler", flow_direction=None)
 
     def test_multi_direction_routing_rejected(self):
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem, fd_d8, sr = _build_pipeline(z, threshold=1)
         fd_dinf = dem.flow_direction(method="dinf")
         with pytest.raises(ValueError, match="single-direction"):

@@ -6,19 +6,12 @@ import numpy as np
 import pytest
 
 from digitalrivers import WatershedRaster
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 def test_single_basin_from_single_outlet():
     # 1D chain east; the rightmost cell is an outlet (sink).
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     ws = fd.basins()
@@ -29,14 +22,7 @@ def test_single_basin_from_single_outlet():
 
 
 def test_outlet_record_has_cell_count():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     ws = fd.basins()
@@ -45,14 +31,7 @@ def test_outlet_record_has_cell_count():
 
 
 def test_min_area_drops_small_basins():
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     huge = 10_000_000  # nothing meets this threshold

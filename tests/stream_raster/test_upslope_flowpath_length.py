@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from tests.helpers import make_dem as _make_dem
+from tests.helpers import channel_z, make_dem as _make_dem
 
 
 class TestUpslopeFlowpathLength:
@@ -107,14 +107,7 @@ class TestUpslopeFlowpathLength:
             upslope_flowpath_length needs a single-direction FlowDirection;
             multi-flow inputs must be rejected.
         """
-        z = np.array(
-            [
-                [9, 9, 9, 9, 9, 9],
-                [9, 5, 4, 3, 2, 1],
-                [9, 9, 9, 9, 9, 9],
-            ],
-            dtype=np.float32,
-        )
+        z = channel_z()
         dem = _make_dem(z)
         fd_dinf = dem.flow_direction(method="dinf")
         with pytest.raises(ValueError, match="single-direction"):

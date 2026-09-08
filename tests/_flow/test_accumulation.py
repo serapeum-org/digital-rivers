@@ -18,6 +18,7 @@ from digitalrivers._flow.accumulation import (
     accumulate as _accumulate_array,
     kahn_accumulate,
 )
+from tests.helpers import channel_z
 
 
 def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
@@ -81,14 +82,7 @@ def test_d8_dispatch_matches_legacy_count():
     # neighbour (its eastern neighbour is out of grid) so under the stricter post-P5
     # D8 it's a sink — accumulation at that cell is the count of strictly upstream
     # cells along the chain.
-    z = np.array(
-        [
-            [9, 9, 9, 9, 9, 9],
-            [9, 5, 4, 3, 2, 1],
-            [9, 9, 9, 9, 9, 9],
-        ],
-        dtype=np.float32,
-    )
+    z = channel_z()
     dem = _make_dem(z)
     fd = dem.flow_direction(method="d8")
     acc = fd.accumulate()
