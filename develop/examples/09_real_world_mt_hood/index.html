@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3450,7 +3450,7 @@ approximation is fine for demonstration.</p>
 <span class="n">cell_size_m</span> <span class="o">=</span> <span class="mf">30.0</span>
 <span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">from_array</span><span class="p">(</span>
     <span class="n">subset</span><span class="p">,</span>
-    <span class="c1"># UTM 10N (approximate),</span>
+    <span class="c1"># epsg 32610 is UTM zone 10N, the approximate frame for Mount Hood.</span>
     <span class="n">geo_ref</span><span class="o">=</span><span class="n">GeoReference</span><span class="p">(</span><span class="n">top_left_corner</span><span class="o">=</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">cell_size</span><span class="o">=</span><span class="n">cell_size_m</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">32610</span><span class="p">),</span>
     <span class="n">no_data_value</span><span class="o">=-</span><span class="mf">9999.0</span><span class="p">,</span>
 <span class="p">)</span>
@@ -3465,7 +3465,7 @@ from digitalrivers import DEM
 cell_size_m = 30.0
 ds = Dataset.from_array(
     subset,
-    # UTM 10N (approximate),
+    # epsg 32610 is UTM zone 10N, the approximate frame for Mount Hood.
     geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=cell_size_m, epsg=32610),
     no_data_value=-9999.0,
 )

@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3485,7 +3485,7 @@ path, use the inherited <code>Terrain.read_file(path)</code> classmethod.</p>
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">            - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices</span>
 <a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">                with the alpha index as the fourth index, otherwise the alpha band will be missing.</span>
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">                ```python</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">                &gt;&gt;&gt; fig, ax = color_relief.plot(</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">                &gt;&gt;&gt; glyph = color_relief.plot(</span>
 <a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="sd">                ...     rgb_options={&quot;rgb&quot;: [0, 1, 2, 3]}</span>
 <a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">                ... ) # doctest: +SKIP</span>
 <a id="__codelineno-0-220" name="__codelineno-0-220"></a>
@@ -3815,7 +3815,7 @@ path, use the inherited <code>Terrain.read_file(path)</code> classmethod.</p>
 <a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">            - Now let&#39;s create the slope for the dataset.</span>
 <a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">                ```python</span>
 <a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">                &gt;&gt;&gt; slope = Terrain(dataset.raster).slope()</span>
-<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">                &gt;&gt;&gt; fig, ax = slope.plot() # doctest: +SKIP</span>
+<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">                &gt;&gt;&gt; glyph = slope.plot() # doctest: +SKIP</span>
 <a id="__codelineno-0-548" name="__codelineno-0-548"></a>
 <a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">                ```</span>
 <a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">                ![slope](./../_images/dataset/slope.png)</span>
@@ -3909,7 +3909,7 @@ path, use the inherited <code>Terrain.read_file(path)</code> classmethod.</p>
 <a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">            - Compute the aspect raster.</span>
 <a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">                ```python</span>
 <a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">                &gt;&gt;&gt; aspect = Terrain(dataset.raster).aspect()</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">                &gt;&gt;&gt; fig, ax = aspect.plot() # doctest: +SKIP</span>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">                &gt;&gt;&gt; glyph = aspect.plot() # doctest: +SKIP</span>
 <a id="__codelineno-0-642" name="__codelineno-0-642"></a>
 <a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">                ```</span>
 <a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">                ![aspect](./../_images/dataset/aspect.png)</span>
@@ -4685,7 +4685,7 @@ or DataFrame with columns: values, red, green, blue, alpha, (the alpha column is
 <li>The result color relief dataset will have 4 bands red, green, blue, and alpha. with values from 0 to 255.</li>
 <li>To plot the color relief dataset, you can use the <code>plot</code> method. but you need to provide the the rgb indices
     with the alpha index as the fourth index, otherwise the alpha band will be missing.
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">color_relief</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">glyph</span> <span class="o">=</span> <span class="n">color_relief</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="o">...</span>     <span class="n">rgb_options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;rgb&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]}</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="o">...</span> <span class="p">)</span> <span class="c1"># doctest: +SKIP</span>
 </code></pre></div>
@@ -4919,7 +4919,7 @@ or DataFrame with columns: values, red, green, blue, alpha, (the alpha column is
 <a id="__codelineno-0-214" name="__codelineno-0-214"></a><span class="sd">        - To plot the color relief dataset, you can use the `plot` method. but you need to provide the the rgb indices</span>
 <a id="__codelineno-0-215" name="__codelineno-0-215"></a><span class="sd">            with the alpha index as the fourth index, otherwise the alpha band will be missing.</span>
 <a id="__codelineno-0-216" name="__codelineno-0-216"></a><span class="sd">            ```python</span>
-<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">            &gt;&gt;&gt; fig, ax = color_relief.plot(</span>
+<a id="__codelineno-0-217" name="__codelineno-0-217"></a><span class="sd">            &gt;&gt;&gt; glyph = color_relief.plot(</span>
 <a id="__codelineno-0-218" name="__codelineno-0-218"></a><span class="sd">            ...     rgb_options={&quot;rgb&quot;: [0, 1, 2, 3]}</span>
 <a id="__codelineno-0-219" name="__codelineno-0-219"></a><span class="sd">            ... ) # doctest: +SKIP</span>
 <a id="__codelineno-0-220" name="__codelineno-0-220"></a>
@@ -5821,7 +5821,7 @@ No-data value is <code>-9999.0</code>.</p>
 </code></pre></div></li>
 <li>Now let's create the slope for the dataset.
     <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">slope</span> <span class="o">=</span> <span class="n">Terrain</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span><span class="o">.</span><span class="n">slope</span><span class="p">()</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">slope</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span> <span class="c1"># doctest: +SKIP</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">glyph</span> <span class="o">=</span> <span class="n">slope</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span> <span class="c1"># doctest: +SKIP</span>
 </code></pre></div>
     <img alt="slope" src="./../_images/dataset/slope.png" /></li>
 </ul>
@@ -5983,7 +5983,7 @@ Terrain.color_relief: Create a color relief for a band in
 <a id="__codelineno-0-544" name="__codelineno-0-544"></a><span class="sd">        - Now let&#39;s create the slope for the dataset.</span>
 <a id="__codelineno-0-545" name="__codelineno-0-545"></a><span class="sd">            ```python</span>
 <a id="__codelineno-0-546" name="__codelineno-0-546"></a><span class="sd">            &gt;&gt;&gt; slope = Terrain(dataset.raster).slope()</span>
-<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            &gt;&gt;&gt; fig, ax = slope.plot() # doctest: +SKIP</span>
+<a id="__codelineno-0-547" name="__codelineno-0-547"></a><span class="sd">            &gt;&gt;&gt; glyph = slope.plot() # doctest: +SKIP</span>
 <a id="__codelineno-0-548" name="__codelineno-0-548"></a>
 <a id="__codelineno-0-549" name="__codelineno-0-549"></a><span class="sd">            ```</span>
 <a id="__codelineno-0-550" name="__codelineno-0-550"></a><span class="sd">            ![slope](./../_images/dataset/slope.png)</span>
@@ -6232,7 +6232,7 @@ in degrees (0–360).  No-data value is <code>-9999.0</code>.</p>
 </code></pre></div></li>
 <li>Compute the aspect raster.
     <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">aspect</span> <span class="o">=</span> <span class="n">Terrain</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">raster</span><span class="p">)</span><span class="o">.</span><span class="n">aspect</span><span class="p">()</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">aspect</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span> <span class="c1"># doctest: +SKIP</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="o">&gt;&gt;&gt;</span> <span class="n">glyph</span> <span class="o">=</span> <span class="n">aspect</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span> <span class="c1"># doctest: +SKIP</span>
 </code></pre></div>
     <img alt="aspect" src="./../_images/dataset/aspect.png" /></li>
 </ul>
@@ -6403,7 +6403,7 @@ Terrain.slope: Compute the slope of the terrain surface.</p>
 <a id="__codelineno-0-638" name="__codelineno-0-638"></a><span class="sd">        - Compute the aspect raster.</span>
 <a id="__codelineno-0-639" name="__codelineno-0-639"></a><span class="sd">            ```python</span>
 <a id="__codelineno-0-640" name="__codelineno-0-640"></a><span class="sd">            &gt;&gt;&gt; aspect = Terrain(dataset.raster).aspect()</span>
-<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            &gt;&gt;&gt; fig, ax = aspect.plot() # doctest: +SKIP</span>
+<a id="__codelineno-0-641" name="__codelineno-0-641"></a><span class="sd">            &gt;&gt;&gt; glyph = aspect.plot() # doctest: +SKIP</span>
 <a id="__codelineno-0-642" name="__codelineno-0-642"></a>
 <a id="__codelineno-0-643" name="__codelineno-0-643"></a><span class="sd">            ```</span>
 <a id="__codelineno-0-644" name="__codelineno-0-644"></a><span class="sd">            ![aspect](./../_images/dataset/aspect.png)</span>
