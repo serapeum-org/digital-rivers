@@ -227,17 +227,26 @@ python = "3.13.*"
 [tool.pixi.feature.py314.dependencies]
 python = "3.14.*"
 
-# Force the standard (GIL) CPython build for the unpinned `default`
-# solve-group (default / dev / docs). Without this, conda-forge's solver
-# selects the free-threaded 3.14 variant (build string `*_cp314t`), for
-# which pyramids-gis ships NO wheel (its cibuildwheel `skip` excludes
-# `cp314t`) — pixi then falls back to the GDAL-less sdist and `import
-# digitalrivers` breaks. The `*cp314` build glob matches the regular ABI
-# wheel (`pyramids_gis-…-cp314-cp314-…`) and excludes the `cp314t` one.
-# Scoped to its own feature, not to every environment, so it does not
-# collide with the `py311` / `py312` / `py313` env python pins.
+# Pin the interpreter for the `default` solve-group (default / dev / docs),
+# which nothing else constrains — without this their only bound is
+# `requires-python = ">= 3.11, <4"`, so they float to whatever conda-forge
+# ships newest. pyramids-gis publishes wheels for cp311-cp314 only, so the
+# day 3.15 lands those three environments would resolve an interpreter it has
+# no wheel for and fall back to the sdist, which vendors no osgeo. There is no
+# conda GDAL underneath any more, so that fallback is a hard `import
+# digitalrivers` failure. Bump this when pyramids ships 3.15 wheels.
+#
+# The `*_cp314` build glob additionally excludes the free-threaded variant
+# (`*_cp314t`), which pyramids skips in cibuildwheel and therefore has no
+# wheel for either. The current solver does not pick it here — verified by
+# removing this feature and re-locking — but pyramids pins the same glob in
+# two of its own environments after the solver chose `*_cp314t` on osx-64 and
+# win-64, so the guard is cheap insurance rather than a live fix.
+#
+# Scoped to its own feature, not to every environment, so it does not collide
+# with the `py311` / `py312` / `py313` env python pins.
 [tool.pixi.feature.gil.dependencies]
-python = { version = "3.14.*"}
+python = { version = "3.14.*", build = "*_cp314" }
 
 # Dask backend for the out-of-core B7 path, via conda-forge `dask-core`. Named `lazy` (not `distributed`) so it
 # does not collide with the `distributed` PyPI extra and trigger pixi to auto-activate it.
