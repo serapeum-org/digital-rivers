@@ -45,7 +45,7 @@ aweish = Terrain(aweish)
 print(aweish)
 aweish.stats()
 # For a classed ramp instead of a linear one, pass a boundary ColorScaling.
-aweish.plot(color=ColorScaling.linear())  # vmin=0, vmax=1,
+aweish.plot(color=ColorScaling.linear())
 
 # aweish = aweish.change_no_data_value(-9999, aweish.no_data_value[0])
 
