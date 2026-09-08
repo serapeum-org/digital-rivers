@@ -160,7 +160,8 @@ def test_write_cog_output_is_tiled_geotiff(tmp_path):
     # will be ≤ raster size, but it must be a true tile (block_x > 0 and
     # equal to or smaller than raster_x). The default COG driver sets
     # 512×512 internally — adjusted to raster shape here.
-    assert block_size[0] > 0 and block_size[1] > 0
+    assert block_size[0] > 0
+    assert block_size[1] > 0
     handle = None  # close
 
 
@@ -261,7 +262,8 @@ class TestIhuReturnAndMetrics:
         assert len(outlets) > 0
         # Each key is a (br, bc) int tuple.
         for k in outlets:
-            assert isinstance(k, tuple) and len(k) == 2
+            assert isinstance(k, tuple)
+            assert len(k) == 2
             assert all(isinstance(v, int) for v in k)
 
     def test_swaps_per_iteration_length_matches_iterations(self):

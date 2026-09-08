@@ -14,7 +14,7 @@ from pyramids.dataset import Dataset, GeoReference
 from digitalrivers.dem import DEM, DIR_OFFSETS
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_dem():
     """Factory fixture that creates a DEM from a 2-D elevation array.
 

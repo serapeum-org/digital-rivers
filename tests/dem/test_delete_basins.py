@@ -19,7 +19,7 @@ from digitalrivers.dem import DEM
 NO_DATA = -9999
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_basin_dataset():
     """Factory fixture that creates a Dataset from a 2-D basin-ID array.
 

@@ -44,13 +44,13 @@ def _make_terrain(
     return Terrain(ds.raster)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def flat_dem() -> Terrain:
     """A 5x5 constant-elevation DEM (z=10)."""
     return _make_terrain(np.full((5, 5), 10.0, dtype=np.float32))
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def peak_dem() -> Terrain:
     """A 7x7 flat DEM (z=0) with a single z=5 peak at the centre (3, 3).
 

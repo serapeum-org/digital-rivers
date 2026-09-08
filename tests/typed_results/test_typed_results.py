@@ -27,12 +27,12 @@ def _make_plain_dataset(arr: np.ndarray) -> Dataset:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def fd_array() -> np.ndarray:
     return np.array([[0, 1, 2], [3, 4, 5], [6, 7, 0]], dtype=np.int32)
 
 
-@pytest.fixture()
+@pytest.fixture
 def flow_direction(fd_array: np.ndarray) -> FlowDirection:
     return FlowDirection.from_dataset(_make_plain_dataset(fd_array), routing="d8")
 
@@ -53,15 +53,9 @@ class TestRequiredRouting:
     def test_inherited_from_array_raises(self, fd_array: np.ndarray):
         # Pyramids' classmethod calls cls(dst, access="write") with no routing,
         # so this must raise on the typed subclass. That is the safety property.
+        geo_ref = GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326)
         with pytest.raises(TypeError):
-            FlowDirection.from_array(
-                fd_array,
-                geo_ref=GeoReference(
-                    top_left_corner=(0.0, 0.0),
-                    cell_size=1.0,
-                    epsg=4326,
-                ),
-            )
+            FlowDirection.from_array(fd_array, geo_ref=geo_ref)
 
     def test_inherited_dataset_like_raises(self, fd_array: np.ndarray):
         src = _make_plain_dataset(fd_array)

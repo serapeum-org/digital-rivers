@@ -6,23 +6,8 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers import DEM, StreamRaster
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.from_array(
-        disk,
-        geo_ref=GeoReference(
-            top_left_corner=(0.0, 0.0),
-            cell_size=cell_size,
-            epsg=4326,
-        ),
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from digitalrivers import StreamRaster
+from tests.helpers import make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):
@@ -95,7 +80,9 @@ class TestStreamRasterMainStem:
         assert mask[0, 0], "Lower-index head must be on the main stem"
         assert not mask[0, 2], "Higher-index head must NOT be on the main stem"
         # Trunk cells are on the main stem.
-        assert mask[1, 1] and mask[2, 1] and mask[3, 1]
+        assert mask[1, 1]
+        assert mask[2, 1]
+        assert mask[3, 1]
 
     def test_explicit_outlet_traces_subnetwork(self):
         """Test passing an outlet explicitly traces from that specific cell.

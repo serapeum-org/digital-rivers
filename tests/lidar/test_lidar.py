@@ -430,7 +430,8 @@ class TestDetectTrees:
         gdf = detect_trees(chm, min_height_m=2.0)
         assert len(gdf) == 1
         row = gdf.iloc[0]
-        assert int(row["row"]) == 2 and int(row["col"]) == 2
+        assert int(row["row"]) == 2
+        assert int(row["col"]) == 2
         assert float(row["height_m"]) == 15.0
 
     def test_below_threshold_skipped(self):

@@ -55,7 +55,8 @@ class TestSolve:
         g.add_outlet(1, 1.0)
         g.add_edge(5, 6, 2.0)  # disconnected component
         drain = g.solve()
-        assert 5 not in drain and 6 not in drain
+        assert 5 not in drain
+        assert 6 not in drain
 
     def test_add_adjacency_records_saddles(self):
         labels = np.array([[1, 1, 2], [1, 1, 2]], dtype=np.int64)

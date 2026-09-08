@@ -148,11 +148,12 @@ class TestGuards:
                 no_data_value=NODATA,
                 path=os.path.join(tmp, "d.tif"),
             )
+            out_path = os.path.join(tmp, "o.tif")
             try:
                 with pytest.warns(UserWarning):
                     out = fill_depressions_tiled(
                         dem,
-                        os.path.join(tmp, "o.tif"),
+                        out_path,
                         tile_rows=5,
                         tile_cols=5,
                         epsilon=0.001,

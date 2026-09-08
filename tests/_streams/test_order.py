@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers import DEM, FlowDirection, StreamRaster
+from digitalrivers import StreamRaster
 from digitalrivers._streams.order import (
     _stream_outlets,
     _upstream_length_from_head,
@@ -17,22 +16,7 @@ from digitalrivers._streams.order import (
     strahler,
     topological,
 )
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.from_array(
-        disk,
-        geo_ref=GeoReference(
-            top_left_corner=(0.0, 0.0),
-            cell_size=cell_size,
-            epsg=4326,
-        ),
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 def _build_pipeline(z: np.ndarray, threshold: int):

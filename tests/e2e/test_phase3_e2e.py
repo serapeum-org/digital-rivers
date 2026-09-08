@@ -9,18 +9,7 @@ from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString, Polygon
 
 from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.from_array(
-        disk,
-        geo_ref=GeoReference(top_left_corner=(0.0, 0.0), cell_size=1.0, epsg=4326),
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 class TestPhase3ConditioningPipeline:

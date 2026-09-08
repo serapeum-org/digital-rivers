@@ -5,25 +5,8 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers import DEM
-
-
-def _make_dem(arr: np.ndarray, cell_size: float = 1.0) -> DEM:
-    disk = arr.astype(np.float32, copy=True)
-    nan = np.isnan(disk)
-    disk[nan] = -9999.0
-    ds = Dataset.from_array(
-        disk,
-        geo_ref=GeoReference(
-            top_left_corner=(0.0, 0.0),
-            cell_size=cell_size,
-            epsg=4326,
-        ),
-        no_data_value=-9999.0,
-    )
-    return DEM(ds.raster)
+from tests.helpers import make_dem as _make_dem
 
 
 class TestTPI:
@@ -772,7 +755,8 @@ class TestFocalWindowStats:
         z = np.zeros((4, 4), dtype=np.float32)
         dem = _make_dem(z)
         out = dem._focal_window_stats(window=3)
-        assert isinstance(out, tuple) and len(out) == 3
+        assert isinstance(out, tuple)
+        assert len(out) == 3
         for arr in out:
             assert arr.shape == z.shape
 

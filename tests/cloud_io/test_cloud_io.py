@@ -289,5 +289,6 @@ def test_write_cog_output_is_internally_tiled(tmp_path):
     written = cloud_io.write_cog(ds, str(tmp_path / "out.tif"))
     handle = gdal.Open(written)
     block_size = handle.GetRasterBand(1).GetBlockSize()
-    assert block_size[0] > 0 and block_size[1] > 0
+    assert block_size[0] > 0
+    assert block_size[1] > 0
     handle = None
