@@ -391,7 +391,9 @@ class MorphometryMixin:
                 True
         """
         z, focal_mean, focal_sd = self._focal_window_stats(window)
-        out = (z - focal_mean) / np.where(focal_sd == 0.0, 1.0, focal_sd)
+        # A standard deviation is never negative, so `> 0` picks out exactly the
+        # degenerate flat-window case without an equality test on a computed float.
+        out = (z - focal_mean) / np.where(focal_sd > 0.0, focal_sd, 1.0)
         out = out.astype(np.float32)
         no_val = float(self.no_data_value[0])
         out = np.where(np.isnan(out), no_val, out)

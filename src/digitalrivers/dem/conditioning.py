@@ -365,7 +365,7 @@ class ConditioningMixin:
         # the gradient and silently collapse the fill to a flat). Floating DEMs keep their native precision;
         # integer DEMs (e.g. int16 SRTM) are promoted to float64. epsilon=0 fills keep the native dtype.
         out_dt = native.dtype
-        if epsilon != 0.0 and not np.issubdtype(native.dtype, np.floating):
+        if epsilon > 0.0 and not np.issubdtype(native.dtype, np.floating):
             out_dt = np.float64
         # Build a plain Dataset (cls=Dataset so we don't get a DEM via cls(...)), then
         # wrap with the typed DEM. This mirrors the pattern used in flow_direction().

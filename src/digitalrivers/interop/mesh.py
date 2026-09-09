@@ -351,7 +351,9 @@ class Mesh:
                 )
                 / 2.0
             )
-            if area == 0.0:
+            # `area` is an absolute value, so `<= 0` is the degenerate case and
+            # avoids an equality test on a computed float.
+            if area <= 0.0:
                 out[i] = np.inf
                 continue
             inradius = area / s
