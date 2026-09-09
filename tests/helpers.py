@@ -11,7 +11,6 @@ import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
-from digitalrivers.core.numba import njit
 
 NO_DATA = -9999.0
 """Sentinel every test raster declares, matching the fixtures on disk."""
@@ -98,8 +97,7 @@ def twin_channel_z() -> np.ndarray:
 # ----- D8 steepest descent, for fixtures ------------------------------------------------
 
 
-@njit(cache=True)
-def d8_flow_direction_numba(
+def _d8_flow_direction_impl(
     elev: np.ndarray,
     cell_size: float,
     nodata_out: np.int32,
@@ -155,3 +153,23 @@ def d8_flow_direction_numba(
             if best_dir >= 0:
                 out[r, c] = best_dir
     return out
+
+
+_D8_KERNEL = None
+
+
+def d8_flow_direction_numba(*args, **kwargs):
+    """Steepest-descent D8 over an elevation grid, JIT-compiled on first use.
+
+    The kernel is compiled lazily so that merely importing `tests.helpers` — which most
+    test modules do — does not pull Numba into the process. Importing it eagerly would
+    load Numba during collection for the whole suite, and would quietly undo the
+    package's own "import digitalrivers costs no Numba" property for anything checking
+    it in-process.
+    """
+    global _D8_KERNEL
+    if _D8_KERNEL is None:
+        from digitalrivers.core.numba import njit
+
+        _D8_KERNEL = njit(cache=True)(_d8_flow_direction_impl)
+    return _D8_KERNEL(*args, **kwargs)

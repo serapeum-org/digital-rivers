@@ -7,8 +7,9 @@ HAND -- is a walk over that grid rather than over elevations. Five schemes are o
 `FlowDirection` that records which one produced it.
 
 `flow_accumulation` counts upstream contributing cells. `accumulate_flow` is the legacy
-recursive per-cell walk, kept for compatibility; the iterative kernels in
-`flow._kernels.accumulation` are what the typed classes use.
+per-cell walk, kept for compatibility — it is a depth-first traversal over an explicit
+stack, not recursion, despite the `sys.setrecursionlimit` history around it. The
+vectorised kernels in `flow._kernels.accumulation` are what the typed classes use.
 
 Direction codes follow the `DIR_OFFSETS` convention from
 `digitalrivers.core.directions`: `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`.

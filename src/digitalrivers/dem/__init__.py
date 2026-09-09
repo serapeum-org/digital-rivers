@@ -14,7 +14,10 @@ working now that this module is a package rather than a single file.
 """
 
 from digitalrivers.core.directions import DIR_OFFSETS
-from digitalrivers.dem.conditioning import _reproject_if_needed
+from digitalrivers.dem.conditioning import _reproject_if_needed  # noqa: F401
 from digitalrivers.dem.dem import DEM
 
-__all__ = ["DEM", "DIR_OFFSETS", "_reproject_if_needed"]
+# `_reproject_if_needed` is deliberately absent: it is private, and listing it in
+# __all__ would advertise it as part of the package surface. It stays importable
+# from here for the tests that already reach it.
+__all__ = ["DEM", "DIR_OFFSETS"]

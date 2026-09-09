@@ -21,8 +21,11 @@ from collections import deque
 
 import numpy as np
 
-from digitalrivers.flow._kernels.routing import _DIR_DR, _DIR_DC
-from digitalrivers.core.directions import INV_DIR as _INV_DIR
+from digitalrivers.core.directions import (
+    DIR_DC_I8 as _DIR_DC,
+    DIR_DR_I8 as _DIR_DR,
+    INV_DIR as _INV_DIR,
+)
 
 
 def _receivers_d8(

@@ -2,7 +2,7 @@
 
 Four routing schemes alongside the existing D8:
 
-* `"d8"` (already in dem.py) — single-direction steepest descent.
+* `"d8"` (in `dem.routing`) — single-direction steepest descent.
 * `"dinf"` — Tarboton (1997). 8 triangular facets per cell; output is a 2-band raster
   (angle in radians CCW from east, slope magnitude). Aspect is split between two
   neighbours proportional to the within-facet angle.
@@ -14,7 +14,7 @@ Four routing schemes alongside the existing D8:
 * `"rho8"` — Fairfield & Leymarie (1991). Stochastic single-direction; cardinal slopes
   are perturbed by `/(2 - U)` where `U ~ Uniform(0, 1)`, then steepest is picked.
 
-Output direction codes follow the `DIR_OFFSETS` convention from `dem.py`:
+Output direction codes follow the `DIR_OFFSETS` convention from `core.directions`:
 `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`. All multi-band outputs index axis 0
 (bands) in that order for MFD, and `(angle, magnitude)` for D∞.
 """

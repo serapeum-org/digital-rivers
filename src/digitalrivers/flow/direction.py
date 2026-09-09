@@ -1,9 +1,11 @@
 """Typed flow-direction raster carrying routing-scheme metadata.
 
-The `FlowDirection` class is a thin subclass of `pyramids.dataset.Dataset`
-that tags the wrapped raster with the routing scheme (`d8` / `dinf` /
-`mfd_quinn` / `mfd_holmgren` / `rho8`) and the cell-value encoding
-convention. The `routing` argument is required at construction; there is no
+The `FlowDirection` class subclasses `pyramids.dataset.Dataset` and tags the
+wrapped raster with the routing scheme (`d8` / `dinf` / `mfd_quinn` /
+`mfd_holmgren` / `rho8`) and the cell-value encoding convention. Its method
+surface comes from two mixins as well as this module: `UpscaleMixin`
+(:mod:`digitalrivers.flow.upscale`) and `PfafstetterMixin`
+(:mod:`digitalrivers.flow.pfafstetter`). The `routing` argument is required at construction; there is no
 default. That is the safety property: it prevents a flow-direction raster of
 unknown provenance from being silently reinterpreted as D8 by a downstream
 consumer.

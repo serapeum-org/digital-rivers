@@ -904,7 +904,8 @@ class StreamRaster(Dataset):
                 c: Column of the cell.
 
             Returns:
-                The cell's node id, stable for the lifetime of this call to the caller.
+                The cell's node id. Stable within one `to_vector` call: asking twice
+                for the same cell returns the same id.
             """
             nonlocal next_node_id
             if node_id_grid[r, c] < 0:

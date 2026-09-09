@@ -14,9 +14,9 @@ Two shapes of the same table are exported, because callers genuinely need differ
 * `DIR_DR_* / DIR_DC_*` — parallel `(row, col)` offset arrays, one pair per dtype. Numba
   compiles a separate specialisation per argument dtype, so the `int8` and `int32`
   variants are both real and neither is redundant: the vectorised routing kernels in
-  `_flow.routing` work in `int8`, while every `@njit` kernel and every pure-Python walk
-  works in `int32`. **Pass the variant the call site already used** — swapping one for the
-  other silently changes a kernel's compiled signature.
+  `flow._kernels.routing` work in `int8`, while every `@njit` kernel and every
+  pure-Python walk works in `int32`. **Pass the variant the call site already used** —
+  swapping one for the other silently changes a kernel's compiled signature.
 
 `INV_DIR[k]` is the direction code a neighbour sitting at offset `k` would carry if it
 flowed *into* the centre cell. Every upstream (reverse) walk indexes it.
@@ -27,9 +27,10 @@ rather than flagged read-only, because `ndarray.flags.writeable` is part of the 
 compiles against, and flipping it would change the signature of every `@njit` kernel that
 takes them.
 
-Not every 8-direction table in the package belongs here: `_numba.horizon_walk_kernel`
-walks in *azimuth* order (E, NE, N, NW, W, SW, S, SE), a different labelling that happens
-to cover the same eight neighbours. It stays local to that kernel.
+Not every 8-direction table in the package belongs here:
+`dem._kernels.morphometry.horizon_walk_kernel` walks in *azimuth* order
+(E, NE, N, NW, W, SW, S, SE), a different labelling that happens to cover the same eight
+neighbours. It stays local to that kernel.
 """
 
 from __future__ import annotations
@@ -66,7 +67,7 @@ DIR_OFFSETS = {
 _DR = [1, 1, 0, -1, -1, -1, 0, 1]
 _DC = [0, -1, -1, -1, 0, 1, 1, 1]
 
-#: Row offsets as `int8` — the dtype `_flow.routing`'s vectorised kernels use.
+#: Row offsets as `int8` — the dtype `flow._kernels.routing`'s vectorised kernels use.
 DIR_DR_I8 = np.array(_DR, dtype=np.int8)
 #: Column offsets as `int8`.
 DIR_DC_I8 = np.array(_DC, dtype=np.int8)

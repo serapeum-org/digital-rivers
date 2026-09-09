@@ -3,8 +3,9 @@
 The `Accumulation.routing` attribute is for *provenance only*: it records
 which routing scheme produced the upstream counts so that downstream
 `Accumulation.streams(threshold)` extraction can validate routing
-compatibility. The accumulation surface itself (a scalar count or weighted
-sum per cell) does not depend on the routing scheme.
+compatibility. The surface has the same *shape* whichever scheme produced it —
+one scalar count or weighted sum per cell — but not the same values: a D8 and an
+MFD accumulation of the same DEM differ, which is exactly why the tag is carried.
 """
 
 from __future__ import annotations
