@@ -37,6 +37,10 @@ requires_numba = pytest.mark.skipif(
 )
 
 
+#: Spelled out so the child-process source below can be written without escapes.
+NEWLINE = "\n"
+
+
 def _run(code: str, env_flag: str | None = None) -> subprocess.CompletedProcess[str]:
     """Run `code` in a fresh interpreter, optionally with the disable flag set.
 
@@ -90,27 +94,44 @@ class TestIsNumbaEnabled:
         ), f"Expected False with the flag set, got {proc.stdout.strip()!r}"
 
     @requires_numba
-    @pytest.mark.parametrize("value", ["0", "", "true", "yes", "2"])
-    def test_only_the_exact_string_one_disables_the_jit(self, value):
+    def test_only_the_exact_string_one_disables_the_jit(self):
         """Anything other than `"1"` leaves the JIT on.
-
-        Args:
-            value: The environment value under test.
 
         Test scenario:
             The check is `!= "1"`, so `"true"` and `"yes"` do *not* disable Numba. That
             is surprising enough to be worth pinning: someone setting
             `DIGITALRIVERS_DISABLE_NUMBA=true` gets the fast path.
+
+            All five values are checked inside one child rather than one child each. The
+            flag is read at import, so each value still needs a fresh import — but the
+            child can drop the module from `sys.modules` and import again itself, which
+            costs a dict pop instead of an interpreter start and a GDAL load. Five
+            parametrised subprocesses took 15 s of a 35 s module.
         """
-        proc = _run(
-            "from digitalrivers.core.numba import is_numba_enabled;"
-            "print(is_numba_enabled())",
-            env_flag=value,
+        child = NEWLINE.join(
+            [
+                "import importlib, os, sys",
+                "out = {}",
+                'for value in ("0", "", "true", "yes", "2"):',
+                '    os.environ["DIGITALRIVERS_DISABLE_NUMBA"] = value',
+                '    sys.modules.pop("digitalrivers.core.numba", None)',
+                '    mod = importlib.import_module("digitalrivers.core.numba")',
+                "    out[value] = mod.is_numba_enabled()",
+                "print(out)",
+            ]
         )
+        proc = _run(child)
         assert proc.returncode == 0, f"Subprocess failed: {proc.stderr}"
-        assert (
-            proc.stdout.strip() == "True"
-        ), f"{value!r} should not disable the JIT, got {proc.stdout.strip()!r}"
+        results = eval(
+            proc.stdout.strip().splitlines()[-1]
+        )  # noqa: S307 — our own output
+        assert results == {
+            "0": True,
+            "": True,
+            "true": True,
+            "yes": True,
+            "2": True,
+        }, f"Only the exact string '1' should disable the JIT; got {results}"
 
 
 class TestNjitFallback:
