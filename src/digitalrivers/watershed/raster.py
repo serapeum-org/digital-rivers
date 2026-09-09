@@ -308,7 +308,7 @@ class WatershedRaster(Dataset):
         available["centroid_y"] = []
         for bid in unique_ids:
             mask = labels == bid
-            rs, cs = np.where(mask)
+            rs, cs = np.nonzero(mask)
             cx = x0 + (cs.mean() + 0.5) * dx
             cy = y0 + (rs.mean() + 0.5) * dy
             available["centroid_x"].append(float(cx))
@@ -440,7 +440,6 @@ class WatershedRaster(Dataset):
         arr = self.read_array().astype(np.int32, copy=False)
         gt = self.geotransform
         x0, dx, _, y0, _, dy = gt
-        rows, cols = arr.shape
         unique_ids = sorted({int(v) for v in np.unique(arr) if v != 0})
         records: list[dict] = []
         for bid in unique_ids:

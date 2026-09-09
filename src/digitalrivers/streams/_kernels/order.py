@@ -104,7 +104,7 @@ def _upstream_length_from_head(
     length = np.zeros((rows, cols), dtype=np.int32)
     indeg_copy = indeg.copy()
     queue: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(stream_mask & (indeg_copy == 0))):
+    for r, c in zip(*np.nonzero(stream_mask & (indeg_copy == 0))):
         queue.append((int(r), int(c)))
     while queue:
         r, c = queue.popleft()
@@ -190,7 +190,7 @@ def strahler(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     cnt_max = np.zeros((rows, cols), dtype=np.uint16)
 
     queue: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(stream_mask & (indeg == 0))):
+    for r, c in zip(*np.nonzero(stream_mask & (indeg == 0))):
         out[r, c] = 1
         queue.append((int(r), int(c)))
 
@@ -251,7 +251,7 @@ def shreve(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     indeg, ds_idx = _build_topology(stream_mask, fdir)
 
     queue: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(stream_mask & (indeg == 0))):
+    for r, c in zip(*np.nonzero(stream_mask & (indeg == 0))):
         out[r, c] = 1
         queue.append((int(r), int(c)))
 
@@ -496,7 +496,7 @@ def topological(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
     out = np.zeros((rows, cols), dtype=np.uint32)
     indeg, _ds_idx = _build_topology(stream_mask, fdir)
     queue: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(stream_mask & (indeg == 0))):
+    for r, c in zip(*np.nonzero(stream_mask & (indeg == 0))):
         queue.append((int(r), int(c)))
     idx = 1
     while queue:

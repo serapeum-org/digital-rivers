@@ -195,7 +195,6 @@ def mfd_flow_direction(
         `(rows, cols, 8)` float32 fraction stack. Each cell's fractions sum to 1.0
         if any downslope neighbour exists, else all zero (sink / no-flow cell).
     """
-    rows, cols, _ = slopes.shape
     # Mask: only positive (downslope) slopes contribute.
     pos = np.where(np.isnan(slopes), 0.0, slopes)
     pos = np.where(pos > 0, pos, 0.0)

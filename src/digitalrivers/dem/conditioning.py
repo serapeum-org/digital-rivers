@@ -674,7 +674,7 @@ class ConditioningMixin:
             dist = np.full((rows, cols), np.inf, dtype=np.float64)
             dist[stream_mask] = 0.0
             frontier: deque[tuple[int, int, int]] = deque(
-                (int(r), int(c), 0) for r, c in zip(*np.where(stream_mask))
+                (int(r), int(c), 0) for r, c in zip(*np.nonzero(stream_mask))
             )
             while frontier:
                 r, c, d = frontier.popleft()
@@ -1000,7 +1000,6 @@ class ConditioningMixin:
 
         elev = self.values
         gt = self.geotransform
-        x0, dx, _, y0, _, dy = gt
         rows, cols = elev.shape
 
         water_polygons = _reproject_if_needed(water_polygons, self.epsg)
@@ -1046,7 +1045,6 @@ class ConditioningMixin:
         """
         elev = self.values
         gt = self.geotransform
-        x0, dx, _, y0, _, dy = gt
         rows, cols = elev.shape
 
         building_polygons = _reproject_if_needed(building_polygons, self.epsg)

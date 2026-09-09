@@ -452,7 +452,7 @@ class StreamRaster(Dataset):
         outlet_xs: list[float] = []
         outlet_ys: list[float] = []
         for bid in unique_ids:
-            rs, cs = np.where(out == bid)
+            rs, cs = np.nonzero(out == bid)
             chosen_r, chosen_c = int(rs[0]), int(cs[0])
             for r, c in zip(rs.tolist(), cs.tolist()):
                 d = int(fdir[r, c])
@@ -610,7 +610,7 @@ class StreamRaster(Dataset):
         diag = cs * (2.0**0.5)
 
         # Trace every headwater link and remove its cells if too short.
-        head_locs = list(zip(*np.where(sm & (indeg == 0))))
+        head_locs = list(zip(*np.nonzero(sm & (indeg == 0))))
         for r0, c0 in head_locs:
             path: list[tuple[int, int]] = [(int(r0), int(c0))]
             length = 0.0

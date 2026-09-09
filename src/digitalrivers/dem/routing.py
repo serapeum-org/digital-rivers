@@ -125,7 +125,7 @@ class RoutingMixin:
                 # Only commit a direction where the steepest slope is strictly downhill;
                 # cells whose best 8-neighbour is at equal or higher elevation are sinks
                 # and stay at the no-data sentinel (spec P5: "max(s_k) ≤ 0 → sink").
-                rr, cc = np.where(valid_cells_mask)
+                rr, cc = np.nonzero(valid_cells_mask)
                 max_slope = slopes[rr, cc, best_dir]
                 downhill = max_slope > 0
                 arr[rr[downhill], cc[downhill]] = best_dir[downhill]
@@ -451,7 +451,7 @@ class RoutingMixin:
         flow_direction_cell = np.full((rows, cols, 2), np.nan, dtype=np.float64)
 
         dir_idx = flow_dir[valid].astype(int)
-        row_idx, col_idx = np.where(valid)
+        row_idx, col_idx = np.nonzero(valid)
         flow_direction_cell[valid, 0] = row_idx + offset_0[dir_idx]
         flow_direction_cell[valid, 1] = col_idx + offset_1[dir_idx]
 

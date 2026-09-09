@@ -512,7 +512,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
 
         seed_mask = sm & (quantile > up_max)
         seed_rcs: list[tuple[int, int]] = [
-            (int(r), int(c)) for r, c in zip(*np.where(seed_mask))
+            (int(r), int(c)) for r, c in zip(*np.nonzero(seed_mask))
         ]
         if not seed_rcs:
             # Catchment smaller than target → fall back to a single basin at
@@ -625,7 +625,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
         basin_ids: list[int] = []
         outlet_records: list[dict] = []
         bid = 1
-        for r, c in zip(*np.where(is_outlet)):
+        for r, c in zip(*np.nonzero(is_outlet)):
             r = int(r)
             c = int(c)
             seeds.append((r, c))

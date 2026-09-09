@@ -62,7 +62,7 @@ def _receivers_dinf(
     proportions = np.zeros((rows, cols, 2), dtype=np.float32)
     pi_over_4 = np.pi / 4.0
     valid = valid_mask & (angle >= 0)
-    rs, cs = np.where(valid)
+    rs, cs = np.nonzero(valid)
     a = angle[rs, cs]
     sector = np.floor(a / pi_over_4).astype(np.int32) % 8
     frac2 = a / pi_over_4 - sector
@@ -164,7 +164,7 @@ def kahn_accumulate(
     # Seed the queue with all valid cells that have no upstream contributors.
     queue: deque[tuple[int, int]] = deque()
     indeg_zero_valid = valid_mask & (indeg == 0)
-    for r, c in zip(*np.where(indeg_zero_valid)):
+    for r, c in zip(*np.nonzero(indeg_zero_valid)):
         queue.append((int(r), int(c)))
 
     while queue:
@@ -313,7 +313,7 @@ def kahn_max_upslope_length(
 
     lengths = np.zeros((rows, cols), dtype=np.float64)
     queue: deque[tuple[int, int]] = deque(
-        (int(r), int(c)) for r, c in zip(*np.where(indeg == 0))
+        (int(r), int(c)) for r, c in zip(*np.nonzero(indeg == 0))
     )
     while queue:
         r, c = queue.popleft()

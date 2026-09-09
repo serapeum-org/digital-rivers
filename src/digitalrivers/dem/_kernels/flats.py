@@ -162,7 +162,7 @@ def _bfs_levels(
     g = np.zeros((rows, cols), dtype=np.int32)
 
     frontier: deque[tuple[int, int]] = deque()
-    for r, c in zip(*np.where(seeds)):
+    for r, c in zip(*np.nonzero(seeds)):
         g[r, c] = 1
         frontier.append((int(r), int(c)))
 

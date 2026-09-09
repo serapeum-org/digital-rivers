@@ -221,7 +221,7 @@ def _priority_flood(
     pit: deque[tuple[float, int, int, int]] = deque()
     counter = count()
 
-    for r, c in zip(*np.where(_seed_mask(nodata_mask))):
+    for r, c in zip(*np.nonzero(_seed_mask(nodata_mask))):
         heapq.heappush(open_heap, (float(z_fill[r, c]), next(counter), int(r), int(c)))
         closed[r, c] = True
 

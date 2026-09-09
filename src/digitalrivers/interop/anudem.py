@@ -53,7 +53,6 @@ def relax_gaps(
     if method not in ("laplacian", "biharmonic"):
         raise ValueError(f"method must be 'laplacian' or 'biharmonic'; got {method!r}")
 
-    rows, cols = elev.shape
     z = elev.astype(np.float64, copy=True)
     fixed = np.isfinite(z)
     if mask is not None:
