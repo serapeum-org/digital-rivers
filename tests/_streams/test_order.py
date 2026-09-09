@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from digitalrivers import StreamRaster
-from digitalrivers._streams.order import (
+from digitalrivers.streams._kernels.order import (
     _stream_outlets,
     _upstream_length_from_head,
     _build_topology,
@@ -284,7 +284,7 @@ class TestTopological:
                 d = int(fd[r, c])
                 if d < 0 or d > 7:
                     break
-                from digitalrivers._streams.order import _DIR_DR, _DIR_DC
+                from digitalrivers.streams._kernels.order import _DIR_DR, _DIR_DC
 
                 nr, nc = r + int(_DIR_DR[d]), c + int(_DIR_DC[d])
                 if not sm[nr, nc]:

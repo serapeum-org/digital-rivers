@@ -18,7 +18,7 @@ import geopandas as gpd
 import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers._flow.watershed import watershed_d8
+from digitalrivers.watershed._kernels.watershed import watershed_d8
 from digitalrivers.core.directions import (
     DIR_DC_I32 as _DIR_DC,
     DIR_DR_I32 as _DIR_DR,
@@ -26,7 +26,7 @@ from digitalrivers.core.directions import (
 )
 
 if TYPE_CHECKING:
-    from digitalrivers.watershed_raster import WatershedRaster
+    from digitalrivers.watershed.raster import WatershedRaster
 
 __all__ = ["PfafstetterMixin"]
 
@@ -177,8 +177,8 @@ class PfafstetterMixin:
                 tributary ranking.
         """
         from digitalrivers.flow.accumulation import Accumulation
-        from digitalrivers.stream_raster import StreamRaster
-        from digitalrivers.watershed_raster import WatershedRaster
+        from digitalrivers.streams.raster import StreamRaster
+        from digitalrivers.watershed.raster import WatershedRaster
 
         if level < 1:
             raise ValueError(f"level must be >= 1; got {level}")

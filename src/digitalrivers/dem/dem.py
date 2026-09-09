@@ -30,7 +30,7 @@ from digitalrivers.flow._kernels.routing import (
     mfd_flow_direction as _mfd_flow_direction,
     rho8_flow_direction as _rho8_flow_direction,
 )
-from digitalrivers._streams.hand import hand_d8
+from digitalrivers.streams._kernels.hand import hand_d8
 
 # Re-exported: `DIR_OFFSETS` was defined here historically and callers still do
 # `from digitalrivers.dem import DIR_OFFSETS`. Its home is core.directions.
@@ -573,7 +573,7 @@ class DEM(Dataset):
                 `flow_direction` is missing / multi-direction for the D8
                 method.
         """
-        from digitalrivers.stream_raster import StreamRaster
+        from digitalrivers.streams.raster import StreamRaster
 
         if method not in ("d8", "euclidean"):
             raise ValueError(f"method must be 'd8' or 'euclidean'; got {method!r}")

@@ -16,7 +16,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString
 
-from digitalrivers._streams.order import (
+from digitalrivers.streams._kernels.order import (
     _build_topology,
     _stream_outlets,
     _upstream_length_from_head,
@@ -39,7 +39,7 @@ from digitalrivers.core.metadata import (
 )
 
 if TYPE_CHECKING:
-    from digitalrivers.watershed_raster import WatershedRaster
+    from digitalrivers.watershed.raster import WatershedRaster
 
 
 def _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir):
@@ -350,7 +350,7 @@ class StreamRaster(Dataset):
                 `flow_direction` is multi-direction.
         """
         from digitalrivers.flow.direction import FlowDirection
-        from digitalrivers.watershed_raster import WatershedRaster
+        from digitalrivers.watershed.raster import WatershedRaster
 
         if method != "link":
             raise ValueError(

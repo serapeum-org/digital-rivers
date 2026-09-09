@@ -23,7 +23,7 @@ from digitalrivers.core.metadata import (
 )
 
 if TYPE_CHECKING:
-    from digitalrivers.stream_raster import StreamRaster
+    from digitalrivers.streams.raster import StreamRaster
 
 
 def _resolve_envelope(
@@ -390,7 +390,7 @@ class Accumulation(Dataset):
                 >>> int(sr.read_array()[0, :].sum())
                 0
         """
-        from digitalrivers.stream_raster import StreamRaster
+        from digitalrivers.streams.raster import StreamRaster
 
         if units not in ("cells", "km2", "m2"):
             raise ValueError(f"units must be 'cells', 'km2', or 'm2'; got {units!r}")

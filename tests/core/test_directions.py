@@ -134,9 +134,9 @@ class TestConsumersSeeTheSharedTable:
         "module_path",
         [
             "digitalrivers.flow._kernels.ihu",
-            "digitalrivers._flow.watershed",
-            "digitalrivers._streams.hand",
-            "digitalrivers._streams.order",
+            "digitalrivers.watershed._kernels.watershed",
+            "digitalrivers.streams._kernels.hand",
+            "digitalrivers.streams._kernels.order",
         ],
     )
     def test_int32_consumers_share_one_object(self, module_path):

@@ -7,7 +7,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, StreamRaster
-from digitalrivers._streams.hand import hand_d8
+from digitalrivers.streams._kernels.hand import hand_d8
 from tests.helpers import channel_z, make_dem as _make_dem
 
 

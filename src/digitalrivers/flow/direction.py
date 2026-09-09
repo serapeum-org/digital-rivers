@@ -19,8 +19,8 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
-from digitalrivers._flow.watershed import watershed_d8
-from digitalrivers._streams.order import _stream_outlets
+from digitalrivers.watershed._kernels.watershed import watershed_d8
+from digitalrivers.streams._kernels.order import _stream_outlets
 from digitalrivers.core.directions import (
     DIR_DC_I32 as _DIR_DC,
     DIR_DR_I32 as _DIR_DR,
@@ -42,7 +42,7 @@ from digitalrivers.flow.upscale import UpscaleMixin
 
 if TYPE_CHECKING:
     from digitalrivers.flow.accumulation import Accumulation
-    from digitalrivers.watershed_raster import WatershedRaster
+    from digitalrivers.watershed.raster import WatershedRaster
 
 
 class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
@@ -462,7 +462,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
             ValueError: If routing is multi-direction, shapes mismatch, or
                 `target_area_km2` is not positive.
         """
-        from digitalrivers.watershed_raster import WatershedRaster
+        from digitalrivers.watershed.raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
             raise ValueError(
@@ -590,7 +590,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
             ValueError: If both area kwargs are supplied or
                 `merge_small` is unknown.
         """
-        from digitalrivers.watershed_raster import WatershedRaster
+        from digitalrivers.watershed.raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
             raise ValueError(
@@ -740,7 +740,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
             The `outlets` attribute is a GeoDataFrame parallel to the input
             `pour_points`.
         """
-        from digitalrivers.watershed_raster import WatershedRaster
+        from digitalrivers.watershed.raster import WatershedRaster
 
         if self.routing not in ("d8", "rho8"):
             raise ValueError(

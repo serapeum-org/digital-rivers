@@ -358,7 +358,7 @@ def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
         - Single east-flowing chain is entirely the main stem (order 1):
             ```python
             >>> import numpy as np
-            >>> from digitalrivers._streams.order import hack
+            >>> from digitalrivers.streams._kernels.order import hack
             >>> sm = np.array([[True, True, True, True]], dtype=bool)
             >>> fd = np.array([[6, 6, 6, -1]], dtype=np.int32)
             >>> hack(sm, fd).tolist()
@@ -370,7 +370,7 @@ def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
           (order 2):
             ```python
             >>> import numpy as np
-            >>> from digitalrivers._streams.order import hack
+            >>> from digitalrivers.streams._kernels.order import hack
             >>> sm = np.zeros((4, 3), dtype=bool)
             >>> sm[0, 0] = sm[0, 2] = True
             >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
@@ -388,7 +388,7 @@ def hack(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
         - Empty stream mask returns a zero raster of the same shape:
             ```python
             >>> import numpy as np
-            >>> from digitalrivers._streams.order import hack
+            >>> from digitalrivers.streams._kernels.order import hack
             >>> sm = np.zeros((2, 3), dtype=bool)
             >>> fd = np.full((2, 3), -1, dtype=np.int32)
             >>> hack(sm, fd).tolist()
@@ -460,7 +460,7 @@ def topological(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
           downstream:
             ```python
             >>> import numpy as np
-            >>> from digitalrivers._streams.order import topological
+            >>> from digitalrivers.streams._kernels.order import topological
             >>> sm = np.array([[True, True, True, True]], dtype=bool)
             >>> fd = np.array([[6, 6, 6, -1]], dtype=np.int32)
             >>> topological(sm, fd).tolist()
@@ -471,7 +471,7 @@ def topological(stream_mask: np.ndarray, fdir: np.ndarray) -> np.ndarray:
           confluence and trunk receive higher indices in BFS order:
             ```python
             >>> import numpy as np
-            >>> from digitalrivers._streams.order import topological
+            >>> from digitalrivers.streams._kernels.order import topological
             >>> sm = np.zeros((4, 3), dtype=bool)
             >>> sm[0, 0] = sm[0, 2] = True
             >>> sm[1, 1] = sm[2, 1] = sm[3, 1] = True
