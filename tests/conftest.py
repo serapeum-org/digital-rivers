@@ -34,6 +34,10 @@ def coello_df_4000() -> gdal.Dataset:
     powers-of-two direction codes (1, 2, 4, ..., 128) with 255 for no-data. This is the
     foreign-encoding counterpart to `coello_flow_direction_4000`, which uses the
     digitalrivers 0-7 encoding.
+
+    No test currently requests this fixture — it is kept because `fd4000.tif` is the
+    only ESRI-encoded raster in the fixture set, and encoding-detection tests are the
+    obvious use for it.
     """
     return gdal.Open("tests/data/coello/fd4000.tif")
 

@@ -46,10 +46,14 @@ Two extras are published: `viz` adds plotting (`cleopatra`), and `distributed` a
 out-of-core Dask backend (`pyramids-gis[lazy]` — dask, distributed, fsspec, zarr, s3fs,
 kerchunk, h5py).
 
+Select them on the conda-forge install, which carries the current release:
+
 ```bash
-pip install "digital-rivers[viz]"
-pip install "digital-rivers[all]"      # both
+mamba install -c conda-forge digital-rivers
 ```
+
+PyPI has the same distribution name but lags at `0.1.0`, so `pip install "digital-rivers[viz]"`
+will not get you this version.
 
 The `dev` environment already carries `viz`. For the Dask backend it carries the `lazy`
 dependency group instead of the `distributed` extra — the same dask and distributed the
@@ -66,7 +70,7 @@ from digitalrivers.dem import DEM
 
 dem = DEM.read_file("path/to/dem.tif")
 
-filled = dem.fill_sinks()                  # remove single-cell sinks
+filled = dem.fill_depressions()            # priority-flood depression fill
 slope = dem.slope()                        # max downhill slope (D8)
 fd = dem.flow_direction()                  # 0–7 D8 codes
 acc = dem.flow_accumulation(fd)            # upstream cell counts

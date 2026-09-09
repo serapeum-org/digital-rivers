@@ -4,13 +4,14 @@ This page covers installation of **digital-rivers** and its native dependencies.
 
 | Item | Value |
 |---|---|
-| Distribution name (PyPI / conda-forge) | `digital-rivers` *(not yet published)* |
+| Distribution name (PyPI / conda-forge) | `digital-rivers` |
 | Python import name | `digitalrivers` |
 | Current version | `0.4.0` |
 | Supported Python | **3.11 – 3.14** |
 | License | GPL v3 |
 
-> The package is not yet on PyPI or conda-forge. Install from source using the instructions below.
+> **conda-forge carries the current release; PyPI lags.** conda-forge has `0.4.0`, PyPI's newest is
+> `0.1.0`. Install from conda-forge, or from source for anything newer than what PyPI offers.
 
 ## Dependencies
 
@@ -18,9 +19,9 @@ This page covers installation of **digital-rivers** and its native dependencies.
 - `numpy >= 2.0.0`
 - `geopandas >= 1.0.0`
 - `pyramids-gis >= 0.60.0` (provides the `pyramids` import; pulled from PyPI)
-- `gdal >= 3.13.3, < 3.13.4` (best installed from conda-forge — pip wheels are
-  platform-fragile). The narrow pin matches `pyramids-gis`, which builds against
-  one GDAL minor at a time.
+GDAL is deliberately absent from that list. It is not a dependency of this package: the
+`pyramids-gis` wheel vendors its own osgeo bindings, and `import pyramids` is what puts them
+on `sys.path`. Nothing here installs or pins a separate GDAL.
 
 ### Optional extras
 | Extra | Purpose | Pulls |
@@ -30,9 +31,12 @@ This page covers installation of **digital-rivers** and its native dependencies.
 | `all` | both of the above | — |
 
 ### Development dependency groups
-`dev`, `docs` and `notebook` are [PEP 735](https://peps.python.org/pep-0735/) dependency
-groups, not extras — they are local tooling and are deliberately not published in the
-package metadata. Pixi maps each to an environment of the same name:
+`dev`, `docs`, `lazy` and `notebook` are [PEP 735](https://peps.python.org/pep-0735/)
+dependency groups, not extras — they are local tooling and are deliberately not published in
+the package metadata. Pixi resolves a group by name wherever an environment lists it, so an
+environment is a set of groups and extras rather than a single same-named group: `dev` is
+`py314` + `dev` + `viz` + `lazy`, `docs` is `py314` + `docs`. `lazy` carries dask and
+distributed for the out-of-core path; `notebook` is currently referenced by no environment.
 
 ```bash
 pixi install -e dev      # tests, linting, build tooling
@@ -41,8 +45,9 @@ pixi install -e docs     # mkdocs toolchain
 
 ## Recommended: Pixi
 
-This repository ships a [Pixi](https://pixi.sh/) configuration that resolves GDAL from conda-forge and
-`pyramids-gis` from PyPI, avoiding the usual GDAL-wheel headaches.
+This repository ships a [Pixi](https://pixi.sh/) configuration that resolves every dependency from
+PyPI, GDAL included — the `pyramids-gis` wheel vendors its own, so no conda channel is involved and
+the usual GDAL-wheel headaches do not arise.
 
 Prerequisites: install [Pixi](https://pixi.sh/latest/#installation).
 
@@ -89,9 +94,10 @@ mamba create -n digital-rivers -c conda-forge python=3.12 gdal libgdal-netcdf li
 mamba activate digital-rivers
 ```
 
-The GDAL version is deliberately unpinned here. The `pyramids-gis` wheel vendors its own
-osgeo bindings and uses those in preference to anything conda installs, so this environment
-only needs a GDAL new enough for the other conda packages that want one.
+The GDAL version is deliberately unpinned here. `import pyramids` prepends its vendored
+`_vendor/osgeo` to `sys.path`, so that copy is the one every import resolves to and a conda
+GDAL alongside it is never imported. It is in this recipe only for `libgdal-netcdf` and
+`libgdal-hdf4`, which need the C library; any version new enough for those will do.
 
 The repository's own environments are defined in `pyproject.toml` and resolved by
 pixi; `pixi install -e dev` is the supported way to reproduce them exactly, and the
@@ -124,9 +130,7 @@ editable-install step.
 - `pyramids` (conda-forge name) and `pyramids-gis` (PyPI name) are the **same package**. digital-rivers
   depends on the PyPI distribution name (`pyramids-gis`) so it works regardless of how pyramids itself was
   installed.
-- For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if
-  `pixi update` reports "No candidates were found for pyramids", wait for the mapping to refresh. The old
-  workaround of commenting out a conda `pyramids` pin no longer applies — there is no
-  `[tool.pixi.dependencies]` table; every dependency resolves from PyPI.
+- The conda-forge ↔ PyPI hash-mapping lag that pixi used to hit here cannot occur any more: it applies
+  only to conda packages, and this workspace resolves everything from PyPI.
 - Documentation: <https://serapeum-org.github.io/digital-rivers/latest>
 - Source repository: <https://github.com/serapeum-org/digital-rivers>

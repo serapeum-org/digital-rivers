@@ -112,7 +112,7 @@ hill_shade = terrain.hill_shade()
 
 ## Status
 
-Pre-release (v0.1.0). Not yet on PyPI or conda-forge — install from source. Supported Python:
+Current release `0.4.0`, on conda-forge. PyPI still carries `0.1.0`. Supported Python:
 **3.11–3.13**.
 
 Source: <https://github.com/serapeum-org/digital-rivers>

@@ -97,9 +97,15 @@ docs = [
 #
 # A group rather than the `distributed` extra because that extra is
 # `pyramids-gis[lazy]`, which is seven packages — dask, distributed, fsspec,
-# zarr, s3fs, kerchunk and h5py. The tiled tests import only dask and
-# distributed, so the group narrows the extra to the two members that are
-# actually exercised rather than adding anything the extra lacks.
+# zarr, s3fs, kerchunk and h5py. The group narrows that to the two the
+# out-of-core path is built on, rather than adding anything the extra lacks.
+#
+# To be exact about what uses them: `dask` is imported, lazily, in three places
+# in _outofcore/distributed.py — no test imports it directly, they reach it
+# through that module. `distributed` is imported nowhere. It is here because
+# dask's distributed scheduler is the point of that module and a Client makes it
+# reachable; nothing constructs one yet. It carried over from the conda feature
+# this group replaced, so dropping it is a separate decision from this move.
 #
 # The floors here mirror the two the upstream extra already sets. If pyramids
 # raises its own, this does not follow — check both when bumping pyramids.
