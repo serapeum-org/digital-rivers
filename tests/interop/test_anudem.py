@@ -167,50 +167,63 @@ class TestRelaxGaps:
             lap, bih
         ), "Solvers disagree on a plane, where both are exact"
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Known defect, predates the restructure and reproduces identically on main: "
-            "the biharmonic sweep diverges for holes 3x3 and larger, returning values "
-            "around 1e68 instead of interpolated elevations. It reaches the public API "
-            "as DEM.anudem_interpolate(method='biharmonic'). Remove this marker when the "
-            "solver is stabilised."
-        ),
-    )
-    def test_biharmonic_stays_within_the_surrounding_range_for_a_large_hole(self):
-        """The biharmonic solver should not leave the range of its own boundary.
-
-        Test scenario:
-            A 3x3 hole in a 0..8 ramp. Every filled value must lie inside `[0, 8]`, as
-            it does for a 1x1 or 2x2 hole and as it does for the Laplacian solver at any
-            size. Today the sweep diverges instead. Marked `strict`, so it fails loudly
-            the moment the solver is fixed and this test starts passing.
-        """
-        z = np.tile(np.arange(9, dtype=np.float64), (9, 1))
-        z[3:6, 3:6] = np.nan
-        out = relax_gaps(z, method="biharmonic", max_iter=300, tol=1e-12)
-        assert (
-            out.max() <= 8.0 + 1e-6
-        ), f"Biharmonic fill reached {out.max():.4g}; the surface only spans 0..8"
-
-    @pytest.mark.parametrize("hole_size", [1, 2])
-    def test_biharmonic_is_well_behaved_for_small_holes(self, hole_size):
-        """The divergence above is size-dependent; small holes are unaffected.
+    @pytest.mark.parametrize("hole_size", [1, 2, 3, 5, 9])
+    def test_biharmonic_stays_within_the_surrounding_range(self, hole_size):
+        """The biharmonic solver never leaves the range of its own boundary.
 
         Args:
             hole_size: Edge length of the square hole under test.
 
         Test scenario:
-            Bounds where the defect starts, so the xfail above is not read as "the
-            biharmonic solver is broken" when in fact it works up to 2x2.
+            This is the regression guard for a solver that used to diverge. The previous
+            two-Laplacian approximation recomputed the Laplacian from its own diverging
+            output each sweep, and for holes of 3x3 and up returned values around 1e68 —
+            reaching the public API as ~2.8e38 through float32. Every size from 1 to 9 is
+            checked, because the failure was size-dependent and 1x1 and 2x2 passed
+            throughout.
         """
-        z = np.tile(np.arange(9, dtype=np.float64), (9, 1))
-        lo = 4 - hole_size // 2
+        z = np.tile(np.arange(13, dtype=np.float64), (13, 1))
+        lo = 6 - hole_size // 2
         z[lo : lo + hole_size, lo : lo + hole_size] = np.nan
-        out = relax_gaps(z, method="biharmonic", max_iter=300, tol=1e-12)
+        out = relax_gaps(z, method="biharmonic", max_iter=2000, tol=1e-13)
+        assert np.isfinite(
+            out
+        ).all(), f"{hole_size}x{hole_size} produced non-finite cells"
         assert (
-            out.max() <= 8.0 + 1e-6
-        ), f"{hole_size}x{hole_size} hole reached {out.max():.4g}, outside 0..8"
+            -1e-6 <= out.min() and out.max() <= 12.0 + 1e-6
+        ), f"{hole_size}x{hole_size} left 0..12: [{out.min():.4g}, {out.max():.4g}]"
+
+    @pytest.mark.parametrize("hole_size", [1, 3, 5])
+    def test_biharmonic_reproduces_a_plane_exactly(self, hole_size):
+        """A plane satisfies the biharmonic equation, so the fill has a known answer.
+
+        Args:
+            hole_size: Edge length of the square hole under test.
+
+        Test scenario:
+            Stronger than a range check: it pins accuracy, not just stability. Any surface
+            a plane can describe must come back cell-for-cell, so a solver that is stable
+            but wrong still fails here.
+        """
+        truth = np.tile(np.arange(13, dtype=np.float64), (13, 1))
+        z = truth.copy()
+        lo = 6 - hole_size // 2
+        z[lo : lo + hole_size, lo : lo + hole_size] = np.nan
+        out = relax_gaps(z, method="biharmonic", max_iter=2000, tol=1e-13)
+        assert np.allclose(
+            out, truth, atol=1e-6
+        ), f"max error {np.max(np.abs(out - truth)):.4g} recovering a plane"
+
+    def test_biharmonic_reproduces_a_quadratic_bowl(self):
+        """A quadratic has a constant Laplacian, so it too is an exact solution."""
+        axis = (np.arange(13) - 6.0) ** 2
+        truth = np.add.outer(axis, axis)
+        z = truth.copy()
+        z[5:8, 5:8] = np.nan
+        out = relax_gaps(z, method="biharmonic", max_iter=2000, tol=1e-13)
+        assert np.allclose(
+            out, truth, atol=1e-6
+        ), f"max error {np.max(np.abs(out - truth)):.4g} recovering a bowl"
 
     def test_mask_marks_cells_to_preserve_not_cells_to_fill(self):
         """`mask=True` holds a cell fixed, so a masked `NaN` stays `NaN`.
