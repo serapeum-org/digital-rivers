@@ -57,6 +57,20 @@ class LasPoints:
     crs: object | None = None
 
     def __post_init__(self) -> None:
+        """Reject a cloud whose coordinate arrays disagree in length.
+
+        The class keeps its fields as parallel arrays, so a length mismatch between
+        `x`, `y` and `z` silently pairs each point with another point's coordinate.
+        Catching it at construction is the difference between an error and a cloud that
+        looks plausible and is wrong.
+
+        The optional per-point fields are not checked here: they are allowed to be empty,
+        which is how a cloud with no intensity or classification is represented.
+
+        Raises:
+            ValueError: If `x`, `y` and `z` do not all have the same length. All three
+                lengths are named in the message.
+        """
         n = len(self.x)
         if not (len(self.y) == n and len(self.z) == n):
             raise ValueError(

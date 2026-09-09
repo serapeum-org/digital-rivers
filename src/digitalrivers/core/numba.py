@@ -44,6 +44,7 @@ if not _USE_NUMBA:
             return args[0]
 
         def decorator(fn):
+            """Return `fn` untouched, so the decorated function stays plain Python."""
             return fn
 
         return decorator

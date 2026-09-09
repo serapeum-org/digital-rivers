@@ -76,6 +76,53 @@ class Mesh:
     """
 
     def __init__(self, vertices: np.ndarray, triangles: np.ndarray):
+        """Build a mesh from vertex coordinates and triangle indices.
+
+        Both arrays are converted rather than adopted, so the caller's arrays are never
+        written to and a list of lists works as well as an ndarray. Vertices become
+        `float64` and triangles `int64`, which is what the quality kernels index with.
+
+        Args:
+            vertices: `(N, 2)` or `(N, 3)` array of vertex coordinates. A 3-D input
+                stays 3-D; smoothing moves points in the XY plane and leaves Z alone.
+            triangles: `(M, 3)` array of vertex indices, counter-clockwise.
+
+        Raises:
+            ValueError: If `vertices` is not 2-D with 2 or 3 columns, or `triangles` is
+                not 2-D with exactly 3 columns. The shape is named in the message.
+
+        Examples:
+            - Build a single triangle and read back its counts:
+
+                >>> import numpy as np
+                >>> from digitalrivers.interop.mesh import Mesh
+                >>> mesh = Mesh(
+                ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
+                ...     np.array([[0, 1, 2]]),
+                ... )
+                >>> mesh.n_vertices, mesh.n_triangles
+                (3, 1)
+
+            - Coordinates are promoted to float64 whatever came in:
+
+                >>> import numpy as np
+                >>> from digitalrivers.interop.mesh import Mesh
+                >>> mesh = Mesh(
+                ...     np.array([[0, 0], [1, 0], [0, 1]], dtype=np.int32),
+                ...     np.array([[0, 1, 2]]),
+                ... )
+                >>> mesh.vertices.dtype
+                dtype('float64')
+
+            - A quad of vertices is not a triangle array:
+
+                >>> import numpy as np
+                >>> from digitalrivers.interop.mesh import Mesh
+                >>> Mesh(np.zeros((4, 2)), np.array([[0, 1, 2, 3]]))
+                Traceback (most recent call last):
+                    ...
+                ValueError: triangles must be (M, 3); got (1, 4)
+        """
         self.vertices = np.asarray(vertices, dtype=np.float64)
         self.triangles = np.asarray(triangles, dtype=np.int64)
         if self.vertices.ndim != 2 or self.vertices.shape[1] not in (2, 3):
@@ -313,4 +360,20 @@ class Mesh:
         return out
 
     def __repr__(self) -> str:
+        """Return a one-line summary naming the mesh's size.
+
+        Returns:
+            A string of the form `<Mesh vertices=N triangles=M>`.
+
+        Examples:
+            - The repr reports both counts:
+
+                >>> import numpy as np
+                >>> from digitalrivers.interop.mesh import Mesh
+                >>> Mesh(
+                ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
+                ...     np.array([[0, 1, 2]]),
+                ... )
+                <Mesh vertices=3 triangles=1>
+        """
         return f"<Mesh vertices={self.n_vertices} " f"triangles={self.n_triangles}>"

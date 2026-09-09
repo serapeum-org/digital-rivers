@@ -686,6 +686,14 @@ class Accumulation(Dataset):
         return out
 
     def __repr__(self) -> str:
+        """Return a one-line summary naming the raster's shape and the routing scheme that produced it.
+
+        The routing tag travels with the raster, so a repr says which scheme
+              produced these counts rather than leaving it to be guessed.
+
+        Returns:
+            A string of the form `<Accumulation rows=R cols=C routing='...'>`.
+        """
         return (
             f"<Accumulation rows={self.rows} cols={self.columns} "
             f"routing={self.routing!r}>"

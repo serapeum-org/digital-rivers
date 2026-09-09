@@ -816,6 +816,15 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
         )
 
     def __repr__(self) -> str:
+        """Return a one-line summary naming the raster's shape, routing scheme and cell-value encoding.
+
+        Both tags are shown, because a direction grid is only interpretable
+              given the pair — the same cell value means different neighbours
+              under different encodings.
+
+        Returns:
+            A string of the form `<FlowDirection rows=R cols=C routing='...' encoding='...'>`.
+        """
         return (
             f"<FlowDirection rows={self.rows} cols={self.columns} "
             f"routing={self.routing!r} encoding={self.encoding!r}>"

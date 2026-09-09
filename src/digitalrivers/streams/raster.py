@@ -849,6 +849,23 @@ class StreamRaster(Dataset):
 
         # Step 3 — walk each link.
         def _trace(start_r: int, start_c: int):
+            """Walk downstream from a link start to the end of that link.
+
+            A link runs from a head or confluence to whichever comes first: the next
+            confluence, a sink, the raster edge, or the last stream cell. Stopping *at*
+            the confluence rather than through it is what makes the links partition the
+            network — every stream cell belongs to exactly one.
+
+            Args:
+                start_r: Row of the link's first cell.
+                start_c: Column of the link's first cell.
+
+            Returns:
+                `(path, length)` where `path` is the list of `(row, col)` cells in
+                downstream order, first cell included, and `length` is the planimetric
+                distance along it in CRS units, counting diagonal steps as `sqrt(2)`
+                cells. A link of one cell has length 0.0.
+            """
             path = [(start_r, start_c)]
             r, c = start_r, start_c
             length = 0.0
@@ -874,6 +891,21 @@ class StreamRaster(Dataset):
         next_node_id = 0
 
         def _get_node_id(r: int, c: int) -> int:
+            """Return the node id for a cell, assigning the next free one if needed.
+
+            Nodes are the junctions of the vectorised network — heads, confluences and
+            outlets — and two links meeting at a confluence must name the same node or
+            the resulting graph is disconnected. Ids are handed out in first-seen order
+            and memoised in `node_id_grid`, so a repeat call for the same cell returns
+            what it returned before.
+
+            Args:
+                r: Row of the cell.
+                c: Column of the cell.
+
+            Returns:
+                The cell's node id, stable for the lifetime of this call to the caller.
+            """
             nonlocal next_node_id
             if node_id_grid[r, c] < 0:
                 node_id_grid[r, c] = next_node_id
@@ -938,6 +970,15 @@ class StreamRaster(Dataset):
         return gpd.GeoDataFrame(records, geometry="geometry", crs=crs)
 
     def __repr__(self) -> str:
+        """Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.
+
+        The threshold is what decides which cells became channel, so it is
+              the first thing to check when a network looks too dense or too
+              sparse.
+
+        Returns:
+            A string of the form `<StreamRaster rows=R cols=C threshold=... routing='...'>`.
+        """
         return (
             f"<StreamRaster rows={self.rows} cols={self.columns} "
             f"threshold={self.threshold!r} routing={self.routing!r}>"
