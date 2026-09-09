@@ -14,6 +14,7 @@ working now that this module is a package rather than a single file.
 """
 
 from digitalrivers.core.directions import DIR_OFFSETS
-from digitalrivers.dem.dem import DEM, _reproject_if_needed
+from digitalrivers.dem.conditioning import _reproject_if_needed
+from digitalrivers.dem.dem import DEM
 
 __all__ = ["DEM", "DIR_OFFSETS", "_reproject_if_needed"]
