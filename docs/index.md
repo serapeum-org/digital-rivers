@@ -71,8 +71,8 @@ main_stem = streams.main_stem(fdir)           # binary mask along the longest pa
 # Watershed metrics.
 basins = fdir.basins()
 metrics = basins.statistics(dem=filled, flow_direction=fdir, streams=streams)
-# columns: area_km2, mean_elev, hypsometric_integral, drainage_density_km_per_km2,
-#          longest_flow_path_m, centroid_x, centroid_y
+# columns: area_km2, centroid_x, centroid_y, min_elev, max_elev, mean_elev, std_elev,
+#          hypsometric_integral, longest_flow_path_m, drainage_density_km_per_km2
 
 # Terrain indices.
 tpi = dem.tpi(window=5)
@@ -80,7 +80,7 @@ curvature = dem.curvature(kind="profile")
 svf = dem.sky_view_factor(search_radius=10)
 
 # Visualisation.
-terrain = Terrain("dem.tif")
+terrain = Terrain.read_file("dem.tif")
 hill_shade = terrain.hill_shade()
 ```
 
