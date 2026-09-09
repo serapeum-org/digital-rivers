@@ -11,11 +11,11 @@ The comment on that line carries the rationale.
 
 # Import pyramids FIRST — before anything else, and keep it first.
 # The osgeo bindings live inside the pyramids wheel; importing pyramids is
-# what puts `_vendor/osgeo` on sys.path. Most test modules under tests/ do
-# `from osgeo import gdal` before they import digitalrivers, and this line is
-# what makes those imports resolve — including the one below. Nothing installs
-# a top-level osgeo any more, so deleting this line, or sorting it below the
-# osgeo import, breaks collection for the whole directory.
+# what puts `_vendor/osgeo` on sys.path. Several test modules under tests/ do
+# `from osgeo import gdal` at module scope, before they import digitalrivers,
+# and this line is what makes those imports resolve — including the one below.
+# Nothing installs a top-level osgeo any more, so deleting this line, or
+# sorting it below the osgeo import, breaks collection for the whole directory.
 import pyramids  # noqa: F401  # isort:skip
 
 from typing import Dict

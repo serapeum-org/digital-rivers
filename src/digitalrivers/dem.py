@@ -238,6 +238,24 @@ class DEM(Dataset):
                 slight elevation inflation. `planchon_darboux` requires `epsilon > 0`.
             inplace: If `True` the current instance is updated in place and `None`
                 is returned. If `False` (default) a new `DEM` is returned.
+            engine: `"auto"` (default) runs the in-memory algorithm and switches to the
+                tiled one only for rasters large enough to risk exhausting RAM;
+                `"tiled"` forces the streaming path and requires `out_path`;
+                `"in_memory"` forces the whole-array one.
+            out_path: Destination GeoTIFF the tiled path streams its result into.
+                Required whenever the tiled engine runs, ignored otherwise.
+            tile_size: Core tile shape for the tiled path, as an edge length or an
+                explicit `(rows, columns)`. Defaults to 2048; keep it at `>= 512`,
+                because the master graph's label count scales with total tile perimeter.
+            cache: Tile-store mode for the tiled path. `"evict"` (default) keeps no
+                per-tile interiors and recomputes them in the finalize stage, `"retain"`
+                holds them in RAM, and `"cache"` spills them to `scratch_dir`. Ignored by
+                the in-memory path.
+            workers: Tiled path only. `> 1` runs the per-tile passes through the dask
+                backend; only the `epsilon == 0` path is parallelised, `epsilon > 0` runs
+                serially either way. Defaults to 1.
+            scratch_dir: Directory the tiled path spills `.npy` tiles into. Required by
+                (and only used for) `cache="cache"`; it is created if it does not exist.
             eps_fill: Gradient for `priority_flood` with `epsilon > 0` (ignored otherwise).
                 `"exact"` (default) / `"monotone"` use the deterministic exit-distance
                 ramp that is **identical in-memory and tiled** (so `engine="auto"` is
@@ -250,8 +268,12 @@ class DEM(Dataset):
             `inplace` is `True`.
 
         Raises:
-            ValueError: If `method` is unknown, or `planchon_darboux` is requested
-                with `epsilon <= 0`.
+            ValueError: If `method` is unknown, if `planchon_darboux` is requested with
+                `epsilon <= 0`, if the tiled engine runs without an `out_path`, if
+                `engine="tiled"` is combined with `inplace=True`, or if `cache="cache"`
+                is used without a `scratch_dir`.
+            NotImplementedError: If the tiled engine is asked for `eps_fill="barnes"`
+                with `epsilon > 0`, which is not tileable.
 
         Out-of-core:
             `engine="auto"` (default) runs the in-memory algorithm unless the DEM is large enough to risk
@@ -260,6 +282,77 @@ class DEM(Dataset):
             `inplace`. For `epsilon>0`, `eps_fill="exact"` (default, alias `"monotone"`) produces a tiled fill
             **byte-for-byte identical** to the in-memory result; `eps_fill="barnes"` (the classic step-count) is
             in-memory only and is rejected by `engine="tiled"`.
+
+        Examples:
+            - The default priority-flood fill raises a one-cell pit to its rim, so the
+              filled depression is flat:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import DEM
+                >>> z = np.full((3, 3), 5.0, dtype=np.float64)
+                >>> z[1, 1] = 1.0
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
+                ... )
+                >>> filled = DEM(ds.raster).fill_depressions()
+                >>> float(filled.values[1, 1])
+                5.0
+
+            - A positive `epsilon` lifts the pit above its rim instead, leaving D8
+              routing a downhill path out of the fill:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import DEM
+                >>> z = np.full((3, 3), 5.0, dtype=np.float64)
+                >>> z[1, 1] = 1.0
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
+                ... )
+                >>> filled = DEM(ds.raster).fill_depressions(epsilon=0.5)
+                >>> float(filled.values[1, 1])
+                5.5
+
+            - `inplace=True` rewrites the instance and returns nothing:
+
+                >>> import numpy as np
+                >>> from pyramids.dataset import Dataset, GeoReference
+                >>> from digitalrivers import DEM
+                >>> z = np.full((3, 3), 5.0, dtype=np.float64)
+                >>> z[1, 1] = 1.0
+                >>> ds = Dataset.from_array(
+                ...     z,
+                ...     geo_ref=GeoReference(
+                ...         top_left_corner=(0.0, 0.0),
+                ...         cell_size=1.0,
+                ...         epsg=4326,
+                ...     ),
+                ...     no_data_value=-9999.0,
+                ... )
+                >>> dem = DEM(ds.raster)
+                >>> dem.fill_depressions(epsilon=0.5, inplace=True) is None
+                True
+                >>> float(dem.values[1, 1])
+                5.5
+
+        See Also:
+            DEM.breach_depressions: Cuts a channel through the barrier instead of raising
+                the pit floor.
+            DEM.fill_sinks: Deprecated alias that routes here with
+                `method="priority_flood", epsilon=0.1`.
         """
         from digitalrivers._outofcore.engine import (  # lazy: keeps import digitalrivers light
             require_out_path,
