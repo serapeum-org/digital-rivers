@@ -1501,7 +1501,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#digitalrivers.fusion.topobathy_fusion" class="md-nav__link">
+  <a href="#digitalrivers.dem.fusion.topobathy_fusion" class="md-nav__link">
     <span class="md-ellipsis">
       
         topobathy_fusion
@@ -1841,7 +1841,7 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#digitalrivers.fusion.topobathy_fusion" class="md-nav__link">
+  <a href="#digitalrivers.dem.fusion.topobathy_fusion" class="md-nav__link">
     <span class="md-ellipsis">
       
         topobathy_fusion
@@ -1900,10 +1900,10 @@ Phase-4 backfill P31.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="digitalrivers.fusion.topobathy_fusion" class="doc doc-heading"><a href="#digitalrivers.fusion.topobathy_fusion" class="toclink">
-            <code class="highlight language-python"><span class="n">digitalrivers</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">topobathy_fusion</span><span class="p">(</span><span class="n">topo</span><span class="p">,</span> <span class="n">bathy</span><span class="p">,</span> <span class="n">shoreline_elev</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">blend</span><span class="o">=</span><span class="s1">'max'</span><span class="p">)</span></code>
+<h3 id="digitalrivers.dem.fusion.topobathy_fusion" class="doc doc-heading"><a href="#digitalrivers.dem.fusion.topobathy_fusion" class="toclink">
+            <code class="highlight language-python"><span class="n">digitalrivers</span><span class="o">.</span><span class="n">dem</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">topobathy_fusion</span><span class="p">(</span><span class="n">topo</span><span class="p">,</span> <span class="n">bathy</span><span class="p">,</span> <span class="n">shoreline_elev</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">blend</span><span class="o">=</span><span class="s1">'max'</span><span class="p">)</span></code>
 
-</a><a href="#digitalrivers.fusion.topobathy_fusion" class="headerlink" title="Permanent link">#</a></h3>
+</a><a href="#digitalrivers.dem.fusion.topobathy_fusion" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents first">
@@ -2063,7 +2063,7 @@ Default 0.0 (MSL).</p>
 <blockquote>
 <p>import numpy as np
 from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.fusion import topobathy_fusion
+from digitalrivers.dem.fusion import topobathy_fusion
 topo = Dataset.from_array(
 ...     np.array([[5.0, -1.0]], dtype=np.float32),
 ...     geo_ref=GeoReference(
@@ -2097,7 +2097,7 @@ digital elevation models." Journal of Coastal Research 30(5).</p>
 </details>
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/digitalrivers/fusion.py</code></summary>
+              <summary>Source code in <code>src/digitalrivers/dem/fusion.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-14"> 14</a></span>
 <span class="normal"><a href="#__codelineno-0-15"> 15</a></span>
 <span class="normal"><a href="#__codelineno-0-16"> 16</a></span>
@@ -2252,7 +2252,7 @@ digital elevation models." Journal of Coastal Research 30(5).</p>
 <a id="__codelineno-0-58" name="__codelineno-0-58"></a>
 <a id="__codelineno-0-59" name="__codelineno-0-59"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <a id="__codelineno-0-60" name="__codelineno-0-60"></a><span class="sd">            &gt;&gt;&gt; from pyramids.dataset import Dataset, GeoReference</span>
-<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.fusion import topobathy_fusion</span>
+<a id="__codelineno-0-61" name="__codelineno-0-61"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.dem.fusion import topobathy_fusion</span>
 <a id="__codelineno-0-62" name="__codelineno-0-62"></a><span class="sd">            &gt;&gt;&gt; topo = Dataset.from_array(</span>
 <a id="__codelineno-0-63" name="__codelineno-0-63"></a><span class="sd">            ...     np.array([[5.0, -1.0]], dtype=np.float32),</span>
 <a id="__codelineno-0-64" name="__codelineno-0-64"></a><span class="sd">            ...     geo_ref=GeoReference(</span>

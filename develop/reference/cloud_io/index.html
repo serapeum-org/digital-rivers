@@ -1485,7 +1485,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io" class="md-nav__link">
     <span class="md-ellipsis">
       
         cloud_io
@@ -1496,7 +1496,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.tile_windows" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.tile_windows" class="md-nav__link">
     <span class="md-ellipsis">
       
         tile_windows
@@ -1507,7 +1507,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.dask_backend" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.dask_backend" class="md-nav__link">
     <span class="md-ellipsis">
       
         dask_backend
@@ -1518,7 +1518,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.write_cog" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.write_cog" class="md-nav__link">
     <span class="md-ellipsis">
       
         write_cog
@@ -1529,7 +1529,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.cloud_storage" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.cloud_storage" class="md-nav__link">
     <span class="md-ellipsis">
       
         cloud_storage
@@ -1925,7 +1925,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io" class="md-nav__link">
     <span class="md-ellipsis">
       
         cloud_io
@@ -1936,7 +1936,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.tile_windows" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.tile_windows" class="md-nav__link">
     <span class="md-ellipsis">
       
         tile_windows
@@ -1947,7 +1947,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.dask_backend" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.dask_backend" class="md-nav__link">
     <span class="md-ellipsis">
       
         dask_backend
@@ -1958,7 +1958,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.write_cog" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.write_cog" class="md-nav__link">
     <span class="md-ellipsis">
       
         write_cog
@@ -1969,7 +1969,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#digitalrivers.cloud_io.cloud_storage" class="md-nav__link">
+  <a href="#digitalrivers.interop.cloud_io.cloud_storage" class="md-nav__link">
     <span class="md-ellipsis">
       
         cloud_storage
@@ -2039,7 +2039,7 @@ dependency outright.</p>
 
 
 
-<a id="digitalrivers.cloud_io"></a>
+<a id="digitalrivers.interop.cloud_io"></a>
     <div class="doc doc-contents first">
 
         <p>Cloud-optimised raster I/O and chunked-tile streaming.</p>
@@ -2082,10 +2082,10 @@ features:</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="digitalrivers.cloud_io.tile_windows" class="doc doc-heading"><a href="#digitalrivers.cloud_io.tile_windows" class="toclink">
+<h3 id="digitalrivers.interop.cloud_io.tile_windows" class="doc doc-heading"><a href="#digitalrivers.interop.cloud_io.tile_windows" class="toclink">
             <code class="highlight language-python"><span class="n">tile_windows</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">tile_rows</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">tile_cols</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></code>
 
-</a><a href="#digitalrivers.cloud_io.tile_windows" class="headerlink" title="Permanent link">#</a></h3>
+</a><a href="#digitalrivers.interop.cloud_io.tile_windows" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2230,7 +2230,7 @@ silently read a transposed region. Unpack as
 <blockquote>
 <p>import numpy as np
 from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.cloud_io import tile_windows
+from digitalrivers.interop.cloud_io import tile_windows
 ds = Dataset.from_array(
 ...     np.zeros((5, 5), dtype=np.float32),
 ...     geo_ref=GeoReference(
@@ -2254,7 +2254,7 @@ Window(col_off=3, row_off=0, cols=2, rows=3)</p>
 <blockquote>
 <p>import numpy as np
 from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.cloud_io import tile_windows
+from digitalrivers.interop.cloud_io import tile_windows
 arr = np.arange(25, dtype=np.float32).reshape(5, 5)
 ds = Dataset.from_array(
 ...     arr,
@@ -2276,7 +2276,7 @@ True</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/digitalrivers/cloud_io.py</code></summary>
+              <summary>Source code in <code>src/digitalrivers/interop/cloud_io.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-51"> 51</a></span>
 <span class="normal"><a href="#__codelineno-0-52"> 52</a></span>
 <span class="normal"><a href="#__codelineno-0-53"> 53</a></span>
@@ -2411,7 +2411,7 @@ True</p>
 <a id="__codelineno-0-90" name="__codelineno-0-90"></a>
 <a id="__codelineno-0-91" name="__codelineno-0-91"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <a id="__codelineno-0-92" name="__codelineno-0-92"></a><span class="sd">            &gt;&gt;&gt; from pyramids.dataset import Dataset, GeoReference</span>
-<a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.cloud_io import tile_windows</span>
+<a id="__codelineno-0-93" name="__codelineno-0-93"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.interop.cloud_io import tile_windows</span>
 <a id="__codelineno-0-94" name="__codelineno-0-94"></a><span class="sd">            &gt;&gt;&gt; ds = Dataset.from_array(</span>
 <a id="__codelineno-0-95" name="__codelineno-0-95"></a><span class="sd">            ...     np.zeros((5, 5), dtype=np.float32),</span>
 <a id="__codelineno-0-96" name="__codelineno-0-96"></a><span class="sd">            ...     geo_ref=GeoReference(</span>
@@ -2430,7 +2430,7 @@ True</p>
 <a id="__codelineno-0-109" name="__codelineno-0-109"></a>
 <a id="__codelineno-0-110" name="__codelineno-0-110"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <a id="__codelineno-0-111" name="__codelineno-0-111"></a><span class="sd">            &gt;&gt;&gt; from pyramids.dataset import Dataset, GeoReference</span>
-<a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.cloud_io import tile_windows</span>
+<a id="__codelineno-0-112" name="__codelineno-0-112"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.interop.cloud_io import tile_windows</span>
 <a id="__codelineno-0-113" name="__codelineno-0-113"></a><span class="sd">            &gt;&gt;&gt; arr = np.arange(25, dtype=np.float32).reshape(5, 5)</span>
 <a id="__codelineno-0-114" name="__codelineno-0-114"></a><span class="sd">            &gt;&gt;&gt; ds = Dataset.from_array(</span>
 <a id="__codelineno-0-115" name="__codelineno-0-115"></a><span class="sd">            ...     arr,</span>
@@ -2471,10 +2471,10 @@ True</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="digitalrivers.cloud_io.dask_backend" class="doc doc-heading"><a href="#digitalrivers.cloud_io.dask_backend" class="toclink">
+<h3 id="digitalrivers.interop.cloud_io.dask_backend" class="doc doc-heading"><a href="#digitalrivers.interop.cloud_io.dask_backend" class="toclink">
             <code class="highlight language-python"><span class="n">dask_backend</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-</a><a href="#digitalrivers.cloud_io.dask_backend" class="headerlink" title="Permanent link">#</a></h3>
+</a><a href="#digitalrivers.interop.cloud_io.dask_backend" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2493,7 +2493,7 @@ rioxarray chunked I/O.</p>
 </details>
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/digitalrivers/cloud_io.py</code></summary>
+              <summary>Source code in <code>src/digitalrivers/interop/cloud_io.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-146">146</a></span>
 <span class="normal"><a href="#__codelineno-0-147">147</a></span>
 <span class="normal"><a href="#__codelineno-0-148">148</a></span>
@@ -2523,7 +2523,7 @@ rioxarray chunked I/O.</p>
 <a id="__codelineno-0-157" name="__codelineno-0-157"></a><span class="sd">    """</span>
 <a id="__codelineno-0-158" name="__codelineno-0-158"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
 <a id="__codelineno-0-159" name="__codelineno-0-159"></a>        <span class="s2">"dask_backend umbrella API deferred. Use "</span>
-<a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="s2">"digitalrivers.cloud_io.tile_windows for per-tile streaming."</span>
+<a id="__codelineno-0-160" name="__codelineno-0-160"></a>        <span class="s2">"digitalrivers.interop.cloud_io.tile_windows for per-tile streaming."</span>
 <a id="__codelineno-0-161" name="__codelineno-0-161"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
@@ -2534,10 +2534,10 @@ rioxarray chunked I/O.</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="digitalrivers.cloud_io.write_cog" class="doc doc-heading"><a href="#digitalrivers.cloud_io.write_cog" class="toclink">
+<h3 id="digitalrivers.interop.cloud_io.write_cog" class="doc doc-heading"><a href="#digitalrivers.interop.cloud_io.write_cog" class="toclink">
             <code class="highlight language-python"><span class="n">write_cog</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">compress</span><span class="o">=</span><span class="s1">'deflate'</span><span class="p">)</span></code>
 
-</a><a href="#digitalrivers.cloud_io.write_cog" class="headerlink" title="Permanent link">#</a></h3>
+</a><a href="#digitalrivers.interop.cloud_io.write_cog" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2706,7 +2706,7 @@ supports.</p>
 <blockquote>
 <p>import numpy as np
 from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.cloud_io import write_cog
+from digitalrivers.interop.cloud_io import write_cog
 import tempfile, os
 arr = np.arange(25, dtype=np.float32).reshape(5, 5)
 ds = Dataset.from_array(
@@ -2730,7 +2730,7 @@ True</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/digitalrivers/cloud_io.py</code></summary>
+              <summary>Source code in <code>src/digitalrivers/interop/cloud_io.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-164">164</a></span>
 <span class="normal"><a href="#__codelineno-0-165">165</a></span>
 <span class="normal"><a href="#__codelineno-0-166">166</a></span>
@@ -2835,7 +2835,7 @@ True</p>
 <a id="__codelineno-0-198" name="__codelineno-0-198"></a>
 <a id="__codelineno-0-199" name="__codelineno-0-199"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
 <a id="__codelineno-0-200" name="__codelineno-0-200"></a><span class="sd">            &gt;&gt;&gt; from pyramids.dataset import Dataset, GeoReference</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.cloud_io import write_cog</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.interop.cloud_io import write_cog</span>
 <a id="__codelineno-0-202" name="__codelineno-0-202"></a><span class="sd">            &gt;&gt;&gt; import tempfile, os</span>
 <a id="__codelineno-0-203" name="__codelineno-0-203"></a><span class="sd">            &gt;&gt;&gt; arr = np.arange(25, dtype=np.float32).reshape(5, 5)</span>
 <a id="__codelineno-0-204" name="__codelineno-0-204"></a><span class="sd">            &gt;&gt;&gt; ds = Dataset.from_array(</span>
@@ -2875,10 +2875,10 @@ True</p>
 <div class="doc doc-object doc-function">
 
 
-<h3 id="digitalrivers.cloud_io.cloud_storage" class="doc doc-heading"><a href="#digitalrivers.cloud_io.cloud_storage" class="toclink">
+<h3 id="digitalrivers.interop.cloud_io.cloud_storage" class="doc doc-heading"><a href="#digitalrivers.interop.cloud_io.cloud_storage" class="toclink">
             <code class="highlight language-python"><span class="n">cloud_storage</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
-</a><a href="#digitalrivers.cloud_io.cloud_storage" class="headerlink" title="Permanent link">#</a></h3>
+</a><a href="#digitalrivers.interop.cloud_io.cloud_storage" class="headerlink" title="Permanent link">#</a></h3>
 
 
     <div class="doc doc-contents ">
@@ -2889,7 +2889,7 @@ and S3 / GCS read factories remain deferred pending a follow-up PR.</p>
 
 
             <details class="mkdocstrings-source">
-              <summary>Source code in <code>src/digitalrivers/cloud_io.py</code></summary>
+              <summary>Source code in <code>src/digitalrivers/interop/cloud_io.py</code></summary>
               <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-234">234</a></span>
 <span class="normal"><a href="#__codelineno-0-235">235</a></span>
 <span class="normal"><a href="#__codelineno-0-236">236</a></span>
@@ -2907,7 +2907,7 @@ and S3 / GCS read factories remain deferred pending a follow-up PR.</p>
 <a id="__codelineno-0-239" name="__codelineno-0-239"></a><span class="sd">    """</span>
 <a id="__codelineno-0-240" name="__codelineno-0-240"></a>    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
 <a id="__codelineno-0-241" name="__codelineno-0-241"></a>        <span class="s2">"cloud_storage umbrella API deferred. The COG write half is "</span>
-<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="s2">"available via digitalrivers.cloud_io.write_cog."</span>
+<a id="__codelineno-0-242" name="__codelineno-0-242"></a>        <span class="s2">"available via digitalrivers.interop.cloud_io.write_cog."</span>
 <a id="__codelineno-0-243" name="__codelineno-0-243"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
