@@ -2012,8 +2012,8 @@ on GDAL and the <a href="https://github.com/serapeum-org/pyramids"><code>pyramid
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="c1"># Watershed metrics.</span>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">basins</span> <span class="o">=</span> <span class="n">fdir</span><span class="o">.</span><span class="n">basins</span><span class="p">()</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="n">metrics</span> <span class="o">=</span> <span class="n">basins</span><span class="o">.</span><span class="n">statistics</span><span class="p">(</span><span class="n">dem</span><span class="o">=</span><span class="n">filled</span><span class="p">,</span> <span class="n">flow_direction</span><span class="o">=</span><span class="n">fdir</span><span class="p">,</span> <span class="n">streams</span><span class="o">=</span><span class="n">streams</span><span class="p">)</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># columns: area_km2, mean_elev, hypsometric_integral, drainage_density_km_per_km2,</span>
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1">#          longest_flow_path_m, centroid_x, centroid_y</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="c1"># columns: area_km2, centroid_x, centroid_y, min_elev, max_elev, mean_elev, std_elev,</span>
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="c1">#          hypsometric_integral, longest_flow_path_m, drainage_density_km_per_km2</span>
 <a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>
 <a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a><span class="c1"># Terrain indices.</span>
 <a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="n">tpi</span> <span class="o">=</span> <span class="n">dem</span><span class="o">.</span><span class="n">tpi</span><span class="p">(</span><span class="n">window</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
@@ -2021,7 +2021,7 @@ on GDAL and the <a href="https://github.com/serapeum-org/pyramids"><code>pyramid
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">svf</span> <span class="o">=</span> <span class="n">dem</span><span class="o">.</span><span class="n">sky_view_factor</span><span class="p">(</span><span class="n">search_radius</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
 <a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>
 <a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a><span class="c1"># Visualisation.</span>
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="n">terrain</span> <span class="o">=</span> <span class="n">Terrain</span><span class="p">(</span><span class="s2">"dem.tif"</span><span class="p">)</span>
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="n">terrain</span> <span class="o">=</span> <span class="n">Terrain</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span><span class="s2">"dem.tif"</span><span class="p">)</span>
 <a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="n">hill_shade</span> <span class="o">=</span> <span class="n">terrain</span><span class="o">.</span><span class="n">hill_shade</span><span class="p">()</span>
 </code></pre></div>
 <h2 id="where-to-next"><a class="toclink" href="#where-to-next">Where to next</a><a class="headerlink" href="#where-to-next" title="Permanent link">#</a></h2>
