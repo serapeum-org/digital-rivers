@@ -50,7 +50,14 @@ dependencies = [
 # explicitly at the release this package is written against: the typed render
 # groups (`plot(color=ColorScaling...)`) are 0.31+, and 0.37 is current.
 viz = ["pyramids-gis[viz] >=0.60.0", "cleopatra[tiles] >=0.37.0"]
-distributed = ["pyramids-gis[lazy] >=0.60.0"]
+# dask is listed explicitly even though `pyramids-gis[lazy]` also brings it.
+# `_outofcore/distributed.py` does `import dask` in shipped code, reached from the
+# public `fill_depressions(engine="tiled", workers>1)`, so this distribution has to
+# declare it rather than inherit it from another package's extra — otherwise a
+# reshuffle of pyramids' `lazy` extra breaks that call path with nothing here to
+# say why. pyramids-gis[lazy] stays for the chunked/cloud I/O the tiled path reads
+# through.
+distributed = ["dask >=2024.1.0", "pyramids-gis[lazy] >=0.60.0"]
 all = ["digital-rivers[viz,distributed]"]
 
 [dependency-groups]
@@ -92,29 +99,6 @@ docs = [
     "jupyter-contrib-nbextensions  >=0.7.0",
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
-]
-# Dask, for the environments to install: `_outofcore/distributed.py` is the B7
-# backend and calls `dask.compute(...)`, so the tiled tests need it present.
-#
-# Only dask. The `distributed` package is deliberately not here — nothing in
-# src/ or tests/ imports it. That module's `client` argument is duck-typed and
-# supplied by the caller (it only ever calls `client.gather` / `client.compute`),
-# it never constructs a Client, and the tests pass `scheduler="threads"` rather
-# than a cluster. Anyone who does want a real `distributed.Client` installs the
-# `distributed` extra, which is `pyramids-gis[lazy]` and brings it.
-#
-# A group rather than that extra, because the extra is seven packages — dask,
-# distributed, fsspec, zarr, s3fs, kerchunk, h5py — where this needs one.
-#
-# The floor mirrors the one the upstream extra sets. If pyramids raises its own,
-# this does not follow — check both when bumping pyramids.
-#
-# Named `lazy`, not `distributed`: a group and an extra sharing a name makes
-# pixi auto-activate the extra, which would pull the other six packages back in
-# and defeat the narrowing. The environments reference this name and pixi
-# resolves it like `dev` / `docs`.
-lazy = [
-    "dask >=2024.1.0",
 ]
 notebook = [
     "pip",
@@ -214,7 +198,7 @@ digital-rivers = { path = ".", editable = true }
 # overrides, and no [tool.pixi.dependencies] table at all. Everything the
 # environments get arrives through the standard declarations — runtime deps
 # from [project.dependencies], plotting from the `viz` extra, tooling from the
-# `dev` / `docs` / `lazy` dependency groups — resolved from PyPI.
+# `dev` / `docs` dependency groups — resolved from PyPI.
 #
 # Two conda overrides used to live here and are deliberately gone:
 #   * gdal — the pyramids-gis wheel vendors its own osgeo, and `import pyramids`
@@ -241,12 +225,12 @@ publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*"
 
 [tool.pixi.environments]
 default = { features = ["py314"], solve-group = "default" }
-dev = { features = ["py314", "dev", "viz", "lazy"], solve-group = "default" }
+dev = { features = ["py314", "dev", "viz", "distributed"], solve-group = "default" }
 docs = { features = ["py314", "docs"], solve-group = "default" }
-py311 = { features = ["py311", "dev", "viz", "lazy"], solve-group = "py311" }
-py312 = { features = ["py312", "dev", "viz", "lazy"], solve-group = "py312" }
-py313 = { features = ["py313", "dev", "viz", "lazy"], solve-group = "py313" }
-py314 = { features = ["py314", "dev", "viz", "lazy"], solve-group = "py314" }
+py311 = { features = ["py311", "dev", "viz", "distributed"], solve-group = "py311" }
+py312 = { features = ["py312", "dev", "viz", "distributed"], solve-group = "py312" }
+py313 = { features = ["py313", "dev", "viz", "distributed"], solve-group = "py313" }
+py314 = { features = ["py314", "dev", "viz", "distributed"], solve-group = "py314" }
 
 
 # Interpreter pins, one feature per environment in the matrix. `default`,
