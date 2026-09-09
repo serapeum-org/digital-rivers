@@ -1,4 +1,4 @@
-"""Tests for `digitalrivers.cloud_io` (tile_windows, write_cog, umbrellas)."""
+"""Tests for `digitalrivers.interop.cloud_io` (tile_windows, write_cog, umbrellas)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference, Window
 from pyramids.dataset.cog import Compression
 
-from digitalrivers import cloud_io
+from digitalrivers.interop import cloud_io
 
 
 def test_dask_backend_umbrella_raises():

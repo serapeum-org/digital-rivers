@@ -58,7 +58,7 @@ def topobathy_fusion(
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers.fusion import topobathy_fusion
+            >>> from digitalrivers.dem.fusion import topobathy_fusion
             >>> topo = Dataset.from_array(
             ...     np.array([[5.0, -1.0]], dtype=np.float32),
             ...     geo_ref=GeoReference(

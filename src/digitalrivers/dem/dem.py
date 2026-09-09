@@ -25,16 +25,23 @@ The mixins carry no state. Everything they touch -- `values`, `geotransform`, `e
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import pandas as pd
 from osgeo import gdal
-from pyramids.dataset import Dataset, GeoReference
+from pyramids.dataset import Dataset
 
 from digitalrivers.dem._kernels.pitremoval import local_minima_8
 from digitalrivers.dem.conditioning import ConditioningMixin
 from digitalrivers.dem.hydrology import HydrologyMixin
 from digitalrivers.dem.morphometry import MorphometryMixin
 from digitalrivers.dem.routing import RoutingMixin
+from digitalrivers.interop.anudem import relax_gaps
+from digitalrivers.interop.export import TARGETS, ExportGrid, write
+from digitalrivers.interop.subgrid import subgrid_table
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 __all__ = ["DEM"]
 
@@ -155,46 +162,7 @@ class DEM(
                 >>> float(df["frac_below_1"].iloc[0])
                 1.0
         """
-        if scale_factor < 2:
-            raise ValueError(f"scale_factor must be >= 2; got {scale_factor}")
-        if n_bins < 1:
-            raise ValueError(f"n_bins must be >= 1; got {n_bins}")
-
-        elev = self.values
-        rows, cols = elev.shape
-        out_rows = rows // scale_factor
-        out_cols = cols // scale_factor
-
-        records: list[dict] = []
-        for br in range(out_rows):
-            for bc in range(out_cols):
-                block = elev[
-                    br * scale_factor : (br + 1) * scale_factor,
-                    bc * scale_factor : (bc + 1) * scale_factor,
-                ].ravel()
-                valid = block[np.isfinite(block)]
-                if valid.size == 0:
-                    continue
-                z_min = float(valid.min())
-                z_max = float(valid.max())
-                rec = {"row": br, "col": bc, "z_min": z_min, "z_max": z_max}
-                if z_max == z_min:
-                    # Flat block: every bin is "below" the single value, so
-                    # frac_below_k == 1.0 for every k. (The B1 review found
-                    # that the original code computed this list but never
-                    # wrote it into the record, dropping the frac columns
-                    # entirely when every block was flat.)
-                    for k in range(1, n_bins + 1):
-                        rec[f"frac_below_{k}"] = 1.0
-                else:
-                    bin_edges = np.linspace(z_min, z_max, n_bins + 1)
-                    for k, edge in enumerate(bin_edges[1:], start=1):
-                        rec[f"frac_below_{k}"] = float(
-                            (valid <= edge).sum() / valid.size
-                        )
-                records.append(rec)
-        df = pd.DataFrame(records).set_index(["row", "col"])
-        return df
+        return subgrid_table(self.values, scale_factor, n_bins)
 
     def export(
         self,
@@ -241,23 +209,12 @@ class DEM(
             RuntimeError: When `target == "lisflood_fp"`, `validate=True`,
                 and the DEM has internal sinks.
         """
-        valid_targets = {
-            "hec_ras",
-            "tuflow",
-            "sfincs",
-            "lisflood_fp",
-            "iber",
-            "gmsh",
-        }
-        if target not in valid_targets:
-            raise ValueError(
-                f"target must be one of {sorted(valid_targets)}; got {target!r}"
-            )
+        if target not in TARGETS:
+            raise ValueError(f"target must be one of {sorted(TARGETS)}; got {target!r}")
 
-        # Only run the (expensive) sink scan when we'll actually export to
-        # an implemented target. The unimplemented targets raise
-        # NotImplementedError further down and would otherwise pay the full
-        # validation cost for nothing.
+        # Only run the (expensive) sink scan for the one target whose downstream
+        # tooling actually requires a sinks-free surface. The others would pay the
+        # full local_minima_8 pass for nothing.
         if validate and target == "lisflood_fp":
             sinks = local_minima_8(self.values)
             if int(sinks.sum()) > 0:
@@ -267,107 +224,16 @@ class DEM(
                 )
 
         elev = self.values
-        gt = self.geotransform
-        x0, dx, _, y0, _, dy = gt
-        rows, cols = elev.shape
+        nan_mask = np.isnan(elev)
         nodata = float(self.no_data_value[0])
-        out = np.where(np.isnan(elev), nodata, elev)
-        cell_size = abs(dx)
-        yllcorner = y0 + rows * dy
-
-        if target == "lisflood_fp":
-            with open(path, "w", encoding="ascii", newline="\n") as fh:
-                fh.write(f"ncols {cols}\n")
-                fh.write(f"nrows {rows}\n")
-                fh.write(f"xllcorner {x0}\n")
-                fh.write(f"yllcorner {yllcorner}\n")
-                fh.write(f"cellsize {cell_size}\n")
-                fh.write(f"NODATA_value {nodata}\n")
-                for r in range(rows):
-                    fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
-                    fh.write("\n")
-            return {"dem_asc": path}
-
-        if target == "hec_ras":
-            # HEC-RAS Mapper expects a single-band float32 GeoTIFF in the
-            # dataset CRS with consistent geotransform — exactly what
-            # Dataset.from_array(path=...) writes (the driver comes from the
-            # `.tif` extension).
-            Dataset.from_array(
-                out.astype(np.float32, copy=False),
-                geo_ref=GeoReference(geo=gt, epsg=self.epsg),
-                no_data_value=nodata,
-                path=path,
-            )
-            return {"dem_tif": path}
-
-        if target == "tuflow":
-            # ESRI floating-point grid (.flt binary, row-major little-endian
-            # float32, top-left first) + .hdr text header.
-            flt_path = path if path.endswith(".flt") else path + ".flt"
-            hdr_path = flt_path[:-4] + ".hdr"
-            out.astype(np.float32, copy=False).tofile(flt_path)
-            with open(hdr_path, "w") as fh:
-                fh.write(f"ncols {cols}\n")
-                fh.write(f"nrows {rows}\n")
-                fh.write(f"xllcorner {x0}\n")
-                fh.write(f"yllcorner {yllcorner}\n")
-                fh.write(f"cellsize {cell_size}\n")
-                fh.write(f"NODATA_value {nodata}\n")
-                fh.write("byteorder LSBFIRST\n")
-            return {"dem_flt": flt_path, "dem_hdr": hdr_path}
-
-        if target == "sfincs":
-            # SFINCS .dep: row-major little-endian float32, no header.
-            # Companion .msk: 0 where no-data, 1 elsewhere.
-            dep_path = path if path.endswith(".dep") else path + ".dep"
-            msk_path = dep_path[:-4] + ".msk"
-            out.astype(np.float32, copy=False).tofile(dep_path)
-            mask = np.where(np.isnan(elev), 0, 1).astype(np.uint8)
-            mask.tofile(msk_path)
-            return {"dem_dep": dep_path, "dem_msk": msk_path}
-
-        if target == "gmsh":
-            # Minimal .geo script: define the DEM bounds as a rectangle
-            # with a uniform characteristic length. Downstream meshers can
-            # be run via `gmsh -2 <path>`.
-            geo_path = path if path.endswith(".geo") else path + ".geo"
-            ext_x_lo = x0
-            ext_x_hi = x0 + cols * dx
-            ext_y_hi = y0
-            ext_y_lo = y0 + rows * dy
-            cl = cell_size
-            with open(geo_path, "w") as fh:
-                fh.write(f"cl = {cl};\n")
-                fh.write(f"Point(1) = {{{ext_x_lo}, {ext_y_lo}, 0, cl}};\n")
-                fh.write(f"Point(2) = {{{ext_x_hi}, {ext_y_lo}, 0, cl}};\n")
-                fh.write(f"Point(3) = {{{ext_x_hi}, {ext_y_hi}, 0, cl}};\n")
-                fh.write(f"Point(4) = {{{ext_x_lo}, {ext_y_hi}, 0, cl}};\n")
-                fh.write("Line(1) = {1, 2};\n")
-                fh.write("Line(2) = {2, 3};\n")
-                fh.write("Line(3) = {3, 4};\n")
-                fh.write("Line(4) = {4, 1};\n")
-                fh.write("Line Loop(1) = {1, 2, 3, 4};\n")
-                fh.write("Plane Surface(1) = {1};\n")
-            return {"geo": geo_path}
-
-        if target == "iber":
-            # Iber expects a .dat ascii mesh; pending mesh generation
-            # (Phase 4 P33) we write a placeholder boundary file that the
-            # user can refine in Iber's pre-processor.
-            dat_path = path if path.endswith(".dat") else path + ".dat"
-            with open(dat_path, "w") as fh:
-                fh.write("# Iber mesh boundary (auto-generated)\n")
-                fh.write(f"NCOLS {cols}\nNROWS {rows}\n")
-                fh.write(f"XLLCORNER {x0}\nYLLCORNER {yllcorner}\n")
-                fh.write(f"CELLSIZE {cell_size}\nNODATA {nodata}\n")
-                for r in range(rows):
-                    fh.write(" ".join(f"{out[r, c]:.6f}" for c in range(cols)))
-                    fh.write("\n")
-            return {"dem_dat": dat_path}
-
-        # Unreachable — guarded by valid_targets check above.
-        raise NotImplementedError(target)
+        grid = ExportGrid(
+            values=np.where(nan_mask, nodata, elev),
+            nan_mask=nan_mask,
+            geotransform=self.geotransform,
+            epsg=self.epsg,
+            no_data=nodata,
+        )
+        return write(target, grid, path, **kwargs)
 
     def anudem_interpolate(
         self,
@@ -526,67 +392,6 @@ class DEM(
             DEM.fill_depressions: hydrologic conditioning that removes sinks.
             DEM.burn_streams: stream-network drainage enforcement.
         """
-        if method not in ("laplacian", "biharmonic"):
-            raise ValueError(
-                f"method must be 'laplacian' or 'biharmonic'; got {method!r}"
-            )
-
         elev = self.values
-        rows, cols = elev.shape
-        z = elev.astype(np.float64, copy=True)
-        fixed = np.isfinite(z)
-        if mask is not None:
-            fixed = fixed | mask.astype(bool, copy=False)
-        if not fixed.any():
-            raise ValueError("anudem_interpolate needs at least one finite anchor cell")
-        # Seed unknown cells to the mean of known values to speed convergence.
-        z = np.where(fixed, z, z[fixed].mean())
-
-        def _edge_shifts(arr):
-            """Return (north, south, east, west) views of `arr` with
-            edge-replication boundary handling (no periodic wrap).
-
-            Using `np.pad(..., mode="edge")` matches a Neumann (zero
-            normal-derivative) boundary, which is the natural choice for
-            an interpolation kernel — the original `np.roll` formed a
-            torus and injected far-edge values into near-edge cells,
-            corrupting anchors near the DEM boundary.
-            """
-            padded = np.pad(arr, 1, mode="edge")
-            return (
-                padded[:-2, 1:-1],
-                padded[2:, 1:-1],
-                padded[1:-1, 2:],
-                padded[1:-1, :-2],
-            )
-
-        if method == "laplacian":
-            for _ in range(max_iter):
-                north, south, east, west = _edge_shifts(z)
-                new_z = (north + south + east + west) / 4.0
-                new_z[fixed] = z[fixed]
-                diff = float(np.max(np.abs(new_z - z)))
-                z = new_z
-                if diff < tol:
-                    break
-        else:  # biharmonic
-            # Alternate two Laplacian sweeps to approximate Δ²z = 0.
-            # Step A: compute u = Δz on the current z.
-            # Step B: relax z so Δz ≈ smoothed u (mean of neighbour u's).
-            # Composed, this approximates a biharmonic relaxation with C¹
-            # continuity at the anchors.
-            for _ in range(max_iter):
-                north, south, east, west = _edge_shifts(z)
-                u = north + south + east + west - 4.0 * z
-                un, us, ue, uw = _edge_shifts(u)
-                u_smooth = (un + us + ue + uw) / 4.0
-                # Solve Δz = u_smooth → new z[i,j] =
-                # (sum of neighbours - u_smooth) / 4.
-                new_z = (north + south + east + west - u_smooth) / 4.0
-                new_z[fixed] = z[fixed]
-                diff = float(np.max(np.abs(new_z - z)))
-                z = new_z
-                if diff < tol:
-                    break
-
+        z = relax_gaps(elev, mask=mask, max_iter=max_iter, tol=tol, method=method)
         return self._conditioned_result(elev, z, inplace, gaps=~np.isfinite(z))

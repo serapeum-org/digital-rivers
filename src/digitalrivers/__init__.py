@@ -38,7 +38,7 @@ except PackageNotFoundError:  # pragma: no cover
 
 from digitalrivers.dem import DEM
 from digitalrivers.flow import Accumulation, FlowDirection
-from digitalrivers.mesh import Mesh
+from digitalrivers.interop import Mesh
 from digitalrivers.streams import StreamRaster
 from digitalrivers.terrain import Terrain
 from digitalrivers.watershed import WatershedRaster

@@ -46,7 +46,7 @@ class Mesh:
         - Build a two-triangle quad and inspect its size:
 
             >>> import numpy as np
-            >>> from digitalrivers.mesh import Mesh
+            >>> from digitalrivers.interop.mesh import Mesh
             >>> verts = np.array(
             ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
             ...     dtype=np.float64,
@@ -61,7 +61,7 @@ class Mesh:
         - 3-D input keeps Z untouched:
 
             >>> import numpy as np
-            >>> from digitalrivers.mesh import Mesh
+            >>> from digitalrivers.interop.mesh import Mesh
             >>> v = np.array(
             ...     [[0.0, 0.0, 10.0], [1.0, 0.0, 11.0], [0.0, 1.0, 12.0]],
             ...     dtype=np.float64,
@@ -98,7 +98,7 @@ class Mesh:
             - Every vertex of a two-triangle quad sits on the boundary:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
                 ...     dtype=np.float64,
@@ -112,7 +112,7 @@ class Mesh:
               boundary:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [
                 ...         [0.0, 0.0], [2.0, 0.0], [2.0, 2.0],
@@ -148,7 +148,7 @@ class Mesh:
             - Inspect the shared diagonal of a two-triangle quad:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]],
                 ...     dtype=np.float64,
@@ -204,7 +204,7 @@ class Mesh:
               its four corner neighbours; the corners stay pinned:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [
                 ...         [0.0, 0.0], [2.0, 0.0], [2.0, 2.0],
@@ -259,7 +259,7 @@ class Mesh:
             - An equilateral triangle scores exactly 1.0:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> h = np.sqrt(3.0) / 2.0
                 >>> v = np.array([[0.0, 0.0], [1.0, 0.0], [0.5, h]], dtype=np.float64)
                 >>> t = np.array([[0, 1, 2]], dtype=np.int64)
@@ -269,7 +269,7 @@ class Mesh:
             - A 3-4-5 right triangle has aspect ratio 1.25:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [[0.0, 0.0], [3.0, 0.0], [0.0, 4.0]], dtype=np.float64,
                 ... )
@@ -280,7 +280,7 @@ class Mesh:
             - Three collinear points give a degenerate (infinite) ratio:
 
                 >>> import numpy as np
-                >>> from digitalrivers.mesh import Mesh
+                >>> from digitalrivers.interop.mesh import Mesh
                 >>> v = np.array(
                 ...     [[0.0, 0.0], [1.0, 0.0], [2.0, 0.0]], dtype=np.float64,
                 ... )

@@ -1,4 +1,4 @@
-"""Tests for `digitalrivers.fusion.topobathy_fusion`."""
+"""Tests for `digitalrivers.dem.fusion.topobathy_fusion`."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers.fusion import topobathy_fusion
+from digitalrivers.dem.fusion import topobathy_fusion
 
 
 def _make_ds(arr: np.ndarray) -> Dataset:

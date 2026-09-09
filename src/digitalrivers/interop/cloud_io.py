@@ -90,7 +90,7 @@ def tile_windows(
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers.cloud_io import tile_windows
+            >>> from digitalrivers.interop.cloud_io import tile_windows
             >>> ds = Dataset.from_array(
             ...     np.zeros((5, 5), dtype=np.float32),
             ...     geo_ref=GeoReference(
@@ -109,7 +109,7 @@ def tile_windows(
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers.cloud_io import tile_windows
+            >>> from digitalrivers.interop.cloud_io import tile_windows
             >>> arr = np.arange(25, dtype=np.float32).reshape(5, 5)
             >>> ds = Dataset.from_array(
             ...     arr,
@@ -157,7 +157,7 @@ def dask_backend(*args, **kwargs):
     """
     raise NotImplementedError(
         "dask_backend umbrella API deferred. Use "
-        "digitalrivers.cloud_io.tile_windows for per-tile streaming."
+        "digitalrivers.interop.cloud_io.tile_windows for per-tile streaming."
     )
 
 
@@ -198,7 +198,7 @@ def write_cog(dataset, path: str, compress: str = "deflate") -> str:
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers.cloud_io import write_cog
+            >>> from digitalrivers.interop.cloud_io import write_cog
             >>> import tempfile, os
             >>> arr = np.arange(25, dtype=np.float32).reshape(5, 5)
             >>> ds = Dataset.from_array(
@@ -239,5 +239,5 @@ def cloud_storage(*args, **kwargs):
     """
     raise NotImplementedError(
         "cloud_storage umbrella API deferred. The COG write half is "
-        "available via digitalrivers.cloud_io.write_cog."
+        "available via digitalrivers.interop.cloud_io.write_cog."
     )

@@ -1,11 +1,11 @@
-"""Tests for `digitalrivers.mesh.Mesh` (P33 backfill)."""
+"""Tests for `digitalrivers.interop.mesh.Mesh` (P33 backfill)."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from digitalrivers.mesh import Mesh
+from digitalrivers.interop.mesh import Mesh
 
 
 @pytest.fixture
