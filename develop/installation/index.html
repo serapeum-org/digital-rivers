@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2212,47 +2212,54 @@ package metadata. Pixi maps each to an environment of the same name:</p>
 <tbody>
 <tr>
 <td><code>default</code></td>
-<td>base runtime</td>
-<td>minimal install</td>
+<td><code>py314</code></td>
+<td>minimal runtime</td>
 </tr>
 <tr>
 <td><code>dev</code></td>
-<td><code>dev</code> extra</td>
+<td><code>py314</code>, <code>dev</code>, <code>viz</code>, <code>lazy</code></td>
 <td>tests, linting, build tooling</td>
 </tr>
 <tr>
 <td><code>docs</code></td>
-<td><code>docs</code> extra</td>
+<td><code>py314</code>, <code>docs</code></td>
 <td>docs site (<code>mkdocs serve</code>)</td>
 </tr>
 <tr>
 <td><code>py311</code></td>
-<td><code>py311</code> + <code>dev</code></td>
+<td><code>py311</code>, <code>dev</code>, <code>viz</code>, <code>lazy</code></td>
 <td>pinned Python 3.11</td>
 </tr>
 <tr>
 <td><code>py312</code></td>
-<td><code>py312</code> + <code>dev</code></td>
+<td><code>py312</code>, <code>dev</code>, <code>viz</code>, <code>lazy</code></td>
 <td>pinned Python 3.12</td>
 </tr>
 <tr>
 <td><code>py313</code></td>
-<td><code>py313</code> + <code>dev</code></td>
+<td><code>py313</code>, <code>dev</code>, <code>viz</code>, <code>lazy</code></td>
 <td>pinned Python 3.13</td>
 </tr>
 <tr>
 <td><code>py314</code></td>
-<td><code>py314</code> + <code>dev</code></td>
+<td><code>py314</code>, <code>dev</code>, <code>viz</code>, <code>lazy</code></td>
 <td>pinned Python 3.14</td>
 </tr>
 </tbody>
 </table>
+<p><code>default</code>, <code>dev</code> and <code>docs</code> are not unpinned — they reuse the <code>py314</code> feature, so they
+resolve Python 3.14 like the matrix environment of that name. <code>viz</code> is a PEP 621 extra;
+<code>dev</code>, <code>docs</code> and <code>lazy</code> are PEP 735 dependency groups. The definitions live in
+<code>pyproject.toml</code> under <code>[tool.pixi.environments]</code>.</p>
 <h2 id="alternative-conda"><a class="toclink" href="#alternative-conda">Alternative: conda</a><a class="headerlink" href="#alternative-conda" title="Permanent link">#</a></h2>
 <p>If you'd rather manage the environment yourself, install the native stack from
 conda-forge and add the package from source:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w">     </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span><span class="s2">"gdal&gt;=3.13.3,&lt;3.13.4"</span><span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span>gdal<span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>mamba<span class="w"> </span>activate<span class="w"> </span>digital-rivers
 </code></pre></div>
+<p>The GDAL version is deliberately unpinned here. The <code>pyramids-gis</code> wheel vendors its own
+osgeo bindings and uses those in preference to anything conda installs, so this environment
+only needs a GDAL new enough for the other conda packages that want one.</p>
 <p>The repository's own environments are defined in <code>pyproject.toml</code> and resolved by
 pixi; <code>pixi install -e dev</code> is the supported way to reproduce them exactly, and the
 only one that honours <code>pixi.lock</code>.</p>
@@ -2277,8 +2284,9 @@ editable-install step.</p>
   depends on the PyPI distribution name (<code>pyramids-gis</code>) so it works regardless of how pyramids itself was
   installed.</li>
 <li>For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if
-  <code>pixi update</code> reports "No candidates were found for pyramids", either wait for the mapping to refresh or
-  temporarily comment out the conda <code>pyramids</code> pin in <code>[tool.pixi.dependencies]</code>.</li>
+  <code>pixi update</code> reports "No candidates were found for pyramids", wait for the mapping to refresh. The old
+  workaround of commenting out a conda <code>pyramids</code> pin no longer applies — there is no
+  <code>[tool.pixi.dependencies]</code> table; every dependency resolves from PyPI.</li>
 <li>Documentation: <a href="https://serapeum-org.github.io/digital-rivers/latest">https://serapeum-org.github.io/digital-rivers/latest</a></li>
 <li>Source repository: <a href="https://github.com/serapeum-org/digital-rivers">https://github.com/serapeum-org/digital-rivers</a></li>
 </ul>
