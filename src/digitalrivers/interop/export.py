@@ -5,7 +5,7 @@ Six targets, each wanting a different shape of the same surface:
 | target | files written | format |
 | --- | --- | --- |
 | `lisflood_fp` | the path as given | Arc ASCII grid, six-line header |
-| `hec_ras` | the path as given | single-band float32 GeoTIFF in the dataset CRS |
+| `hec_ras` | `.tif` | single-band float32 GeoTIFF in the dataset CRS |
 | `tuflow` | `.flt` + `.hdr` | ESRI float grid, little-endian, with a text header |
 | `sfincs` | `.dep` + `.msk` | headerless float32, plus a 0/1 validity mask |
 | `gmsh` | `.geo` | a bounds rectangle with a uniform characteristic length |
@@ -126,16 +126,20 @@ def write_hec_ras(grid: ExportGrid, path: str, **kwargs) -> dict:
     """Write a single-band float32 GeoTIFF for HEC-RAS Mapper.
 
     Mapper wants the dataset CRS and a consistent geotransform, which is exactly what
-    `Dataset.from_array(path=...)` writes — the driver comes from the `.tif` extension.
+    `Dataset.from_array(path=...)` writes — the driver is resolved from the extension,
+    so `.tif` is appended when the caller did not supply it. Without that, a bare path
+    fails inside pyramids with a driver error that names neither this writer nor the
+    export target.
 
     Args:
         grid: The surface to write.
-        path: Output path, `.tif`.
+        path: Output path; `.tif` is appended when missing.
         **kwargs: Ignored; accepted so every writer shares one signature.
 
     Returns:
-        `{"dem_tif": path}`.
+        `{"dem_tif": ...}`, naming the path actually written.
     """
+    path = _suffixed(path, ".tif")
     Dataset.from_array(
         grid.values.astype(np.float32, copy=False),
         geo_ref=GeoReference(geo=grid.geotransform, epsg=grid.epsg),

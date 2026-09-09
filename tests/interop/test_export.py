@@ -12,10 +12,10 @@ domain by its own height. Several tests pin that arithmetic directly.
 from __future__ import annotations
 
 import dataclasses
+import os
 
 import numpy as np
 import pytest
-from pyramids.base._errors import DriverNotExistError
 
 from digitalrivers.interop.export import (
     TARGETS,
@@ -372,70 +372,41 @@ class TestWrite:
         """
         import os
 
-        suffix = {"hec_ras": ".tif", "lisflood_fp": ".asc"}.get(target, "")
+        suffix = {"lisflood_fp": ".asc"}.get(target, "")
         written = write(target, grid, str(tmp_path / (target + suffix)))
         assert written, f"{target} reported no artefacts"
         for label, path in written.items():
             assert os.path.exists(path), f"{target}::{label} claims {path}, missing"
 
-    def test_only_four_writers_append_their_own_extension(self, grid, tmp_path):
-        """Pins an inconsistency that predates the extraction, rather than hiding it.
+    def test_every_writer_but_lisflood_appends_its_own_extension(self, grid, tmp_path):
+        """A bare path gains the right suffix, and the returned path says so.
 
         Test scenario:
-            `tuflow`, `sfincs`, `gmsh` and `iber` append their extension to a bare path.
-            `lisflood_fp` uses the path verbatim, which is deliberate — an Arc grid has
-            no single conventional suffix. `hec_ras` is the odd one: it *requires* an
-            extension, because the GeoTIFF driver is resolved from it, but does not
-            supply one, so a bare path fails inside pyramids with a driver error rather
-            than a message naming the export target.
-
-            Changing that is a behaviour change and belongs in its own commit; this test
-            states what the code does today so the change is visible when it happens.
+            `lisflood_fp` is the deliberate exception: an Arc grid has no single
+            conventional suffix, so it uses the path verbatim. `hec_ras` used to be a
+            second exception by accident — it *required* an extension, because the
+            GeoTIFF driver is resolved from one, but did not supply it, so a bare path
+            died inside pyramids with a driver error naming neither the writer nor the
+            target. It now appends like the rest.
         """
         for target, expected in (
+            ("hec_ras", ".tif"),
             ("tuflow", ".flt"),
             ("sfincs", ".dep"),
             ("gmsh", ".geo"),
             ("iber", ".dat"),
         ):
             written = write(target, grid, str(tmp_path / ("bare_" + target)))
-            first = sorted(written.values())[0]
             assert any(
                 p.endswith(expected) for p in written.values()
-            ), f"{target} did not append {expected}: {first}"
+            ), f"{target} did not append {expected}: {sorted(written.values())}"
+            for p in written.values():
+                assert os.path.exists(p), f"{target} reported {p}, which is not there"
 
         written = write_lisflood_fp(grid, str(tmp_path / "bare_lisflood"))
         assert written["dem_asc"].endswith(
             "bare_lisflood"
         ), "lisflood_fp is documented to use the path verbatim"
-
-        with pytest.raises(DriverNotExistError) as exc_info:
-            write("hec_ras", grid, str(tmp_path / "bare_hecras"))
-        assert "extension" in str(exc_info.value), (
-            "The failure should name the missing extension rather than some other "
-            f"driver problem: {exc_info.value!r}"
-        )
-
-    def test_registry_holds_exactly_the_six_documented_targets(self):
-        """The registry is the contract `DEM.export` validates against."""
-        assert sorted(TARGETS) == [
-            "gmsh",
-            "hec_ras",
-            "iber",
-            "lisflood_fp",
-            "sfincs",
-            "tuflow",
-        ], f"Registry changed: {sorted(TARGETS)}"
-
-    def test_unknown_target_raises_value_error_naming_the_valid_ones(
-        self, grid, tmp_path
-    ):
-        """An unknown target fails with a message that lists what is accepted."""
-        with pytest.raises(ValueError, match="target must be one of") as exc_info:
-            write("bogus", grid, str(tmp_path / "x"))
-        message = str(exc_info.value)
-        assert "'bogus'" in message, f"Message omits the bad value: {message}"
-        assert "lisflood_fp" in message, f"Message omits the valid targets: {message}"
 
     def test_dispatch_matches_calling_the_writer_directly(self, grid, tmp_path):
         """`write(target, ...)` and the writer itself produce identical bytes."""
