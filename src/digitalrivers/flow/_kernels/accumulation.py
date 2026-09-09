@@ -221,7 +221,7 @@ def accumulate(
         # Numba fast path for single-direction routings — bit-for-bit identical to
         # the pure-Python Kahn sweep, ≥ 30× faster warm. Imported lazily so that
         # `import digitalrivers` does not eagerly pull in Numba.
-        from digitalrivers._numba import kahn_accumulate_d8_numba
+        from digitalrivers.flow._kernels.numba import kahn_accumulate_d8_numba
         from digitalrivers.core.directions import (
             DIR_DR_I32 as _DIR_DR_I32,
             DIR_DC_I32 as _DIR_DC_I32,

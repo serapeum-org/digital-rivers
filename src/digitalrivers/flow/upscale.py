@@ -275,7 +275,7 @@ class UpscaleMixin:
 
         # Native Numba COTAT fast path — bit-for-bit identical to the
         # pure-Python loop below; ~30-50x faster on continental DEMs.
-        from digitalrivers._numba import cotat_upscale_numba
+        from digitalrivers.flow._kernels.numba import cotat_upscale_numba
         from digitalrivers.core.numba import is_numba_enabled
 
         if is_numba_enabled():

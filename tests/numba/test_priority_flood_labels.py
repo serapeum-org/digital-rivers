@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from digitalrivers._numba import (
+from digitalrivers.dem._kernels.numba import (
     priority_flood_labels_numba,
     priority_flood_numba,
 )

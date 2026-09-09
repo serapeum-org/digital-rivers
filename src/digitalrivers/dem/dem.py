@@ -2543,7 +2543,7 @@ class DEM(Dataset):
                 >>> bool(arr[2, 2] > arr[1, 2])
                 True
         """
-        from digitalrivers._numba import horizon_walk_kernel
+        from digitalrivers.dem._kernels.morphometry import horizon_walk_kernel
 
         if kind not in ("positive", "negative"):
             raise ValueError(f"kind must be 'positive' or 'negative'; got {kind!r}")
@@ -2643,7 +2643,7 @@ class DEM(Dataset):
                 >>> bool(arr[2, 2] < 1.0)
                 True
         """
-        from digitalrivers._numba import horizon_walk_kernel
+        from digitalrivers.dem._kernels.morphometry import horizon_walk_kernel
 
         if search_radius < 1:
             raise ValueError(f"search_radius must be >= 1; got {search_radius!r}")

@@ -77,7 +77,9 @@ def _flood_tile(
 ):
     """Run the labelled flood on one tile's core; return `(filled, glabels, halo_arr, core)`."""
     # Lazy import keeps `import digitalrivers` numba-free (CLAUDE.md rule).
-    from digitalrivers._numba import priority_flood_labels_numba  # noqa: PLC0415
+    from digitalrivers.dem._kernels.numba import (  # noqa: PLC0415
+        priority_flood_labels_numba,
+    )
     from digitalrivers.core.directions import (  # noqa: PLC0415
         DIR_DC_I32 as _DIR_DC_I32,
         DIR_DR_I32 as _DIR_DR_I32,

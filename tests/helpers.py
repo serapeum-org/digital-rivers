@@ -11,6 +11,7 @@ import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
+from digitalrivers.core.numba import njit
 
 NO_DATA = -9999.0
 """Sentinel every test raster declares, matching the fixtures on disk."""
@@ -92,3 +93,65 @@ def twin_channel_z() -> np.ndarray:
         ],
         dtype=np.float32,
     )
+
+
+# ----- D8 steepest descent, for fixtures ------------------------------------------------
+
+
+@njit(cache=True)
+def d8_flow_direction_numba(
+    elev: np.ndarray,
+    cell_size: float,
+    nodata_out: np.int32,
+    d_row: np.ndarray,
+    d_col: np.ndarray,
+) -> np.ndarray:
+    """Steepest-descent D8 flow direction over `elev`.
+
+    Cells whose max 8-neighbour slope is non-positive (no strictly downhill
+    neighbour) are marked `nodata_out` — matches the P5 sink semantics. NaN
+    cells in the input also receive `nodata_out`.
+
+    Args:
+        elev: `(rows, cols)` float32 elevation array; NaN = no-data.
+        cell_size: square cell side length in map units.
+        nodata_out: int32 sentinel for sinks / no-data.
+        d_row: `int32[8]` row offset per direction (DIR_OFFSETS order).
+        d_col: `int32[8]` column offset per direction.
+
+    Returns:
+        `(rows, cols)` int32 direction-code raster.
+    """
+    rows, cols = elev.shape
+    out = np.full((rows, cols), nodata_out, dtype=np.int32)
+    diag = cell_size * np.sqrt(2.0)
+    # Per-direction distance (cardinal vs diagonal).
+    dist = np.empty(8, dtype=np.float64)
+    for k in range(8):
+        if d_row[k] != 0 and d_col[k] != 0:
+            dist[k] = diag
+        else:
+            dist[k] = cell_size
+
+    for r in range(rows):
+        for c in range(cols):
+            z = elev[r, c]
+            if np.isnan(z):
+                continue
+            best_slope = 0.0
+            best_dir = -1
+            for k in range(8):
+                nr = r + d_row[k]
+                nc = c + d_col[k]
+                if nr < 0 or nr >= rows or nc < 0 or nc >= cols:
+                    continue
+                zn = elev[nr, nc]
+                if np.isnan(zn):
+                    continue
+                slope = (z - zn) / dist[k]
+                if slope > best_slope:
+                    best_slope = slope
+                    best_dir = k
+            if best_dir >= 0:
+                out[r, c] = best_dir
+    return out

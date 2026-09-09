@@ -7,7 +7,7 @@ import numpy as np
 from shapely.geometry import LineString
 
 from digitalrivers import DEM, FlowDirection
-from digitalrivers._numba import cotat_upscale_numba
+from digitalrivers.flow._kernels.numba import cotat_upscale_numba
 from digitalrivers.core.directions import (
     DIR_DC_I32 as _DIR_DC_I32,
     DIR_DR_I32 as _DIR_DR_I32,

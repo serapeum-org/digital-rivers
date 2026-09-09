@@ -228,7 +228,7 @@ class TestNumbaFallbackExercised:
         monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
         for mod in (
             "digitalrivers.core.numba",
-            "digitalrivers._numba",
+            "digitalrivers.dem._kernels.numba",
             "digitalrivers.dem._kernels.pitremoval",
         ):
             sys.modules.pop(mod, None)
@@ -236,7 +236,6 @@ class TestNumbaFallbackExercised:
             pitremoval = importlib.import_module(
                 "digitalrivers.dem._kernels.pitremoval"
             )
-            importlib.import_module("digitalrivers._numba")
             numba_mod = importlib.import_module("digitalrivers.core.numba")
             assert numba_mod.is_numba_enabled() is False
             out = pitremoval.fill_depressions(
@@ -247,11 +246,10 @@ class TestNumbaFallbackExercised:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
             for mod in (
                 "digitalrivers.core.numba",
-                "digitalrivers._numba",
+                "digitalrivers.dem._kernels.numba",
                 "digitalrivers.dem._kernels.pitremoval",
             ):
                 sys.modules.pop(mod, None)
-            importlib.import_module("digitalrivers._numba")
             importlib.import_module("digitalrivers.dem._kernels.pitremoval")
 
     def test_kahn_accumulate_works_without_numba(self, monkeypatch) -> None:
@@ -268,7 +266,7 @@ class TestNumbaFallbackExercised:
         monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
         for mod in (
             "digitalrivers.core.numba",
-            "digitalrivers._numba",
+            "digitalrivers.flow._kernels.numba",
             "digitalrivers.flow._kernels.accumulation",
         ):
             sys.modules.pop(mod, None)
@@ -276,7 +274,6 @@ class TestNumbaFallbackExercised:
             accumulation = importlib.import_module(
                 "digitalrivers.flow._kernels.accumulation"
             )
-            importlib.import_module("digitalrivers._numba")
             numba_mod = importlib.import_module("digitalrivers.core.numba")
             assert numba_mod.is_numba_enabled() is False
             out = accumulation.accumulate(fdir, "d8", valid)
@@ -287,11 +284,10 @@ class TestNumbaFallbackExercised:
             monkeypatch.delenv("DIGITALRIVERS_DISABLE_NUMBA", raising=False)
             for mod in (
                 "digitalrivers.core.numba",
-                "digitalrivers._numba",
+                "digitalrivers.flow._kernels.numba",
                 "digitalrivers.flow._kernels.accumulation",
             ):
                 sys.modules.pop(mod, None)
-            importlib.import_module("digitalrivers._numba")
             importlib.import_module("digitalrivers.flow._kernels.accumulation")
 
 
