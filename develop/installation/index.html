@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2115,7 +2115,7 @@
 <tbody>
 <tr>
 <td>Distribution name (PyPI / conda-forge)</td>
-<td><code>digital-rivers</code> <em>(not yet published)</em></td>
+<td><code>digital-rivers</code></td>
 </tr>
 <tr>
 <td>Python import name</td>
@@ -2136,17 +2136,18 @@
 </tbody>
 </table>
 <blockquote>
-<p>The package is not yet on PyPI or conda-forge. Install from source using the instructions below.</p>
+<p><strong>conda-forge carries the current release; PyPI lags.</strong> conda-forge has <code>0.4.0</code>, PyPI's newest is
+<code>0.1.0</code>. Install from conda-forge, or from source for anything newer than what PyPI offers.</p>
 </blockquote>
 <h2 id="dependencies"><a class="toclink" href="#dependencies">Dependencies</a><a class="headerlink" href="#dependencies" title="Permanent link">#</a></h2>
 <h3 id="runtime"><a class="toclink" href="#runtime">Runtime</a><a class="headerlink" href="#runtime" title="Permanent link">#</a></h3>
 <ul>
 <li><code>numpy &gt;= 2.0.0</code></li>
 <li><code>geopandas &gt;= 1.0.0</code></li>
-<li><code>pyramids-gis &gt;= 0.60.0</code> (provides the <code>pyramids</code> import; pulled from PyPI)</li>
-<li><code>gdal &gt;= 3.13.3, &lt; 3.13.4</code> (best installed from conda-forge — pip wheels are
-  platform-fragile). The narrow pin matches <code>pyramids-gis</code>, which builds against
-  one GDAL minor at a time.</li>
+<li><code>pyramids-gis &gt;= 0.60.0</code> (provides the <code>pyramids</code> import; pulled from PyPI)
+GDAL is deliberately absent from that list. It is not a dependency of this package: the
+<code>pyramids-gis</code> wheel vendors its own osgeo bindings, and <code>import pyramids</code> is what puts them
+on <code>sys.path</code>. Nothing here installs or pins a separate GDAL.</li>
 </ul>
 <h3 id="optional-extras"><a class="toclink" href="#optional-extras">Optional extras</a><a class="headerlink" href="#optional-extras" title="Permanent link">#</a></h3>
 <table>
@@ -2176,15 +2177,19 @@
 </tbody>
 </table>
 <h3 id="development-dependency-groups"><a class="toclink" href="#development-dependency-groups">Development dependency groups</a><a class="headerlink" href="#development-dependency-groups" title="Permanent link">#</a></h3>
-<p><code>dev</code>, <code>docs</code> and <code>notebook</code> are <a href="https://peps.python.org/pep-0735/">PEP 735</a> dependency
-groups, not extras — they are local tooling and are deliberately not published in the
-package metadata. Pixi maps each to an environment of the same name:</p>
+<p><code>dev</code>, <code>docs</code>, <code>lazy</code> and <code>notebook</code> are <a href="https://peps.python.org/pep-0735/">PEP 735</a>
+dependency groups, not extras — they are local tooling and are deliberately not published in
+the package metadata. Pixi resolves a group by name wherever an environment lists it, so an
+environment is a set of groups and extras rather than a single same-named group: <code>dev</code> is
+<code>py314</code> + <code>dev</code> + <code>viz</code> + <code>lazy</code>, <code>docs</code> is <code>py314</code> + <code>docs</code>. <code>lazy</code> carries dask and
+distributed for the out-of-core path; <code>notebook</code> is currently referenced by no environment.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>dev<span class="w">      </span><span class="c1"># tests, linting, build tooling</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>pixi<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>docs<span class="w">     </span><span class="c1"># mkdocs toolchain</span>
 </code></pre></div>
 <h2 id="recommended-pixi"><a class="toclink" href="#recommended-pixi">Recommended: Pixi</a><a class="headerlink" href="#recommended-pixi" title="Permanent link">#</a></h2>
-<p>This repository ships a <a href="https://pixi.sh/">Pixi</a> configuration that resolves GDAL from conda-forge and
-<code>pyramids-gis</code> from PyPI, avoiding the usual GDAL-wheel headaches.</p>
+<p>This repository ships a <a href="https://pixi.sh/">Pixi</a> configuration that resolves every dependency from
+PyPI, GDAL included — the <code>pyramids-gis</code> wheel vendors its own, so no conda channel is involved and
+the usual GDAL-wheel headaches do not arise.</p>
 <p>Prerequisites: install <a href="https://pixi.sh/latest/#installation">Pixi</a>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/serapeum-org/digital-rivers.git
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>digital-rivers
@@ -2257,9 +2262,10 @@ conda-forge and add the package from source:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>mamba<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>digital-rivers<span class="w"> </span>-c<span class="w"> </span>conda-forge<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.12<span class="w"> </span>gdal<span class="w"> </span>libgdal-netcdf<span class="w"> </span>libgdal-hdf4
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>mamba<span class="w"> </span>activate<span class="w"> </span>digital-rivers
 </code></pre></div>
-<p>The GDAL version is deliberately unpinned here. The <code>pyramids-gis</code> wheel vendors its own
-osgeo bindings and uses those in preference to anything conda installs, so this environment
-only needs a GDAL new enough for the other conda packages that want one.</p>
+<p>The GDAL version is deliberately unpinned here. <code>import pyramids</code> prepends its vendored
+<code>_vendor/osgeo</code> to <code>sys.path</code>, so that copy is the one every import resolves to and a conda
+GDAL alongside it is never imported. It is in this recipe only for <code>libgdal-netcdf</code> and
+<code>libgdal-hdf4</code>, which need the C library; any version new enough for those will do.</p>
 <p>The repository's own environments are defined in <code>pyproject.toml</code> and resolved by
 pixi; <code>pixi install -e dev</code> is the supported way to reproduce them exactly, and the
 only one that honours <code>pixi.lock</code>.</p>
@@ -2283,10 +2289,8 @@ editable-install step.</p>
 <li><code>pyramids</code> (conda-forge name) and <code>pyramids-gis</code> (PyPI name) are the <strong>same package</strong>. digital-rivers
   depends on the PyPI distribution name (<code>pyramids-gis</code>) so it works regardless of how pyramids itself was
   installed.</li>
-<li>For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if
-  <code>pixi update</code> reports "No candidates were found for pyramids", wait for the mapping to refresh. The old
-  workaround of commenting out a conda <code>pyramids</code> pin no longer applies — there is no
-  <code>[tool.pixi.dependencies]</code> table; every dependency resolves from PyPI.</li>
+<li>The conda-forge ↔ PyPI hash-mapping lag that pixi used to hit here cannot occur any more: it applies
+  only to conda packages, and this workspace resolves everything from PyPI.</li>
 <li>Documentation: <a href="https://serapeum-org.github.io/digital-rivers/latest">https://serapeum-org.github.io/digital-rivers/latest</a></li>
 <li>Source repository: <a href="https://github.com/serapeum-org/digital-rivers">https://github.com/serapeum-org/digital-rivers</a></li>
 </ul>
