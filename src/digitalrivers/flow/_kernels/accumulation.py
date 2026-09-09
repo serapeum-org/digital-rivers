@@ -21,7 +21,7 @@ from collections import deque
 
 import numpy as np
 
-from digitalrivers._flow.routing import _DIR_DR, _DIR_DC
+from digitalrivers.flow._kernels.routing import _DIR_DR, _DIR_DC
 from digitalrivers.core.directions import INV_DIR as _INV_DIR
 
 

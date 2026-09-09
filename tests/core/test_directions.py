@@ -7,7 +7,7 @@ fails loudly instead of silently re-routing every walk in the package.
 
 The dtype and writability assertions are not pedantry: Numba compiles a separate
 specialisation per argument type, and `ndarray.flags.writeable` is part of that type. The
-`int8` variant exists because `_flow.routing` broadcasts against `int8` direction rasters;
+`int8` variant exists because `flow._kernels.routing` broadcasts against `int8` rasters;
 every `@njit` kernel takes the `int32` one. Swapping either, or flagging the arrays
 read-only, changes the compiled signature of kernels these tests do not touch.
 """
@@ -124,8 +124,8 @@ class TestConsumersSeeTheSharedTable:
     """The modules that used to declare their own copy now alias this one."""
 
     def test_flow_routing_uses_the_int8_variant(self):
-        """`_flow.routing` broadcasts against int8 rasters and must keep that dtype."""
-        from digitalrivers._flow import routing
+        """The routing kernels broadcast against int8 rasters and must keep that dtype."""
+        from digitalrivers.flow._kernels import routing
 
         assert routing._DIR_DR is DIR_DR_I8
         assert routing._DIR_DC is DIR_DC_I8
@@ -133,7 +133,7 @@ class TestConsumersSeeTheSharedTable:
     @pytest.mark.parametrize(
         "module_path",
         [
-            "digitalrivers._flow.ihu",
+            "digitalrivers.flow._kernels.ihu",
             "digitalrivers._flow.watershed",
             "digitalrivers._streams.hand",
             "digitalrivers._streams.order",

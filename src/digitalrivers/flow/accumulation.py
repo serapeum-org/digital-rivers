@@ -53,7 +53,7 @@ def _resolve_envelope(
         - Resolve a bool ndarray (passthrough with shape validation):
 
             >>> import numpy as np
-            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> from digitalrivers.flow.accumulation import _resolve_envelope
             >>> env = np.array([[True, False], [True, True]])
             >>> mask = _resolve_envelope(env, (2, 2))
             >>> mask.dtype
@@ -64,7 +64,7 @@ def _resolve_envelope(
         - Cast an int ndarray (0/1) to bool:
 
             >>> import numpy as np
-            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> from digitalrivers.flow.accumulation import _resolve_envelope
             >>> env = np.array([[1, 0], [1, 1]], dtype=np.uint8)
             >>> mask = _resolve_envelope(env, (2, 2))
             >>> mask.tolist()
@@ -73,7 +73,7 @@ def _resolve_envelope(
         - Shape mismatch is rejected:
 
             >>> import numpy as np
-            >>> from digitalrivers.accumulation import _resolve_envelope
+            >>> from digitalrivers.flow.accumulation import _resolve_envelope
             >>> _resolve_envelope(np.zeros((3, 3), dtype=bool), (2, 2))
             Traceback (most recent call last):
                 ...

@@ -349,7 +349,7 @@ class StreamRaster(Dataset):
             ValueError: If `method` is not `"link"` or
                 `flow_direction` is multi-direction.
         """
-        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.flow.direction import FlowDirection
         from digitalrivers.watershed_raster import WatershedRaster
 
         if method != "link":
@@ -508,7 +508,7 @@ class StreamRaster(Dataset):
             ValueError: If `method` is unknown or `flow_direction` is
                 missing / multi-direction.
         """
-        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.flow.direction import FlowDirection
 
         if method not in ("strahler", "shreve", "horton", "hack", "topological"):
             raise ValueError(
@@ -581,7 +581,7 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction or shape
                 mismatches, or `min_length_m` is negative.
         """
-        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.flow.direction import FlowDirection
 
         if not isinstance(flow_direction, FlowDirection):
             raise TypeError(
@@ -680,7 +680,7 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction, shape
                 mismatches, or `outlet` is not a stream cell.
         """
-        from digitalrivers.flow_direction import FlowDirection
+        from digitalrivers.flow.direction import FlowDirection
 
         if not isinstance(flow_direction, FlowDirection):
             raise TypeError(
@@ -790,7 +790,7 @@ class StreamRaster(Dataset):
             ValueError: If `flow_direction` is multi-direction.
             ValueError: If shapes do not match.
         """
-        from digitalrivers.flow_direction import FlowDirection  # for type-narrow
+        from digitalrivers.flow.direction import FlowDirection  # for type-narrow
 
         if not isinstance(flow_direction, FlowDirection):
             raise TypeError(

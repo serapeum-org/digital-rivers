@@ -11,7 +11,7 @@ import pytest
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation
-from digitalrivers._flow.accumulation import (
+from digitalrivers.flow._kernels.accumulation import (
     _receivers_d8,
     _receivers_dinf,
     _receivers_mfd,

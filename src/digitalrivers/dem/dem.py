@@ -25,7 +25,7 @@ from digitalrivers.dem._kernels.pitremoval import (
     fill_depressions as _fill_depressions_array,
     local_minima_8,
 )
-from digitalrivers._flow.routing import (
+from digitalrivers.flow._kernels.routing import (
     dinf_flow_direction as _dinf_flow_direction,
     mfd_flow_direction as _mfd_flow_direction,
     rho8_flow_direction as _rho8_flow_direction,
@@ -35,7 +35,7 @@ from digitalrivers._streams.hand import hand_d8
 # Re-exported: `DIR_OFFSETS` was defined here historically and callers still do
 # `from digitalrivers.dem import DIR_OFFSETS`. Its home is core.directions.
 from digitalrivers.core.directions import DIR_OFFSETS
-from digitalrivers.flow_direction import FlowDirection
+from digitalrivers.flow.direction import FlowDirection
 
 
 def _reproject_if_needed(layer, target_epsg: int | None):

@@ -24,7 +24,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM, Accumulation, FlowDirection, StreamRaster
-from digitalrivers._flow.accumulation import accumulate as _accumulate_array
+from digitalrivers.flow._kernels.accumulation import accumulate as _accumulate_array
 from digitalrivers.dem._kernels.breach import breach_depressions
 
 
@@ -269,11 +269,13 @@ class TestNumbaFallbackExercised:
         for mod in (
             "digitalrivers.core.numba",
             "digitalrivers._numba",
-            "digitalrivers._flow.accumulation",
+            "digitalrivers.flow._kernels.accumulation",
         ):
             sys.modules.pop(mod, None)
         try:
-            accumulation = importlib.import_module("digitalrivers._flow.accumulation")
+            accumulation = importlib.import_module(
+                "digitalrivers.flow._kernels.accumulation"
+            )
             importlib.import_module("digitalrivers._numba")
             numba_mod = importlib.import_module("digitalrivers.core.numba")
             assert numba_mod.is_numba_enabled() is False
@@ -286,11 +288,11 @@ class TestNumbaFallbackExercised:
             for mod in (
                 "digitalrivers.core.numba",
                 "digitalrivers._numba",
-                "digitalrivers._flow.accumulation",
+                "digitalrivers.flow._kernels.accumulation",
             ):
                 sys.modules.pop(mod, None)
             importlib.import_module("digitalrivers._numba")
-            importlib.import_module("digitalrivers._flow.accumulation")
+            importlib.import_module("digitalrivers.flow._kernels.accumulation")
 
 
 # ----- Coverage gap fillers ---------------------------------------------------------------

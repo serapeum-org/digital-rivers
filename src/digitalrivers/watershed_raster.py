@@ -15,7 +15,7 @@ from pyramids.dataset import Dataset
 from shapely.geometry import MultiPolygon, Polygon
 from shapely.ops import unary_union
 
-from digitalrivers._flow.accumulation import kahn_max_upslope_length
+from digitalrivers.flow._kernels.accumulation import kahn_max_upslope_length
 from digitalrivers.core.metadata import (
     META_CLASS,
     META_ROUTING,

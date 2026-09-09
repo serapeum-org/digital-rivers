@@ -21,7 +21,7 @@ import pytest
 
 import digitalrivers._numba as _numba
 from digitalrivers.dem._kernels.pitremoval import _priority_flood, fill_depressions
-from digitalrivers._flow.accumulation import _receivers_d8, kahn_accumulate
+from digitalrivers.flow._kernels.accumulation import _receivers_d8, kahn_accumulate
 from digitalrivers.core.directions import DIR_DC_I32, DIR_DR_I32
 from digitalrivers.core.numba import is_numba_enabled
 
