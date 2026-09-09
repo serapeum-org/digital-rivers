@@ -93,10 +93,21 @@ docs = [
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
 ]
-# Dask backend for the out-of-core path. A group rather than the `distributed`
-# extra: that extra is `pyramids-gis[lazy]`, the whole lazy stack (zarr, s3fs,
-# kerchunk, h5py), where the tiled tests need only dask and distributed. The
-# environments reference this by name and pixi resolves it like `dev` / `docs`.
+# Dask backend for the out-of-core path, for the environments to install.
+#
+# A group rather than the `distributed` extra because that extra is
+# `pyramids-gis[lazy]`, which is seven packages — dask, distributed, fsspec,
+# zarr, s3fs, kerchunk and h5py. The tiled tests import only dask and
+# distributed, so the group narrows the extra to the two members that are
+# actually exercised rather than adding anything the extra lacks.
+#
+# The floors here mirror the two the upstream extra already sets. If pyramids
+# raises its own, this does not follow — check both when bumping pyramids.
+#
+# Named `lazy`, not `distributed`: a group and an extra sharing a name makes
+# pixi auto-activate the extra, which would pull the other five packages back
+# in and defeat the narrowing. The environments reference this name and pixi
+# resolves it like `dev` / `docs`.
 lazy = [
     "dask >=2024.1.0",
     "distributed >=2024.1.0",
@@ -191,9 +202,11 @@ macos = "14.0"
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
-# Everything else comes from [project.dependencies] via this editable install, so
-# there are no overrides here and no [tool.pixi.dependencies] table at all — the
-# pixi environments resolve the same PyPI distributions a `pip install` would.
+# The editable self-install is the only entry: there are no conda or PyPI
+# overrides, and no [tool.pixi.dependencies] table at all. Everything the
+# environments get arrives through the standard declarations — runtime deps
+# from [project.dependencies], plotting from the `viz` extra, tooling from the
+# `dev` / `docs` / `lazy` dependency groups — resolved from PyPI.
 #
 # Two conda overrides used to live here and are deliberately gone:
 #   * gdal — the pyramids-gis wheel vendors its own osgeo, and `import pyramids`
