@@ -52,10 +52,9 @@ Every typed class subclasses `pyramids.dataset.Dataset`, so all pyramids methods
 ## Quick start
 
 ```python
-from osgeo import gdal
 from digitalrivers import DEM, Terrain
 
-dem = DEM(gdal.Open("dem.tif"))
+dem = DEM.read_file("dem.tif")
 
 # One-call hydro pipeline.
 out = dem.full_hydro_pipeline(stream_threshold_cells=500)

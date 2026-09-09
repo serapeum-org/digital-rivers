@@ -56,10 +56,9 @@ Supported Python: **3.11–3.14**.
 ### DEM processing
 
 ```python
-from osgeo import gdal
 from digitalrivers.dem import DEM
 
-dem = DEM(gdal.Open("path/to/dem.tif"))
+dem = DEM.read_file("path/to/dem.tif")
 
 filled = dem.fill_sinks()                  # remove single-cell sinks
 slope = dem.slope()                        # max downhill slope (D8)
