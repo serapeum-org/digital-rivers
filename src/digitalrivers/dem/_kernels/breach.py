@@ -33,7 +33,7 @@ from itertools import count
 
 import numpy as np
 
-from digitalrivers._conditioning.pitremoval import (
+from digitalrivers.dem._kernels.pitremoval import (
     _NEIGHBOURS_8,
     fill_depressions,
     local_minima_8,

@@ -14,12 +14,12 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
-from digitalrivers._conditioning.breach import (
+from digitalrivers.dem._kernels.breach import (
     VALID_BREACH_METHODS,
     _candidate_intermediates,
     breach_depressions,
 )
-from digitalrivers._conditioning.pitremoval import local_minima_8
+from digitalrivers.dem._kernels.pitremoval import local_minima_8
 
 
 # ----- helpers ----------------------------------------------------------------------------

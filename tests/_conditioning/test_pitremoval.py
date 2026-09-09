@@ -13,7 +13,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
-from digitalrivers._conditioning.pitremoval import (
+from digitalrivers.dem._kernels.pitremoval import (
     VALID_METHODS,
     _nodata_adjacent,
     _seed_mask,
@@ -61,7 +61,7 @@ PIT_IN_PIT_6x6_FLAT_FILL = np.full((6, 6), 9.0, dtype=np.float64)
 
 # ----- helpers --------------------------------------------------------------------------------
 
-# Local-minima detection now lives in digitalrivers._conditioning.pitremoval.local_minima_8 (moved out
+# Local-minima detection now lives in digitalrivers.dem._kernels.pitremoval.local_minima_8 (moved out
 # of this test file in P3; previously inlined here as _internal_sinks_mask).
 _internal_sinks_mask = local_minima_8
 

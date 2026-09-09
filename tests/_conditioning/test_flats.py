@@ -13,7 +13,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers import DEM
-from digitalrivers._conditioning.flats import (
+from digitalrivers.dem._kernels.flats import (
     _bfs_levels,
     _classify_lec_hec,
     _invert_per_plateau,

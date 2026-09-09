@@ -17,13 +17,12 @@ from osgeo import gdal
 from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers._conditioning.breach import (
+from digitalrivers.dem._kernels.breach import (
     breach_depressions as _breach_depressions_array,
 )
-from digitalrivers._conditioning.flats import resolve_flats as _resolve_flats_array
-from digitalrivers._conditioning.pitremoval import (
+from digitalrivers.dem._kernels.flats import resolve_flats as _resolve_flats_array
+from digitalrivers.dem._kernels.pitremoval import (
     fill_depressions as _fill_depressions_array,
-    fill_depressions as _fill_depressions_kernel,
     local_minima_8,
 )
 from digitalrivers._flow.routing import (
@@ -760,7 +759,7 @@ class DEM(Dataset):
             # Call the kernel directly — no GDAL Dataset wrapping inside the
             # Monte-Carlo loop. The kernel accepts a plain ndarray and an
             # optional nodata_mask.
-            filled = _fill_depressions_kernel(
+            filled = _fill_depressions_array(
                 noisy,
                 nodata_mask=nodata_mask,
                 method=method,
