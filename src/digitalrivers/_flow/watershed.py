@@ -12,9 +12,11 @@ from collections import deque
 
 import numpy as np
 
-_DIR_DR = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-_DIR_DC = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-_INV_DIR = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+from digitalrivers.core.directions import (
+    DIR_DR_I32 as _DIR_DR,
+    DIR_DC_I32 as _DIR_DC,
+    INV_DIR as _INV_DIR,
+)
 
 
 def watershed_d8(

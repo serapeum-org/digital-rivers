@@ -12,11 +12,13 @@ from pyramids.dataset import Dataset, GeoReference
 pytest.importorskip("dask")
 
 from digitalrivers._numba import (  # noqa: E402
-    _DIR_DC_I32,
-    _DIR_DR_I32,
     d8_flow_direction_numba,
     kahn_accumulate_d8_numba,
     priority_flood_numba,
+)
+from digitalrivers.core.directions import (  # noqa: E402
+    DIR_DC_I32 as _DIR_DC_I32,
+    DIR_DR_I32 as _DIR_DR_I32,
 )
 from digitalrivers._outofcore.accumulate import flow_accumulation_tiled  # noqa: E402
 from digitalrivers._outofcore.fill import fill_depressions_tiled  # noqa: E402

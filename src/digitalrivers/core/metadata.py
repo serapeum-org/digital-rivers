@@ -58,7 +58,7 @@ def resolve_no_val(dataset: Dataset) -> float | int | None:
 
             >>> import numpy as np
             >>> from pyramids.dataset import Dataset, GeoReference
-            >>> from digitalrivers._metadata import resolve_no_val
+            >>> from digitalrivers.core.metadata import resolve_no_val
             >>> ds = Dataset.from_array(
             ...     np.ones((2, 2), dtype=np.float32),
             ...     geo_ref=GeoReference(
@@ -74,7 +74,7 @@ def resolve_no_val(dataset: Dataset) -> float | int | None:
         - An object whose `no_data_value` attribute is `None` returns
           `None`:
 
-            >>> from digitalrivers._metadata import resolve_no_val
+            >>> from digitalrivers.core.metadata import resolve_no_val
             >>> class _Ds:
             ...     no_data_value = None
             >>> resolve_no_val(_Ds()) is None
@@ -82,7 +82,7 @@ def resolve_no_val(dataset: Dataset) -> float | int | None:
 
         - An empty tuple is also treated as "no sentinel":
 
-            >>> from digitalrivers._metadata import resolve_no_val
+            >>> from digitalrivers.core.metadata import resolve_no_val
             >>> class _Ds:
             ...     no_data_value = ()
             >>> resolve_no_val(_Ds()) is None

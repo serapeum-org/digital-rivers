@@ -26,18 +26,18 @@ from digitalrivers._flow.accumulation import (
 )
 from digitalrivers._flow.ihu import ihu_upscale
 from digitalrivers._flow.watershed import watershed_d8
-from digitalrivers._metadata import (
+from digitalrivers._streams.order import _stream_outlets
+from digitalrivers.core.directions import (
+    DIR_DC_I32 as _DIR_DC,
+    DIR_DR_I32 as _DIR_DR,
+    INV_DIR as _INV_DIR,
+)
+from digitalrivers.core.metadata import (
     META_CLASS,
     META_ENCODING,
     META_ROUTING,
     VALID_ENCODING,
     VALID_ROUTING,
-)
-from digitalrivers._streams.order import (
-    _DIR_DC,
-    _DIR_DR,
-    _INV_DIR,
-    _stream_outlets,
 )
 
 if TYPE_CHECKING:
@@ -609,15 +609,16 @@ class FlowDirection(Dataset):
                 f"{fdir.shape}"
             )
 
-        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        d_row = _DIR_DR
+        d_col = _DIR_DC
         rows, cols = fdir.shape
         out_rows = rows // scale_factor
         out_cols = cols // scale_factor
 
         # Native Numba COTAT fast path — bit-for-bit identical to the
         # pure-Python loop below; ~30-50x faster on continental DEMs.
-        from digitalrivers._numba import cotat_upscale_numba, is_numba_enabled
+        from digitalrivers._numba import cotat_upscale_numba
+        from digitalrivers.core.numba import is_numba_enabled
 
         if is_numba_enabled():
             coarse_fdir = cotat_upscale_numba(
@@ -819,8 +820,8 @@ class FlowDirection(Dataset):
         else:  # dmm
             weights = None
 
-        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+        d_row = _DIR_DR
+        d_col = _DIR_DC
         coarse_fdir = np.full(
             (out_rows, out_cols),
             Dataset.default_no_data_value,
@@ -1173,9 +1174,9 @@ class FlowDirection(Dataset):
         if basin_mask is None:
             basin_mask = np.ones(fdir.shape, dtype=bool)
 
-        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-        inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+        d_row = _DIR_DR
+        d_col = _DIR_DC
+        inv_dir = _INV_DIR
         rows, cols = fdir.shape
 
         local_stream = stream_mask & basin_mask

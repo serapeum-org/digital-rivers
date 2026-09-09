@@ -16,16 +16,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import LineString
 
-from digitalrivers._metadata import (
-    META_CLASS,
-    META_ROUTING,
-    META_THRESHOLD,
-    VALID_ROUTING,
-)
 from digitalrivers._streams.order import (
-    _DIR_DC,
-    _DIR_DR,
-    _INV_DIR,
     _build_topology,
     _stream_outlets,
     _upstream_length_from_head,
@@ -34,6 +25,17 @@ from digitalrivers._streams.order import (
     shreve,
     strahler,
     topological,
+)
+from digitalrivers.core.directions import (
+    DIR_DC_I32 as _DIR_DC,
+    DIR_DR_I32 as _DIR_DR,
+    INV_DIR as _INV_DIR,
+)
+from digitalrivers.core.metadata import (
+    META_CLASS,
+    META_ROUTING,
+    META_THRESHOLD,
+    VALID_ROUTING,
 )
 
 if TYPE_CHECKING:
@@ -370,9 +372,9 @@ class StreamRaster(Dataset):
                 f"{stream_mask.shape}"
             )
 
-        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-        inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+        d_row = _DIR_DR
+        d_col = _DIR_DC
+        inv_dir = _INV_DIR
         rows, cols = stream_mask.shape
 
         nup = _upstream_stream_count(stream_mask, fdir, d_row, d_col, inv_dir)
@@ -821,12 +823,9 @@ class StreamRaster(Dataset):
         else:
             z = None
 
-        # 8-direction offsets matching DIR_OFFSETS (0=S, 1=SW, ..., 7=SE).
-        d_row = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-        d_col = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-        # Inverse direction: if cell at offset (dr, dc) has direction = inv[k],
-        # it is flowing INTO us.
-        inv_dir = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
+        d_row = _DIR_DR
+        d_col = _DIR_DC
+        inv_dir = _INV_DIR
         grid_lengths = np.array(
             [
                 1.0,

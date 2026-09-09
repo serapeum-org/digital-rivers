@@ -8,66 +8,19 @@ Numba JIT-compiled implementations of the hottest loops in the hydro pre-process
 * :func:`priority_flood_numba` — depression-fill via Barnes 2014 Priority-Flood
   with a hand-rolled binary heap (no `heapq.typed.List` dependency).
 
-All kernels share a single direction-offset convention (`DIR_OFFSETS` from
-`dem.py`: `0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE`) passed as two
-`int32[:]` arrays — never as a dict — to keep Numba's type inference happy.
-
-Disabling Numba
----------------
-
-Set the env var `DIGITALRIVERS_DISABLE_NUMBA=1` (or fail to install Numba) and
-this module's decorators degrade to no-ops, producing identical bit-for-bit
-output from the pure-Python branch. Used for debugging (step-through in an IDE)
-and for CI on platforms without Numba wheels.
+All kernels share a single direction-offset convention (`0=S, 1=SW, 2=W, 3=NW,
+4=N, 5=NE, 6=E, 7=SE`), defined once in `digitalrivers.core.directions` and passed
+in as two `int32[:]` arrays — never as a dict — to keep Numba's type inference
+happy. The `njit` / `prange` decorators and `is_numba_enabled` come from
+`digitalrivers.core.numba`, which is also where `DIGITALRIVERS_DISABLE_NUMBA=1`
+turns the JIT path off.
 """
 
 from __future__ import annotations
 
-import os
-
 import numpy as np
 
-_USE_NUMBA = os.environ.get("DIGITALRIVERS_DISABLE_NUMBA", "0") != "1"
-
-if _USE_NUMBA:
-    try:
-        from numba import njit, prange  # type: ignore[import-not-found]
-    except ImportError:  # pragma: no cover — environment without numba
-        _USE_NUMBA = False
-
-if not _USE_NUMBA:
-
-    def njit(*args, **kwargs):  # type: ignore[no-redef]
-        """No-op decorator used when Numba is unavailable / disabled."""
-        if args and callable(args[0]) and not kwargs:
-            return args[0]
-
-        def decorator(fn):
-            return fn
-
-        return decorator
-
-    def prange(*args, **kwargs):  # type: ignore[no-redef]
-        return range(*args, **kwargs)
-
-
-# DIR_OFFSETS as parallel int32 arrays — passable into @njit kernels.
-_DIR_DR_I32 = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-_DIR_DC_I32 = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
-
-
-def is_numba_enabled() -> bool:
-    """Return True if Numba JIT is currently active for this process."""
-    return _USE_NUMBA
-
-
-def neighbour_offsets() -> tuple[np.ndarray, np.ndarray]:
-    """Return the (dr, dc) offset arrays as a tuple of `int32` arrays.
-
-    Convenience for callers that want to pass them into JIT kernels without
-    importing the underscored module-level constants.
-    """
-    return _DIR_DR_I32.copy(), _DIR_DC_I32.copy()
+from digitalrivers.core.numba import njit
 
 
 # ----- D8 flow direction --------------------------------------------------------------------

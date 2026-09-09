@@ -41,8 +41,10 @@ from collections import deque
 
 import numpy as np
 
-_DIR_DR = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int32)
-_DIR_DC = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int32)
+from digitalrivers.core.directions import (
+    DIR_DR_I32 as _DIR_DR,
+    DIR_DC_I32 as _DIR_DC,
+)
 
 
 def _precompute_exit_info(fdir: np.ndarray, scale_factor: int) -> tuple:

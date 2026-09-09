@@ -32,24 +32,11 @@ from digitalrivers._flow.routing import (
     rho8_flow_direction as _rho8_flow_direction,
 )
 from digitalrivers._streams.hand import hand_d8
-from digitalrivers.flow_direction import FlowDirection
 
-#: D8 direction offsets mapping direction index to (column_offset, row_offset).
-#:
-#: Directions follow the convention:
-#:   0 = South (bottom), 1 = Southwest (bottom-left), 2 = West (left),
-#:   3 = Northwest (top-left), 4 = North (top), 5 = Northeast (top-right),
-#:   6 = East (right), 7 = Southeast (bottom-right).
-DIR_OFFSETS = {
-    0: (0, 1),  # bottom
-    1: (-1, 1),  # bottom left
-    2: (-1, 0),  # left
-    3: (-1, -1),  # top left
-    4: (0, -1),  # top
-    5: (1, -1),  # top right
-    6: (1, 0),  # right
-    7: (1, 1),  # bottom right
-}
+# Re-exported: `DIR_OFFSETS` was defined here historically and callers still do
+# `from digitalrivers.dem import DIR_OFFSETS`. Its home is core.directions.
+from digitalrivers.core.directions import DIR_OFFSETS
+from digitalrivers.flow_direction import FlowDirection
 
 
 def _reproject_if_needed(layer, target_epsg: int | None):

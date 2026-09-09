@@ -16,7 +16,7 @@ from osgeo import gdal
 from pyramids.dataset import Dataset, GeoReference
 from shapely.geometry import Point
 
-from digitalrivers._metadata import (
+from digitalrivers.core.metadata import (
     META_CLASS,
     META_ROUTING,
     VALID_ROUTING,

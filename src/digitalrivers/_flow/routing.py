@@ -23,11 +23,12 @@ from __future__ import annotations
 
 import numpy as np
 
-# DIR_OFFSETS-aligned (dr, dc) for each direction index.
-# Direction codes (matching dem.py's DIR_OFFSETS):
-#   0=S, 1=SW, 2=W, 3=NW, 4=N, 5=NE, 6=E, 7=SE
-_DIR_DR = np.array([1, 1, 0, -1, -1, -1, 0, 1], dtype=np.int8)
-_DIR_DC = np.array([0, -1, -1, -1, 0, 1, 1, 1], dtype=np.int8)
+# The int8 variant: these tables are broadcast against int8 direction-code rasters
+# throughout this module, and widening them would widen every intermediate.
+from digitalrivers.core.directions import (
+    DIR_DR_I8 as _DIR_DR,
+    DIR_DC_I8 as _DIR_DC,
+)
 
 # Cardinal indices (S=0, W=2, N=4, E=6) — slope divisor is cell_size.
 # Diagonal indices (SW=1, NW=3, NE=5, SE=7) — slope divisor is cell_size * sqrt(2).

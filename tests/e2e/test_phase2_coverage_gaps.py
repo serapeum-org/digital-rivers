@@ -275,7 +275,7 @@ def test_drainage_density_with_flow_direction_higher_for_diagonal_chain():
 
 def test_resolve_no_val_returns_band0_sentinel():
     """A dataset with a configured no-data returns its band-0 sentinel."""
-    from digitalrivers._metadata import resolve_no_val
+    from digitalrivers.core.metadata import resolve_no_val
 
     arr = np.ones((3, 3), dtype=np.float32)
     ds = Dataset.from_array(
@@ -290,7 +290,7 @@ def test_resolve_no_val_short_circuits_on_falsy_attribute():
     """The helper returns None for any falsy `no_data_value` —
     explicit None, empty tuple, etc. Exercised via a minimal stand-in
     rather than depending on pyramids' default-sentinel behaviour."""
-    from digitalrivers._metadata import resolve_no_val
+    from digitalrivers.core.metadata import resolve_no_val
 
     class _FakeDs:
         no_data_value = None

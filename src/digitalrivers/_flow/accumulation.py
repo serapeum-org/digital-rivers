@@ -22,6 +22,7 @@ from collections import deque
 import numpy as np
 
 from digitalrivers._flow.routing import _DIR_DR, _DIR_DC
+from digitalrivers.core.directions import INV_DIR as _INV_DIR
 
 
 def _receivers_d8(
@@ -220,12 +221,12 @@ def accumulate(
         # Numba fast path for single-direction routings — bit-for-bit identical to
         # the pure-Python Kahn sweep, ≥ 30× faster warm. Imported lazily so that
         # `import digitalrivers` does not eagerly pull in Numba.
-        from digitalrivers._numba import (
-            _DIR_DR_I32,
-            _DIR_DC_I32,
-            is_numba_enabled,
-            kahn_accumulate_d8_numba,
+        from digitalrivers._numba import kahn_accumulate_d8_numba
+        from digitalrivers.core.directions import (
+            DIR_DR_I32 as _DIR_DR_I32,
+            DIR_DC_I32 as _DIR_DC_I32,
         )
+        from digitalrivers.core.numba import is_numba_enabled
 
         if is_numba_enabled():
             if weights is None:
@@ -299,7 +300,6 @@ def kahn_max_upslope_length(
     diag = float(cell_size) * (2.0**0.5)
     cs = float(cell_size)
     # In-degree count for Kahn ordering.
-    inv = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
     indeg = np.zeros((rows, cols), dtype=np.int32)
     for k in range(8):
         dr = int(_DIR_DR[k])
@@ -309,7 +309,7 @@ def kahn_max_upslope_length(
         dst_r = slice(max(0, -dr), min(rows, rows - dr))
         dst_c = slice(max(0, -dc), min(cols, cols - dc))
         fd_src = fdir[src_r, src_c]
-        indeg[dst_r, dst_c] += (fd_src == int(inv[k])).astype(np.int32)
+        indeg[dst_r, dst_c] += (fd_src == int(_INV_DIR[k])).astype(np.int32)
 
     lengths = np.zeros((rows, cols), dtype=np.float64)
     queue: deque[tuple[int, int]] = deque(

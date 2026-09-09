@@ -338,12 +338,12 @@ def _priority_flood_with_numba(
     var. The Numba kernel is bit-for-bit identical on synthetic fixtures; on
     real DEMs it is ≥ 20× faster on cold runs and ≥ 50× faster warm.
     """
-    from digitalrivers._numba import (
-        _DIR_DR_I32,
-        _DIR_DC_I32,
-        is_numba_enabled,
-        priority_flood_numba,
+    from digitalrivers._numba import priority_flood_numba
+    from digitalrivers.core.directions import (
+        DIR_DR_I32 as _DIR_DR_I32,
+        DIR_DC_I32 as _DIR_DC_I32,
     )
+    from digitalrivers.core.numba import is_numba_enabled
 
     if is_numba_enabled():
         return priority_flood_numba(
