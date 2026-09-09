@@ -35,7 +35,9 @@ _SITE_DIRS = {sysconfig.get_paths()["purelib"], sysconfig.get_paths()["platlib"]
 
 # Whether a top-level `osgeo` package (conda-forge's gdal bindings, say) is installed
 # alongside pyramids. When one is, `osgeo` resolves without the vendor bootstrap and the
-# two wheel-shape assertions below do not apply to that installation.
+# two wheel-shape assertions below do not apply to that installation. These directories
+# are the whole of what the subprocesses below search outside the stdlib, which is what
+# makes this probe an answer about them rather than about the machine.
 TOP_LEVEL_OSGEO_INSTALLED = any((Path(d) / "osgeo").is_dir() for d in _SITE_DIRS)
 
 # Subprocess timeout. Generous: importing gdal pulls in a large native stack, and a cold
@@ -46,11 +48,11 @@ _TIMEOUT = 120
 def _clean_env() -> dict[str, str]:
     """Return the parent environment minus the variables that could inject another osgeo.
 
-    `PYTHONPATH` and `PYTHONHOME` are dropped so the child resolves imports from the
-    installed environment alone. Without that, a `PYTHONPATH` pointing at any tree
-    containing an `osgeo/` directory makes the negative test below fail for a reason that
-    has nothing to do with this package. Everything else is inherited, because the
-    environment's own activation variables are what make GDAL work at all.
+    `PYTHONPATH` and `PYTHONHOME` are dropped for the same reason `_run` passes `-P` and
+    `-s`: without them, a tree that merely happens to contain an `osgeo/` directory makes
+    the negative test below fail for a reason that has nothing to do with this package.
+    Everything else is inherited, because the environment's own activation variables are
+    what make GDAL work at all.
     """
     env = dict(os.environ)
     env.pop("PYTHONPATH", None)
@@ -58,13 +60,19 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
-def _run(code: str) -> subprocess.CompletedProcess[str]:
-    """Run `code` in a fresh interpreter that has imported nothing beforehand."""
+def _run(code: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+    """Run `code` in a fresh interpreter whose import roots are the environment's site dirs alone."""
+    # `-P` keeps the working directory off the child's sys.path — with `-c` Python puts it
+    # first — and `-s` keeps the per-user site directory off it. With PYTHONPATH and
+    # PYTHONHOME stripped too, the child searches exactly the directories
+    # TOP_LEVEL_OSGEO_INSTALLED probes, so the skip guard and the child agree on what
+    # "installed" means. Neither flag touches the activation variables GDAL needs.
     return subprocess.run(
-        [sys.executable, "-c", code],
+        [sys.executable, "-P", "-s", "-c", code],
         capture_output=True,
         text=True,
         check=False,
+        cwd=cwd,
         env=_clean_env(),
         timeout=_TIMEOUT,
     )
@@ -131,3 +139,19 @@ class TestVendoredOsgeoBootstrap:
         assert (
             "No module named 'osgeo'" in bare_osgeo_import.stderr
         ), f"expected a ModuleNotFoundError for osgeo, got: {bare_osgeo_import.stderr}"
+
+
+class TestSubprocessIsolation:
+    """The probes above answer a question about the environment, not about where pytest was run."""
+
+    def test_the_working_directory_is_not_on_the_child_import_path(self, tmp_path):
+        """An `osgeo/` sitting beside the child's working directory stays invisible to it."""
+        decoy = tmp_path / "osgeo"
+        decoy.mkdir()
+        (decoy / "__init__.py").write_text("", encoding="utf-8")
+        proc = _run("import osgeo; print(osgeo.__file__)", cwd=tmp_path)
+        assert str(tmp_path) not in proc.stdout, (
+            f"the child imported the decoy osgeo at {proc.stdout.strip()}, so its working directory "
+            "is on sys.path and the directory pytest was invoked from can decide the result of the "
+            "assertions above"
+        )
