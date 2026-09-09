@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1393,6 +1393,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#digitalrivers.flow.accumulation.Accumulation.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2006,6 +2017,17 @@
     <span class="md-ellipsis">
       
         snap_pour_points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#digitalrivers.flow.accumulation.Accumulation.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
       
     </span>
   </a>
@@ -2808,7 +2830,15 @@ when it is reopened. Default <code>None</code>.</p>
 <span class="normal"><a href="#__codelineno-0-689">689</a></span>
 <span class="normal"><a href="#__codelineno-0-690">690</a></span>
 <span class="normal"><a href="#__codelineno-0-691">691</a></span>
-<span class="normal"><a href="#__codelineno-0-692">692</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="k">class</span><span class="w"> </span><span class="nc">Accumulation</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-100" name="__codelineno-0-100"></a><span class="k">class</span><span class="w"> </span><span class="nc">Accumulation</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <a id="__codelineno-0-101" name="__codelineno-0-101"></a><span class="w">    </span><span class="sd">"""Flow-accumulation raster tagged with the producing routing scheme.</span>
 <a id="__codelineno-0-102" name="__codelineno-0-102"></a>
 <a id="__codelineno-0-103" name="__codelineno-0-103"></a><span class="sd">    Args:</span>
@@ -3397,10 +3427,18 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-686" name="__codelineno-0-686"></a>        <span class="k">return</span> <span class="n">out</span>
 <a id="__codelineno-0-687" name="__codelineno-0-687"></a>
 <a id="__codelineno-0-688" name="__codelineno-0-688"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-689" name="__codelineno-0-689"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-690" name="__codelineno-0-690"></a>            <span class="sa">f</span><span class="s2">"&lt;Accumulation rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-691" name="__codelineno-0-691"></a>            <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-692" name="__codelineno-0-692"></a>        <span class="p">)</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the raster's shape and the routing scheme that produced it.</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">        The routing tag travels with the raster, so a repr says which scheme</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">              produced these counts rather than leaving it to be guessed.</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">            A string of the form `&lt;Accumulation rows=R cols=C routing='...'&gt;`.</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">        """</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a>            <span class="sa">f</span><span class="s2">"&lt;Accumulation rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a>            <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -5658,6 +5696,78 @@ True</p>
 <a id="__codelineno-0-684" name="__codelineno-0-684"></a>    <span class="n">out</span><span class="p">[</span><span class="s2">"snap_acc"</span><span class="p">]</span> <span class="o">=</span> <span class="n">snap_accs</span>
 <a id="__codelineno-0-685" name="__codelineno-0-685"></a>    <span class="n">out</span><span class="p">[</span><span class="s2">"geometry"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">Point</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">snapped_xs</span><span class="p">,</span> <span class="n">snapped_ys</span><span class="p">)]</span>
 <a id="__codelineno-0-686" name="__codelineno-0-686"></a>    <span class="k">return</span> <span class="n">out</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="digitalrivers.flow.accumulation.Accumulation.__repr__" class="doc doc-heading"><a href="#digitalrivers.flow.accumulation.Accumulation.__repr__" class="toclink">
+            <code class="highlight language-python"><span class="fm">__repr__</span><span class="p">()</span></code>
+
+</a><a href="#digitalrivers.flow.accumulation.Accumulation.__repr__" class="headerlink" title="Permanent link">#</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return a one-line summary naming the raster's shape and the routing scheme that produced it.</p>
+<p>The routing tag travels with the raster, so a repr says which scheme
+      produced these counts rather than leaving it to be guessed.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A string of the form <code>&lt;Accumulation rows=R cols=C routing='...'&gt;</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/digitalrivers/flow/accumulation.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-688">688</a></span>
+<span class="normal"><a href="#__codelineno-0-689">689</a></span>
+<span class="normal"><a href="#__codelineno-0-690">690</a></span>
+<span class="normal"><a href="#__codelineno-0-691">691</a></span>
+<span class="normal"><a href="#__codelineno-0-692">692</a></span>
+<span class="normal"><a href="#__codelineno-0-693">693</a></span>
+<span class="normal"><a href="#__codelineno-0-694">694</a></span>
+<span class="normal"><a href="#__codelineno-0-695">695</a></span>
+<span class="normal"><a href="#__codelineno-0-696">696</a></span>
+<span class="normal"><a href="#__codelineno-0-697">697</a></span>
+<span class="normal"><a href="#__codelineno-0-698">698</a></span>
+<span class="normal"><a href="#__codelineno-0-699">699</a></span>
+<span class="normal"><a href="#__codelineno-0-700">700</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-688" name="__codelineno-0-688"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-689" name="__codelineno-0-689"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the raster's shape and the routing scheme that produced it.</span>
+<a id="__codelineno-0-690" name="__codelineno-0-690"></a>
+<a id="__codelineno-0-691" name="__codelineno-0-691"></a><span class="sd">    The routing tag travels with the raster, so a repr says which scheme</span>
+<a id="__codelineno-0-692" name="__codelineno-0-692"></a><span class="sd">          produced these counts rather than leaving it to be guessed.</span>
+<a id="__codelineno-0-693" name="__codelineno-0-693"></a>
+<a id="__codelineno-0-694" name="__codelineno-0-694"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-695" name="__codelineno-0-695"></a><span class="sd">        A string of the form `&lt;Accumulation rows=R cols=C routing='...'&gt;`.</span>
+<a id="__codelineno-0-696" name="__codelineno-0-696"></a><span class="sd">    """</span>
+<a id="__codelineno-0-697" name="__codelineno-0-697"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-698" name="__codelineno-0-698"></a>        <span class="sa">f</span><span class="s2">"&lt;Accumulation rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-699" name="__codelineno-0-699"></a>        <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-700" name="__codelineno-0-700"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

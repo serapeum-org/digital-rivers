@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1398,6 +1398,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#digitalrivers.flow.direction.FlowDirection.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2072,6 +2083,17 @@
     <span class="md-ellipsis">
       
         watershed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#digitalrivers.flow.direction.FlowDirection.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
       
     </span>
   </a>
@@ -3079,7 +3101,16 @@ when it is reopened. Default <code>None</code>.</p>
 <span class="normal"><a href="#__codelineno-0-819">819</a></span>
 <span class="normal"><a href="#__codelineno-0-820">820</a></span>
 <span class="normal"><a href="#__codelineno-0-821">821</a></span>
-<span class="normal"><a href="#__codelineno-0-822">822</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowDirection</span><span class="p">(</span><span class="n">UpscaleMixin</span><span class="p">,</span> <span class="n">PfafstetterMixin</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-822">822</a></span>
+<span class="normal"><a href="#__codelineno-0-823">823</a></span>
+<span class="normal"><a href="#__codelineno-0-824">824</a></span>
+<span class="normal"><a href="#__codelineno-0-825">825</a></span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-48" name="__codelineno-0-48"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlowDirection</span><span class="p">(</span><span class="n">UpscaleMixin</span><span class="p">,</span> <span class="n">PfafstetterMixin</span><span class="p">,</span> <span class="n">Dataset</span><span class="p">):</span>
 <a id="__codelineno-0-49" name="__codelineno-0-49"></a><span class="w">    </span><span class="sd">"""Flow-direction raster with routing-scheme metadata.</span>
 <a id="__codelineno-0-50" name="__codelineno-0-50"></a>
 <a id="__codelineno-0-51" name="__codelineno-0-51"></a><span class="sd">    Args:</span>
@@ -3850,10 +3881,19 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-816" name="__codelineno-0-816"></a>        <span class="p">)</span>
 <a id="__codelineno-0-817" name="__codelineno-0-817"></a>
 <a id="__codelineno-0-818" name="__codelineno-0-818"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-819" name="__codelineno-0-819"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-820" name="__codelineno-0-820"></a>            <span class="sa">f</span><span class="s2">"&lt;FlowDirection rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-821" name="__codelineno-0-821"></a>            <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2"> encoding=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-822" name="__codelineno-0-822"></a>        <span class="p">)</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the raster's shape, routing scheme and cell-value encoding.</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a>
+<a id="__codelineno-0-821" name="__codelineno-0-821"></a><span class="sd">        Both tags are shown, because a direction grid is only interpretable</span>
+<a id="__codelineno-0-822" name="__codelineno-0-822"></a><span class="sd">              given the pair — the same cell value means different neighbours</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a><span class="sd">              under different encodings.</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a><span class="sd">            A string of the form `&lt;FlowDirection rows=R cols=C routing='...' encoding='...'&gt;`.</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a><span class="sd">        """</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a>            <span class="sa">f</span><span class="s2">"&lt;FlowDirection rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a>            <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2"> encoding=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -6510,6 +6550,81 @@ outer basin contains no inner-basin cells.</p>
 <a id="__codelineno-0-814" name="__codelineno-0-814"></a>        <span class="n">routing</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="p">,</span>
 <a id="__codelineno-0-815" name="__codelineno-0-815"></a>        <span class="n">outlets</span><span class="o">=</span><span class="n">outlets_gdf</span><span class="p">,</span>
 <a id="__codelineno-0-816" name="__codelineno-0-816"></a>    <span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="digitalrivers.flow.direction.FlowDirection.__repr__" class="doc doc-heading"><a href="#digitalrivers.flow.direction.FlowDirection.__repr__" class="toclink">
+            <code class="highlight language-python"><span class="fm">__repr__</span><span class="p">()</span></code>
+
+</a><a href="#digitalrivers.flow.direction.FlowDirection.__repr__" class="headerlink" title="Permanent link">#</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return a one-line summary naming the raster's shape, routing scheme and cell-value encoding.</p>
+<p>Both tags are shown, because a direction grid is only interpretable
+      given the pair — the same cell value means different neighbours
+      under different encodings.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A string of the form <code>&lt;FlowDirection rows=R cols=C routing='...' encoding='...'&gt;</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/digitalrivers/flow/direction.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-818">818</a></span>
+<span class="normal"><a href="#__codelineno-0-819">819</a></span>
+<span class="normal"><a href="#__codelineno-0-820">820</a></span>
+<span class="normal"><a href="#__codelineno-0-821">821</a></span>
+<span class="normal"><a href="#__codelineno-0-822">822</a></span>
+<span class="normal"><a href="#__codelineno-0-823">823</a></span>
+<span class="normal"><a href="#__codelineno-0-824">824</a></span>
+<span class="normal"><a href="#__codelineno-0-825">825</a></span>
+<span class="normal"><a href="#__codelineno-0-826">826</a></span>
+<span class="normal"><a href="#__codelineno-0-827">827</a></span>
+<span class="normal"><a href="#__codelineno-0-828">828</a></span>
+<span class="normal"><a href="#__codelineno-0-829">829</a></span>
+<span class="normal"><a href="#__codelineno-0-830">830</a></span>
+<span class="normal"><a href="#__codelineno-0-831">831</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-818" name="__codelineno-0-818"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-819" name="__codelineno-0-819"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the raster's shape, routing scheme and cell-value encoding.</span>
+<a id="__codelineno-0-820" name="__codelineno-0-820"></a>
+<a id="__codelineno-0-821" name="__codelineno-0-821"></a><span class="sd">    Both tags are shown, because a direction grid is only interpretable</span>
+<a id="__codelineno-0-822" name="__codelineno-0-822"></a><span class="sd">          given the pair — the same cell value means different neighbours</span>
+<a id="__codelineno-0-823" name="__codelineno-0-823"></a><span class="sd">          under different encodings.</span>
+<a id="__codelineno-0-824" name="__codelineno-0-824"></a>
+<a id="__codelineno-0-825" name="__codelineno-0-825"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-826" name="__codelineno-0-826"></a><span class="sd">        A string of the form `&lt;FlowDirection rows=R cols=C routing='...' encoding='...'&gt;`.</span>
+<a id="__codelineno-0-827" name="__codelineno-0-827"></a><span class="sd">    """</span>
+<a id="__codelineno-0-828" name="__codelineno-0-828"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-829" name="__codelineno-0-829"></a>        <span class="sa">f</span><span class="s2">"&lt;FlowDirection rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-830" name="__codelineno-0-830"></a>        <span class="sa">f</span><span class="s2">"routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2"> encoding=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">encoding</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-831" name="__codelineno-0-831"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

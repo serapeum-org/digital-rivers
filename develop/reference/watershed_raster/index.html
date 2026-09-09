@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1438,6 +1438,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#digitalrivers.watershed.raster.WatershedRaster.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1984,6 +1995,17 @@
     <span class="md-ellipsis">
       
         to_polygons
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#digitalrivers.watershed.raster.WatershedRaster.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
       
     </span>
   </a>
@@ -2691,7 +2713,15 @@ when it is reopened. Default <code>None</code>.</p>
 <span class="normal"><a href="#__codelineno-0-472">472</a></span>
 <span class="normal"><a href="#__codelineno-0-473">473</a></span>
 <span class="normal"><a href="#__codelineno-0-474">474</a></span>
-<span class="normal"><a href="#__codelineno-0-475">475</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">WatershedRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-475">475</a></span>
+<span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">WatershedRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="sd">"""Labelled-basins raster from :class:`FlowDirection.watershed`.</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    Args:</span>
@@ -3137,10 +3167,18 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a>        <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epsg</span><span class="p">)</span>
 <a id="__codelineno-0-470" name="__codelineno-0-470"></a>
 <a id="__codelineno-0-471" name="__codelineno-0-471"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-472" name="__codelineno-0-472"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-473" name="__codelineno-0-473"></a>            <span class="sa">f</span><span class="s2">"&lt;WatershedRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-474" name="__codelineno-0-474"></a>            <span class="sa">f</span><span class="s2">"basin_count=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">basin_count</span><span class="si">}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-475" name="__codelineno-0-475"></a>        <span class="p">)</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the raster's shape, basin count and routing scheme.</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">        `basin_count` is computed from the labels rather than stored, so the</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">              repr reflects what is actually in the raster.</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">            A string of the form `&lt;WatershedRaster rows=R cols=C basin_count=N routing='...'&gt;`.</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">        """</span>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a>            <span class="sa">f</span><span class="s2">"&lt;WatershedRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a>            <span class="sa">f</span><span class="s2">"basin_count=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">basin_count</span><span class="si">}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -4605,6 +4643,78 @@ carries the basin ID in the <code>basin_id</code> column.</p>
 <a id="__codelineno-0-467" name="__codelineno-0-467"></a>            <span class="n">merged</span> <span class="o">=</span> <span class="n">MultiPolygon</span><span class="p">([</span><span class="n">merged</span><span class="p">])</span>
 <a id="__codelineno-0-468" name="__codelineno-0-468"></a>        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"basin_id"</span><span class="p">:</span> <span class="n">bid</span><span class="p">,</span> <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">merged</span><span class="p">})</span>
 <a id="__codelineno-0-469" name="__codelineno-0-469"></a>    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epsg</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="digitalrivers.watershed.raster.WatershedRaster.__repr__" class="doc doc-heading"><a href="#digitalrivers.watershed.raster.WatershedRaster.__repr__" class="toclink">
+            <code class="highlight language-python"><span class="fm">__repr__</span><span class="p">()</span></code>
+
+</a><a href="#digitalrivers.watershed.raster.WatershedRaster.__repr__" class="headerlink" title="Permanent link">#</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return a one-line summary naming the raster's shape, basin count and routing scheme.</p>
+<p><code>basin_count</code> is computed from the labels rather than stored, so the
+      repr reflects what is actually in the raster.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A string of the form <code>&lt;WatershedRaster rows=R cols=C basin_count=N routing='...'&gt;</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/digitalrivers/watershed/raster.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-471">471</a></span>
+<span class="normal"><a href="#__codelineno-0-472">472</a></span>
+<span class="normal"><a href="#__codelineno-0-473">473</a></span>
+<span class="normal"><a href="#__codelineno-0-474">474</a></span>
+<span class="normal"><a href="#__codelineno-0-475">475</a></span>
+<span class="normal"><a href="#__codelineno-0-476">476</a></span>
+<span class="normal"><a href="#__codelineno-0-477">477</a></span>
+<span class="normal"><a href="#__codelineno-0-478">478</a></span>
+<span class="normal"><a href="#__codelineno-0-479">479</a></span>
+<span class="normal"><a href="#__codelineno-0-480">480</a></span>
+<span class="normal"><a href="#__codelineno-0-481">481</a></span>
+<span class="normal"><a href="#__codelineno-0-482">482</a></span>
+<span class="normal"><a href="#__codelineno-0-483">483</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-471" name="__codelineno-0-471"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-472" name="__codelineno-0-472"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the raster's shape, basin count and routing scheme.</span>
+<a id="__codelineno-0-473" name="__codelineno-0-473"></a>
+<a id="__codelineno-0-474" name="__codelineno-0-474"></a><span class="sd">    `basin_count` is computed from the labels rather than stored, so the</span>
+<a id="__codelineno-0-475" name="__codelineno-0-475"></a><span class="sd">          repr reflects what is actually in the raster.</span>
+<a id="__codelineno-0-476" name="__codelineno-0-476"></a>
+<a id="__codelineno-0-477" name="__codelineno-0-477"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-478" name="__codelineno-0-478"></a><span class="sd">        A string of the form `&lt;WatershedRaster rows=R cols=C basin_count=N routing='...'&gt;`.</span>
+<a id="__codelineno-0-479" name="__codelineno-0-479"></a><span class="sd">    """</span>
+<a id="__codelineno-0-480" name="__codelineno-0-480"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-481" name="__codelineno-0-481"></a>        <span class="sa">f</span><span class="s2">"&lt;WatershedRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-482" name="__codelineno-0-482"></a>        <span class="sa">f</span><span class="s2">"basin_count=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">basin_count</span><span class="si">}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-483" name="__codelineno-0-483"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

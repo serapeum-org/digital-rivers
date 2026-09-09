@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1454,6 +1454,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#digitalrivers.streams.raster.StreamRaster.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2072,6 +2083,17 @@
     <span class="md-ellipsis">
       
         to_vector
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#digitalrivers.streams.raster.StreamRaster.__repr__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __repr__
       
     </span>
   </a>
@@ -3175,7 +3197,48 @@ when it is reopened. Default <code>None</code>.</p>
 <span class="normal"><a href="#__codelineno-0-941">941</a></span>
 <span class="normal"><a href="#__codelineno-0-942">942</a></span>
 <span class="normal"><a href="#__codelineno-0-943">943</a></span>
-<span class="normal"><a href="#__codelineno-0-944">944</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">class</span><span class="w"> </span><span class="nc">StreamRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-944">944</a></span>
+<span class="normal"><a href="#__codelineno-0-945">945</a></span>
+<span class="normal"><a href="#__codelineno-0-946">946</a></span>
+<span class="normal"><a href="#__codelineno-0-947">947</a></span>
+<span class="normal"><a href="#__codelineno-0-948">948</a></span>
+<span class="normal"><a href="#__codelineno-0-949">949</a></span>
+<span class="normal"><a href="#__codelineno-0-950">950</a></span>
+<span class="normal"><a href="#__codelineno-0-951">951</a></span>
+<span class="normal"><a href="#__codelineno-0-952">952</a></span>
+<span class="normal"><a href="#__codelineno-0-953">953</a></span>
+<span class="normal"><a href="#__codelineno-0-954">954</a></span>
+<span class="normal"><a href="#__codelineno-0-955">955</a></span>
+<span class="normal"><a href="#__codelineno-0-956">956</a></span>
+<span class="normal"><a href="#__codelineno-0-957">957</a></span>
+<span class="normal"><a href="#__codelineno-0-958">958</a></span>
+<span class="normal"><a href="#__codelineno-0-959">959</a></span>
+<span class="normal"><a href="#__codelineno-0-960">960</a></span>
+<span class="normal"><a href="#__codelineno-0-961">961</a></span>
+<span class="normal"><a href="#__codelineno-0-962">962</a></span>
+<span class="normal"><a href="#__codelineno-0-963">963</a></span>
+<span class="normal"><a href="#__codelineno-0-964">964</a></span>
+<span class="normal"><a href="#__codelineno-0-965">965</a></span>
+<span class="normal"><a href="#__codelineno-0-966">966</a></span>
+<span class="normal"><a href="#__codelineno-0-967">967</a></span>
+<span class="normal"><a href="#__codelineno-0-968">968</a></span>
+<span class="normal"><a href="#__codelineno-0-969">969</a></span>
+<span class="normal"><a href="#__codelineno-0-970">970</a></span>
+<span class="normal"><a href="#__codelineno-0-971">971</a></span>
+<span class="normal"><a href="#__codelineno-0-972">972</a></span>
+<span class="normal"><a href="#__codelineno-0-973">973</a></span>
+<span class="normal"><a href="#__codelineno-0-974">974</a></span>
+<span class="normal"><a href="#__codelineno-0-975">975</a></span>
+<span class="normal"><a href="#__codelineno-0-976">976</a></span>
+<span class="normal"><a href="#__codelineno-0-977">977</a></span>
+<span class="normal"><a href="#__codelineno-0-978">978</a></span>
+<span class="normal"><a href="#__codelineno-0-979">979</a></span>
+<span class="normal"><a href="#__codelineno-0-980">980</a></span>
+<span class="normal"><a href="#__codelineno-0-981">981</a></span>
+<span class="normal"><a href="#__codelineno-0-982">982</a></span>
+<span class="normal"><a href="#__codelineno-0-983">983</a></span>
+<span class="normal"><a href="#__codelineno-0-984">984</a></span>
+<span class="normal"><a href="#__codelineno-0-985">985</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">class</span><span class="w"> </span><span class="nc">StreamRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">    </span><span class="sd">"""Boolean/int stream-network raster tagged with extraction threshold.</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a>
 <a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    Args:</span>
@@ -3945,99 +4008,140 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-849" name="__codelineno-0-849"></a>
 <a id="__codelineno-0-850" name="__codelineno-0-850"></a>        <span class="c1"># Step 3 — walk each link.</span>
 <a id="__codelineno-0-851" name="__codelineno-0-851"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_trace</span><span class="p">(</span><span class="n">start_r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">start_c</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a>            <span class="n">path</span> <span class="o">=</span> <span class="p">[(</span><span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span><span class="p">)]</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a>            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a>            <span class="n">length</span> <span class="o">=</span> <span class="mf">0.0</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a>            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a>                <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a>                <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>                    <span class="k">break</span>  <span class="c1"># sink / outlet</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a>                <span class="n">nr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_row</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a>                <span class="n">nc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_col</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nr</span> <span class="o">&lt;</span> <span class="n">rows</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nc</span> <span class="o">&lt;</span> <span class="n">cols</span><span class="p">):</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>                    <span class="k">break</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">stream_mask</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]:</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>                    <span class="k">break</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a>                <span class="n">length</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid_lengths</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>                <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a>                <span class="k">if</span> <span class="n">nup</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a>                    <span class="k">break</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a>                <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">nr</span><span class="p">,</span> <span class="n">nc</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a>            <span class="k">return</span> <span class="n">path</span><span class="p">,</span> <span class="n">length</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a>        <span class="c1"># Assign node IDs: every distinct head / confluence / link-end is a node.</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a>        <span class="n">node_id_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">stream_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a>        <span class="n">next_node_id</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_id</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a>            <span class="k">nonlocal</span> <span class="n">next_node_id</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a>            <span class="k">if</span> <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a>                <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_node_id</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a>                <span class="n">next_node_id</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a>        <span class="n">gt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geotransform</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a>        <span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a>        <span class="n">link_id</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a>        <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">heads_or_confluences_mask</span><span class="p">)</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>        <span class="k">for</span> <span class="n">r0</span><span class="p">,</span> <span class="n">c0</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a>            <span class="n">r0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a>            <span class="n">c0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>            <span class="c1"># Skip a confluence cell if it has no outgoing direction (it's an outlet</span>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a>            <span class="c1"># confluence — handled when its upstream link arrives, no link begins here).</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a>            <span class="n">d_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>            <span class="k">if</span> <span class="n">d_start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d_start</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>                <span class="k">continue</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>            <span class="n">path</span><span class="p">,</span> <span class="n">length_m</span> <span class="o">=</span> <span class="n">_trace</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>                <span class="k">continue</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>            <span class="n">from_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>            <span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>            <span class="n">to_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">)</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="w">            </span><span class="sd">"""Walk downstream from a link start to the end of that link.</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">            A link runs from a head or confluence to whichever comes first: the next</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">            confluence, a sink, the raster edge, or the last stream cell. Stopping *at*</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">            the confluence rather than through it is what makes the links partition the</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">            network — every stream cell belongs to exactly one.</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">            Args:</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">                start_r: Row of the link's first cell.</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">                start_c: Column of the link's first cell.</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">            Returns:</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">                `(path, length)` where `path` is the list of `(row, col)` cells in</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">                downstream order, first cell included, and `length` is the planimetric</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">                distance along it in CRS units, counting diagonal steps as `sqrt(2)`</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">                cells. A link of one cell has length 0.0.</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">            """</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>            <span class="n">path</span> <span class="o">=</span> <span class="p">[(</span><span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span><span class="p">)]</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>            <span class="n">length</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a>                <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a>                <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>                    <span class="k">break</span>  <span class="c1"># sink / outlet</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a>                <span class="n">nr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_row</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>                <span class="n">nc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_col</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nr</span> <span class="o">&lt;</span> <span class="n">rows</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nc</span> <span class="o">&lt;</span> <span class="n">cols</span><span class="p">):</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>                    <span class="k">break</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>                <span class="k">if</span> <span class="ow">not</span> <span class="n">stream_mask</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]:</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>                    <span class="k">break</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>                <span class="n">length</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid_lengths</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>                <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>                <span class="k">if</span> <span class="n">nup</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>                    <span class="k">break</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>                <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">nr</span><span class="p">,</span> <span class="n">nc</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>            <span class="k">return</span> <span class="n">path</span><span class="p">,</span> <span class="n">length</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>        <span class="c1"># Assign node IDs: every distinct head / confluence / link-end is a node.</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>        <span class="n">node_id_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">stream_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>        <span class="n">next_node_id</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_id</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="w">            </span><span class="sd">"""Return the node id for a cell, assigning the next free one if needed.</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">            Nodes are the junctions of the vectorised network — heads, confluences and</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">            outlets — and two links meeting at a confluence must name the same node or</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">            the resulting graph is disconnected. Ids are handed out in first-seen order</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a><span class="sd">            and memoised in `node_id_grid`, so a repeat call for the same cell returns</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a><span class="sd">            what it returned before.</span>
 <a id="__codelineno-0-901" name="__codelineno-0-901"></a>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>            <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>            <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-<a id="__codelineno-0-904" name="__codelineno-0-904"></a>            <span class="n">geom</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a><span class="sd">            Args:</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a><span class="sd">                r: Row of the cell.</span>
+<a id="__codelineno-0-904" name="__codelineno-0-904"></a><span class="sd">                c: Column of the cell.</span>
 <a id="__codelineno-0-905" name="__codelineno-0-905"></a>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a>            <span class="c1"># Sinuosity = traced length / straight-line distance between endpoints.</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a>            <span class="c1"># Degenerate (single-cell or zero-length) links default to 1.0 — straight.</span>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a>            <span class="n">straight_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(((</span><span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>            <span class="k">if</span> <span class="n">straight_m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a>                <span class="n">sinuosity</span> <span class="o">=</span> <span class="n">length_m</span> <span class="o">/</span> <span class="n">straight_m</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>            <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a>                <span class="n">sinuosity</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a>
-<a id="__codelineno-0-914" name="__codelineno-0-914"></a>            <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-915" name="__codelineno-0-915"></a>                <span class="n">z_from</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
-<a id="__codelineno-0-916" name="__codelineno-0-916"></a>                <span class="n">z_to</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">])</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a>                <span class="n">drop_m</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z_from</span> <span class="o">-</span> <span class="n">z_to</span><span class="p">)</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>                <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">drop_m</span> <span class="o">/</span> <span class="n">length_m</span> <span class="k">if</span> <span class="n">length_m</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a>            <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-920" name="__codelineno-0-920"></a>                <span class="n">drop_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-921" name="__codelineno-0-921"></a>                <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-922" name="__codelineno-0-922"></a>
-<a id="__codelineno-0-923" name="__codelineno-0-923"></a>            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-0-924" name="__codelineno-0-924"></a>                <span class="p">{</span>
-<a id="__codelineno-0-925" name="__codelineno-0-925"></a>                    <span class="s2">"link_id"</span><span class="p">:</span> <span class="n">link_id</span><span class="p">,</span>
-<a id="__codelineno-0-926" name="__codelineno-0-926"></a>                    <span class="s2">"from_node"</span><span class="p">:</span> <span class="n">from_node</span><span class="p">,</span>
-<a id="__codelineno-0-927" name="__codelineno-0-927"></a>                    <span class="s2">"to_node"</span><span class="p">:</span> <span class="n">to_node</span><span class="p">,</span>
-<a id="__codelineno-0-928" name="__codelineno-0-928"></a>                    <span class="s2">"length_m"</span><span class="p">:</span> <span class="n">length_m</span><span class="p">,</span>
-<a id="__codelineno-0-929" name="__codelineno-0-929"></a>                    <span class="s2">"drop_m"</span><span class="p">:</span> <span class="n">drop_m</span><span class="p">,</span>
-<a id="__codelineno-0-930" name="__codelineno-0-930"></a>                    <span class="s2">"mean_slope"</span><span class="p">:</span> <span class="n">mean_slope</span><span class="p">,</span>
-<a id="__codelineno-0-931" name="__codelineno-0-931"></a>                    <span class="s2">"sinuosity"</span><span class="p">:</span> <span class="n">sinuosity</span><span class="p">,</span>
-<a id="__codelineno-0-932" name="__codelineno-0-932"></a>                    <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">geom</span><span class="p">,</span>
-<a id="__codelineno-0-933" name="__codelineno-0-933"></a>                <span class="p">}</span>
-<a id="__codelineno-0-934" name="__codelineno-0-934"></a>            <span class="p">)</span>
-<a id="__codelineno-0-935" name="__codelineno-0-935"></a>            <span class="n">link_id</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-936" name="__codelineno-0-936"></a>
-<a id="__codelineno-0-937" name="__codelineno-0-937"></a>        <span class="n">crs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span>
-<a id="__codelineno-0-938" name="__codelineno-0-938"></a>        <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
-<a id="__codelineno-0-939" name="__codelineno-0-939"></a>
-<a id="__codelineno-0-940" name="__codelineno-0-940"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-941" name="__codelineno-0-941"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-942" name="__codelineno-0-942"></a>            <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-943" name="__codelineno-0-943"></a>            <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-944" name="__codelineno-0-944"></a>        <span class="p">)</span>
+<a id="__codelineno-0-906" name="__codelineno-0-906"></a><span class="sd">            Returns:</span>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a><span class="sd">                The cell's node id, stable for the lifetime of this call to the caller.</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="sd">            """</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a>            <span class="k">nonlocal</span> <span class="n">next_node_id</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a>            <span class="k">if</span> <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a>                <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_node_id</span>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a>                <span class="n">next_node_id</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a>            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a>
+<a id="__codelineno-0-915" name="__codelineno-0-915"></a>        <span class="n">gt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geotransform</span>
+<a id="__codelineno-0-916" name="__codelineno-0-916"></a>        <span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-917" name="__codelineno-0-917"></a>        <span class="n">link_id</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-918" name="__codelineno-0-918"></a>        <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">heads_or_confluences_mask</span><span class="p">)</span>
+<a id="__codelineno-0-919" name="__codelineno-0-919"></a>        <span class="k">for</span> <span class="n">r0</span><span class="p">,</span> <span class="n">c0</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
+<a id="__codelineno-0-920" name="__codelineno-0-920"></a>            <span class="n">r0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
+<a id="__codelineno-0-921" name="__codelineno-0-921"></a>            <span class="n">c0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-922" name="__codelineno-0-922"></a>            <span class="c1"># Skip a confluence cell if it has no outgoing direction (it's an outlet</span>
+<a id="__codelineno-0-923" name="__codelineno-0-923"></a>            <span class="c1"># confluence — handled when its upstream link arrives, no link begins here).</span>
+<a id="__codelineno-0-924" name="__codelineno-0-924"></a>            <span class="n">d_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
+<a id="__codelineno-0-925" name="__codelineno-0-925"></a>            <span class="k">if</span> <span class="n">d_start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d_start</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a>            <span class="n">path</span><span class="p">,</span> <span class="n">length_m</span> <span class="o">=</span> <span class="n">_trace</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a>            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a>            <span class="n">from_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a>            <span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a>            <span class="n">to_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">)</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a>            <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a>            <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a>            <span class="n">geom</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a>            <span class="c1"># Sinuosity = traced length / straight-line distance between endpoints.</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a>            <span class="c1"># Degenerate (single-cell or zero-length) links default to 1.0 — straight.</span>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a>            <span class="n">straight_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(((</span><span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a>            <span class="k">if</span> <span class="n">straight_m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a>                <span class="n">sinuosity</span> <span class="o">=</span> <span class="n">length_m</span> <span class="o">/</span> <span class="n">straight_m</span>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a>                <span class="n">sinuosity</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a>
+<a id="__codelineno-0-946" name="__codelineno-0-946"></a>            <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-947" name="__codelineno-0-947"></a>                <span class="n">z_from</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a>                <span class="n">z_to</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">])</span>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a>                <span class="n">drop_m</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z_from</span> <span class="o">-</span> <span class="n">z_to</span><span class="p">)</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a>                <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">drop_m</span> <span class="o">/</span> <span class="n">length_m</span> <span class="k">if</span> <span class="n">length_m</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a>            <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a>                <span class="n">drop_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a>                <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-954" name="__codelineno-0-954"></a>
+<a id="__codelineno-0-955" name="__codelineno-0-955"></a>            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-0-956" name="__codelineno-0-956"></a>                <span class="p">{</span>
+<a id="__codelineno-0-957" name="__codelineno-0-957"></a>                    <span class="s2">"link_id"</span><span class="p">:</span> <span class="n">link_id</span><span class="p">,</span>
+<a id="__codelineno-0-958" name="__codelineno-0-958"></a>                    <span class="s2">"from_node"</span><span class="p">:</span> <span class="n">from_node</span><span class="p">,</span>
+<a id="__codelineno-0-959" name="__codelineno-0-959"></a>                    <span class="s2">"to_node"</span><span class="p">:</span> <span class="n">to_node</span><span class="p">,</span>
+<a id="__codelineno-0-960" name="__codelineno-0-960"></a>                    <span class="s2">"length_m"</span><span class="p">:</span> <span class="n">length_m</span><span class="p">,</span>
+<a id="__codelineno-0-961" name="__codelineno-0-961"></a>                    <span class="s2">"drop_m"</span><span class="p">:</span> <span class="n">drop_m</span><span class="p">,</span>
+<a id="__codelineno-0-962" name="__codelineno-0-962"></a>                    <span class="s2">"mean_slope"</span><span class="p">:</span> <span class="n">mean_slope</span><span class="p">,</span>
+<a id="__codelineno-0-963" name="__codelineno-0-963"></a>                    <span class="s2">"sinuosity"</span><span class="p">:</span> <span class="n">sinuosity</span><span class="p">,</span>
+<a id="__codelineno-0-964" name="__codelineno-0-964"></a>                    <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">geom</span><span class="p">,</span>
+<a id="__codelineno-0-965" name="__codelineno-0-965"></a>                <span class="p">}</span>
+<a id="__codelineno-0-966" name="__codelineno-0-966"></a>            <span class="p">)</span>
+<a id="__codelineno-0-967" name="__codelineno-0-967"></a>            <span class="n">link_id</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-968" name="__codelineno-0-968"></a>
+<a id="__codelineno-0-969" name="__codelineno-0-969"></a>        <span class="n">crs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span>
+<a id="__codelineno-0-970" name="__codelineno-0-970"></a>        <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+<a id="__codelineno-0-971" name="__codelineno-0-971"></a>
+<a id="__codelineno-0-972" name="__codelineno-0-972"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-973" name="__codelineno-0-973"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</span>
+<a id="__codelineno-0-974" name="__codelineno-0-974"></a>
+<a id="__codelineno-0-975" name="__codelineno-0-975"></a><span class="sd">        The threshold is what decides which cells became channel, so it is</span>
+<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">              the first thing to check when a network looks too dense or too</span>
+<a id="__codelineno-0-977" name="__codelineno-0-977"></a><span class="sd">              sparse.</span>
+<a id="__codelineno-0-978" name="__codelineno-0-978"></a>
+<a id="__codelineno-0-979" name="__codelineno-0-979"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-980" name="__codelineno-0-980"></a><span class="sd">            A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
+<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">        """</span>
+<a id="__codelineno-0-982" name="__codelineno-0-982"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-983" name="__codelineno-0-983"></a>            <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-984" name="__codelineno-0-984"></a>            <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-985" name="__codelineno-0-985"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -6837,7 +6941,39 @@ vertices at cell centres.</p>
 <span class="normal"><a href="#__codelineno-0-935">935</a></span>
 <span class="normal"><a href="#__codelineno-0-936">936</a></span>
 <span class="normal"><a href="#__codelineno-0-937">937</a></span>
-<span class="normal"><a href="#__codelineno-0-938">938</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_vector</span><span class="p">(</span>
+<span class="normal"><a href="#__codelineno-0-938">938</a></span>
+<span class="normal"><a href="#__codelineno-0-939">939</a></span>
+<span class="normal"><a href="#__codelineno-0-940">940</a></span>
+<span class="normal"><a href="#__codelineno-0-941">941</a></span>
+<span class="normal"><a href="#__codelineno-0-942">942</a></span>
+<span class="normal"><a href="#__codelineno-0-943">943</a></span>
+<span class="normal"><a href="#__codelineno-0-944">944</a></span>
+<span class="normal"><a href="#__codelineno-0-945">945</a></span>
+<span class="normal"><a href="#__codelineno-0-946">946</a></span>
+<span class="normal"><a href="#__codelineno-0-947">947</a></span>
+<span class="normal"><a href="#__codelineno-0-948">948</a></span>
+<span class="normal"><a href="#__codelineno-0-949">949</a></span>
+<span class="normal"><a href="#__codelineno-0-950">950</a></span>
+<span class="normal"><a href="#__codelineno-0-951">951</a></span>
+<span class="normal"><a href="#__codelineno-0-952">952</a></span>
+<span class="normal"><a href="#__codelineno-0-953">953</a></span>
+<span class="normal"><a href="#__codelineno-0-954">954</a></span>
+<span class="normal"><a href="#__codelineno-0-955">955</a></span>
+<span class="normal"><a href="#__codelineno-0-956">956</a></span>
+<span class="normal"><a href="#__codelineno-0-957">957</a></span>
+<span class="normal"><a href="#__codelineno-0-958">958</a></span>
+<span class="normal"><a href="#__codelineno-0-959">959</a></span>
+<span class="normal"><a href="#__codelineno-0-960">960</a></span>
+<span class="normal"><a href="#__codelineno-0-961">961</a></span>
+<span class="normal"><a href="#__codelineno-0-962">962</a></span>
+<span class="normal"><a href="#__codelineno-0-963">963</a></span>
+<span class="normal"><a href="#__codelineno-0-964">964</a></span>
+<span class="normal"><a href="#__codelineno-0-965">965</a></span>
+<span class="normal"><a href="#__codelineno-0-966">966</a></span>
+<span class="normal"><a href="#__codelineno-0-967">967</a></span>
+<span class="normal"><a href="#__codelineno-0-968">968</a></span>
+<span class="normal"><a href="#__codelineno-0-969">969</a></span>
+<span class="normal"><a href="#__codelineno-0-970">970</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-744" name="__codelineno-0-744"></a><span class="k">def</span><span class="w"> </span><span class="nf">to_vector</span><span class="p">(</span>
 <a id="__codelineno-0-745" name="__codelineno-0-745"></a>    <span class="bp">self</span><span class="p">,</span>
 <a id="__codelineno-0-746" name="__codelineno-0-746"></a>    <span class="n">flow_direction</span><span class="p">,</span>
 <a id="__codelineno-0-747" name="__codelineno-0-747"></a>    <span class="n">dem</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -6945,93 +7081,200 @@ vertices at cell centres.</p>
 <a id="__codelineno-0-849" name="__codelineno-0-849"></a>
 <a id="__codelineno-0-850" name="__codelineno-0-850"></a>    <span class="c1"># Step 3 — walk each link.</span>
 <a id="__codelineno-0-851" name="__codelineno-0-851"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_trace</span><span class="p">(</span><span class="n">start_r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">start_c</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<a id="__codelineno-0-852" name="__codelineno-0-852"></a>        <span class="n">path</span> <span class="o">=</span> <span class="p">[(</span><span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span><span class="p">)]</span>
-<a id="__codelineno-0-853" name="__codelineno-0-853"></a>        <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span>
-<a id="__codelineno-0-854" name="__codelineno-0-854"></a>        <span class="n">length</span> <span class="o">=</span> <span class="mf">0.0</span>
-<a id="__codelineno-0-855" name="__codelineno-0-855"></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-<a id="__codelineno-0-856" name="__codelineno-0-856"></a>            <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
-<a id="__codelineno-0-857" name="__codelineno-0-857"></a>            <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
-<a id="__codelineno-0-858" name="__codelineno-0-858"></a>                <span class="k">break</span>  <span class="c1"># sink / outlet</span>
-<a id="__codelineno-0-859" name="__codelineno-0-859"></a>            <span class="n">nr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_row</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-860" name="__codelineno-0-860"></a>            <span class="n">nc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_col</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-861" name="__codelineno-0-861"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nr</span> <span class="o">&lt;</span> <span class="n">rows</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nc</span> <span class="o">&lt;</span> <span class="n">cols</span><span class="p">):</span>
-<a id="__codelineno-0-862" name="__codelineno-0-862"></a>                <span class="k">break</span>
-<a id="__codelineno-0-863" name="__codelineno-0-863"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">stream_mask</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]:</span>
-<a id="__codelineno-0-864" name="__codelineno-0-864"></a>                <span class="k">break</span>
-<a id="__codelineno-0-865" name="__codelineno-0-865"></a>            <span class="n">length</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid_lengths</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
-<a id="__codelineno-0-866" name="__codelineno-0-866"></a>            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
-<a id="__codelineno-0-867" name="__codelineno-0-867"></a>            <span class="k">if</span> <span class="n">nup</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-0-868" name="__codelineno-0-868"></a>                <span class="k">break</span>
-<a id="__codelineno-0-869" name="__codelineno-0-869"></a>            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">nr</span><span class="p">,</span> <span class="n">nc</span>
-<a id="__codelineno-0-870" name="__codelineno-0-870"></a>        <span class="k">return</span> <span class="n">path</span><span class="p">,</span> <span class="n">length</span>
-<a id="__codelineno-0-871" name="__codelineno-0-871"></a>
-<a id="__codelineno-0-872" name="__codelineno-0-872"></a>    <span class="c1"># Assign node IDs: every distinct head / confluence / link-end is a node.</span>
-<a id="__codelineno-0-873" name="__codelineno-0-873"></a>    <span class="n">node_id_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">stream_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-<a id="__codelineno-0-874" name="__codelineno-0-874"></a>    <span class="n">next_node_id</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-875" name="__codelineno-0-875"></a>
-<a id="__codelineno-0-876" name="__codelineno-0-876"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_id</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<a id="__codelineno-0-877" name="__codelineno-0-877"></a>        <span class="k">nonlocal</span> <span class="n">next_node_id</span>
-<a id="__codelineno-0-878" name="__codelineno-0-878"></a>        <span class="k">if</span> <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
-<a id="__codelineno-0-879" name="__codelineno-0-879"></a>            <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_node_id</span>
-<a id="__codelineno-0-880" name="__codelineno-0-880"></a>            <span class="n">next_node_id</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-881" name="__codelineno-0-881"></a>        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
-<a id="__codelineno-0-882" name="__codelineno-0-882"></a>
-<a id="__codelineno-0-883" name="__codelineno-0-883"></a>    <span class="n">gt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geotransform</span>
-<a id="__codelineno-0-884" name="__codelineno-0-884"></a>    <span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-<a id="__codelineno-0-885" name="__codelineno-0-885"></a>    <span class="n">link_id</span> <span class="o">=</span> <span class="mi">0</span>
-<a id="__codelineno-0-886" name="__codelineno-0-886"></a>    <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">heads_or_confluences_mask</span><span class="p">)</span>
-<a id="__codelineno-0-887" name="__codelineno-0-887"></a>    <span class="k">for</span> <span class="n">r0</span><span class="p">,</span> <span class="n">c0</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
-<a id="__codelineno-0-888" name="__codelineno-0-888"></a>        <span class="n">r0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
-<a id="__codelineno-0-889" name="__codelineno-0-889"></a>        <span class="n">c0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-890" name="__codelineno-0-890"></a>        <span class="c1"># Skip a confluence cell if it has no outgoing direction (it's an outlet</span>
-<a id="__codelineno-0-891" name="__codelineno-0-891"></a>        <span class="c1"># confluence — handled when its upstream link arrives, no link begins here).</span>
-<a id="__codelineno-0-892" name="__codelineno-0-892"></a>        <span class="n">d_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
-<a id="__codelineno-0-893" name="__codelineno-0-893"></a>        <span class="k">if</span> <span class="n">d_start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d_start</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
-<a id="__codelineno-0-894" name="__codelineno-0-894"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-895" name="__codelineno-0-895"></a>        <span class="n">path</span><span class="p">,</span> <span class="n">length_m</span> <span class="o">=</span> <span class="n">_trace</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-896" name="__codelineno-0-896"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
-<a id="__codelineno-0-897" name="__codelineno-0-897"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-898" name="__codelineno-0-898"></a>        <span class="n">from_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
-<a id="__codelineno-0-899" name="__codelineno-0-899"></a>        <span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-<a id="__codelineno-0-900" name="__codelineno-0-900"></a>        <span class="n">to_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">)</span>
+<a id="__codelineno-0-852" name="__codelineno-0-852"></a><span class="w">        </span><span class="sd">"""Walk downstream from a link start to the end of that link.</span>
+<a id="__codelineno-0-853" name="__codelineno-0-853"></a>
+<a id="__codelineno-0-854" name="__codelineno-0-854"></a><span class="sd">        A link runs from a head or confluence to whichever comes first: the next</span>
+<a id="__codelineno-0-855" name="__codelineno-0-855"></a><span class="sd">        confluence, a sink, the raster edge, or the last stream cell. Stopping *at*</span>
+<a id="__codelineno-0-856" name="__codelineno-0-856"></a><span class="sd">        the confluence rather than through it is what makes the links partition the</span>
+<a id="__codelineno-0-857" name="__codelineno-0-857"></a><span class="sd">        network — every stream cell belongs to exactly one.</span>
+<a id="__codelineno-0-858" name="__codelineno-0-858"></a>
+<a id="__codelineno-0-859" name="__codelineno-0-859"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-860" name="__codelineno-0-860"></a><span class="sd">            start_r: Row of the link's first cell.</span>
+<a id="__codelineno-0-861" name="__codelineno-0-861"></a><span class="sd">            start_c: Column of the link's first cell.</span>
+<a id="__codelineno-0-862" name="__codelineno-0-862"></a>
+<a id="__codelineno-0-863" name="__codelineno-0-863"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-864" name="__codelineno-0-864"></a><span class="sd">            `(path, length)` where `path` is the list of `(row, col)` cells in</span>
+<a id="__codelineno-0-865" name="__codelineno-0-865"></a><span class="sd">            downstream order, first cell included, and `length` is the planimetric</span>
+<a id="__codelineno-0-866" name="__codelineno-0-866"></a><span class="sd">            distance along it in CRS units, counting diagonal steps as `sqrt(2)`</span>
+<a id="__codelineno-0-867" name="__codelineno-0-867"></a><span class="sd">            cells. A link of one cell has length 0.0.</span>
+<a id="__codelineno-0-868" name="__codelineno-0-868"></a><span class="sd">        """</span>
+<a id="__codelineno-0-869" name="__codelineno-0-869"></a>        <span class="n">path</span> <span class="o">=</span> <span class="p">[(</span><span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span><span class="p">)]</span>
+<a id="__codelineno-0-870" name="__codelineno-0-870"></a>        <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">start_r</span><span class="p">,</span> <span class="n">start_c</span>
+<a id="__codelineno-0-871" name="__codelineno-0-871"></a>        <span class="n">length</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a id="__codelineno-0-872" name="__codelineno-0-872"></a>        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+<a id="__codelineno-0-873" name="__codelineno-0-873"></a>            <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+<a id="__codelineno-0-874" name="__codelineno-0-874"></a>            <span class="k">if</span> <span class="n">d</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-0-875" name="__codelineno-0-875"></a>                <span class="k">break</span>  <span class="c1"># sink / outlet</span>
+<a id="__codelineno-0-876" name="__codelineno-0-876"></a>            <span class="n">nr</span> <span class="o">=</span> <span class="n">r</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_row</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-877" name="__codelineno-0-877"></a>            <span class="n">nc</span> <span class="o">=</span> <span class="n">c</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">d_col</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-878" name="__codelineno-0-878"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nr</span> <span class="o">&lt;</span> <span class="n">rows</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">nc</span> <span class="o">&lt;</span> <span class="n">cols</span><span class="p">):</span>
+<a id="__codelineno-0-879" name="__codelineno-0-879"></a>                <span class="k">break</span>
+<a id="__codelineno-0-880" name="__codelineno-0-880"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">stream_mask</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]:</span>
+<a id="__codelineno-0-881" name="__codelineno-0-881"></a>                <span class="k">break</span>
+<a id="__codelineno-0-882" name="__codelineno-0-882"></a>            <span class="n">length</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">grid_lengths</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+<a id="__codelineno-0-883" name="__codelineno-0-883"></a>            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">))</span>
+<a id="__codelineno-0-884" name="__codelineno-0-884"></a>            <span class="k">if</span> <span class="n">nup</span><span class="p">[</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-0-885" name="__codelineno-0-885"></a>                <span class="k">break</span>
+<a id="__codelineno-0-886" name="__codelineno-0-886"></a>            <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">nr</span><span class="p">,</span> <span class="n">nc</span>
+<a id="__codelineno-0-887" name="__codelineno-0-887"></a>        <span class="k">return</span> <span class="n">path</span><span class="p">,</span> <span class="n">length</span>
+<a id="__codelineno-0-888" name="__codelineno-0-888"></a>
+<a id="__codelineno-0-889" name="__codelineno-0-889"></a>    <span class="c1"># Assign node IDs: every distinct head / confluence / link-end is a node.</span>
+<a id="__codelineno-0-890" name="__codelineno-0-890"></a>    <span class="n">node_id_grid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">stream_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<a id="__codelineno-0-891" name="__codelineno-0-891"></a>    <span class="n">next_node_id</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-892" name="__codelineno-0-892"></a>
+<a id="__codelineno-0-893" name="__codelineno-0-893"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_get_node_id</span><span class="p">(</span><span class="n">r</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">c</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="__codelineno-0-894" name="__codelineno-0-894"></a><span class="w">        </span><span class="sd">"""Return the node id for a cell, assigning the next free one if needed.</span>
+<a id="__codelineno-0-895" name="__codelineno-0-895"></a>
+<a id="__codelineno-0-896" name="__codelineno-0-896"></a><span class="sd">        Nodes are the junctions of the vectorised network — heads, confluences and</span>
+<a id="__codelineno-0-897" name="__codelineno-0-897"></a><span class="sd">        outlets — and two links meeting at a confluence must name the same node or</span>
+<a id="__codelineno-0-898" name="__codelineno-0-898"></a><span class="sd">        the resulting graph is disconnected. Ids are handed out in first-seen order</span>
+<a id="__codelineno-0-899" name="__codelineno-0-899"></a><span class="sd">        and memoised in `node_id_grid`, so a repeat call for the same cell returns</span>
+<a id="__codelineno-0-900" name="__codelineno-0-900"></a><span class="sd">        what it returned before.</span>
 <a id="__codelineno-0-901" name="__codelineno-0-901"></a>
-<a id="__codelineno-0-902" name="__codelineno-0-902"></a>        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-<a id="__codelineno-0-903" name="__codelineno-0-903"></a>        <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
-<a id="__codelineno-0-904" name="__codelineno-0-904"></a>        <span class="n">geom</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span>
+<a id="__codelineno-0-902" name="__codelineno-0-902"></a><span class="sd">        Args:</span>
+<a id="__codelineno-0-903" name="__codelineno-0-903"></a><span class="sd">            r: Row of the cell.</span>
+<a id="__codelineno-0-904" name="__codelineno-0-904"></a><span class="sd">            c: Column of the cell.</span>
 <a id="__codelineno-0-905" name="__codelineno-0-905"></a>
-<a id="__codelineno-0-906" name="__codelineno-0-906"></a>        <span class="c1"># Sinuosity = traced length / straight-line distance between endpoints.</span>
-<a id="__codelineno-0-907" name="__codelineno-0-907"></a>        <span class="c1"># Degenerate (single-cell or zero-length) links default to 1.0 — straight.</span>
-<a id="__codelineno-0-908" name="__codelineno-0-908"></a>        <span class="n">straight_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(((</span><span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
-<a id="__codelineno-0-909" name="__codelineno-0-909"></a>        <span class="k">if</span> <span class="n">straight_m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-910" name="__codelineno-0-910"></a>            <span class="n">sinuosity</span> <span class="o">=</span> <span class="n">length_m</span> <span class="o">/</span> <span class="n">straight_m</span>
-<a id="__codelineno-0-911" name="__codelineno-0-911"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-912" name="__codelineno-0-912"></a>            <span class="n">sinuosity</span> <span class="o">=</span> <span class="mf">1.0</span>
-<a id="__codelineno-0-913" name="__codelineno-0-913"></a>
-<a id="__codelineno-0-914" name="__codelineno-0-914"></a>        <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-915" name="__codelineno-0-915"></a>            <span class="n">z_from</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
-<a id="__codelineno-0-916" name="__codelineno-0-916"></a>            <span class="n">z_to</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">])</span>
-<a id="__codelineno-0-917" name="__codelineno-0-917"></a>            <span class="n">drop_m</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z_from</span> <span class="o">-</span> <span class="n">z_to</span><span class="p">)</span>
-<a id="__codelineno-0-918" name="__codelineno-0-918"></a>            <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">drop_m</span> <span class="o">/</span> <span class="n">length_m</span> <span class="k">if</span> <span class="n">length_m</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-919" name="__codelineno-0-919"></a>        <span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-0-920" name="__codelineno-0-920"></a>            <span class="n">drop_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-921" name="__codelineno-0-921"></a>            <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-<a id="__codelineno-0-922" name="__codelineno-0-922"></a>
-<a id="__codelineno-0-923" name="__codelineno-0-923"></a>        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-<a id="__codelineno-0-924" name="__codelineno-0-924"></a>            <span class="p">{</span>
-<a id="__codelineno-0-925" name="__codelineno-0-925"></a>                <span class="s2">"link_id"</span><span class="p">:</span> <span class="n">link_id</span><span class="p">,</span>
-<a id="__codelineno-0-926" name="__codelineno-0-926"></a>                <span class="s2">"from_node"</span><span class="p">:</span> <span class="n">from_node</span><span class="p">,</span>
-<a id="__codelineno-0-927" name="__codelineno-0-927"></a>                <span class="s2">"to_node"</span><span class="p">:</span> <span class="n">to_node</span><span class="p">,</span>
-<a id="__codelineno-0-928" name="__codelineno-0-928"></a>                <span class="s2">"length_m"</span><span class="p">:</span> <span class="n">length_m</span><span class="p">,</span>
-<a id="__codelineno-0-929" name="__codelineno-0-929"></a>                <span class="s2">"drop_m"</span><span class="p">:</span> <span class="n">drop_m</span><span class="p">,</span>
-<a id="__codelineno-0-930" name="__codelineno-0-930"></a>                <span class="s2">"mean_slope"</span><span class="p">:</span> <span class="n">mean_slope</span><span class="p">,</span>
-<a id="__codelineno-0-931" name="__codelineno-0-931"></a>                <span class="s2">"sinuosity"</span><span class="p">:</span> <span class="n">sinuosity</span><span class="p">,</span>
-<a id="__codelineno-0-932" name="__codelineno-0-932"></a>                <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">geom</span><span class="p">,</span>
-<a id="__codelineno-0-933" name="__codelineno-0-933"></a>            <span class="p">}</span>
-<a id="__codelineno-0-934" name="__codelineno-0-934"></a>        <span class="p">)</span>
-<a id="__codelineno-0-935" name="__codelineno-0-935"></a>        <span class="n">link_id</span> <span class="o">+=</span> <span class="mi">1</span>
-<a id="__codelineno-0-936" name="__codelineno-0-936"></a>
-<a id="__codelineno-0-937" name="__codelineno-0-937"></a>    <span class="n">crs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span>
-<a id="__codelineno-0-938" name="__codelineno-0-938"></a>    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+<a id="__codelineno-0-906" name="__codelineno-0-906"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-907" name="__codelineno-0-907"></a><span class="sd">            The cell's node id, stable for the lifetime of this call to the caller.</span>
+<a id="__codelineno-0-908" name="__codelineno-0-908"></a><span class="sd">        """</span>
+<a id="__codelineno-0-909" name="__codelineno-0-909"></a>        <span class="k">nonlocal</span> <span class="n">next_node_id</span>
+<a id="__codelineno-0-910" name="__codelineno-0-910"></a>        <span class="k">if</span> <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="__codelineno-0-911" name="__codelineno-0-911"></a>            <span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">next_node_id</span>
+<a id="__codelineno-0-912" name="__codelineno-0-912"></a>            <span class="n">next_node_id</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-913" name="__codelineno-0-913"></a>        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">node_id_grid</span><span class="p">[</span><span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+<a id="__codelineno-0-914" name="__codelineno-0-914"></a>
+<a id="__codelineno-0-915" name="__codelineno-0-915"></a>    <span class="n">gt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">geotransform</span>
+<a id="__codelineno-0-916" name="__codelineno-0-916"></a>    <span class="n">records</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="__codelineno-0-917" name="__codelineno-0-917"></a>    <span class="n">link_id</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="__codelineno-0-918" name="__codelineno-0-918"></a>    <span class="n">starts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">heads_or_confluences_mask</span><span class="p">)</span>
+<a id="__codelineno-0-919" name="__codelineno-0-919"></a>    <span class="k">for</span> <span class="n">r0</span><span class="p">,</span> <span class="n">c0</span> <span class="ow">in</span> <span class="n">starts</span><span class="p">:</span>
+<a id="__codelineno-0-920" name="__codelineno-0-920"></a>        <span class="n">r0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">r0</span><span class="p">)</span>
+<a id="__codelineno-0-921" name="__codelineno-0-921"></a>        <span class="n">c0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-922" name="__codelineno-0-922"></a>        <span class="c1"># Skip a confluence cell if it has no outgoing direction (it's an outlet</span>
+<a id="__codelineno-0-923" name="__codelineno-0-923"></a>        <span class="c1"># confluence — handled when its upstream link arrives, no link begins here).</span>
+<a id="__codelineno-0-924" name="__codelineno-0-924"></a>        <span class="n">d_start</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fdir</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
+<a id="__codelineno-0-925" name="__codelineno-0-925"></a>        <span class="k">if</span> <span class="n">d_start</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d_start</span> <span class="o">&gt;</span> <span class="mi">7</span><span class="p">:</span>
+<a id="__codelineno-0-926" name="__codelineno-0-926"></a>            <span class="k">continue</span>
+<a id="__codelineno-0-927" name="__codelineno-0-927"></a>        <span class="n">path</span><span class="p">,</span> <span class="n">length_m</span> <span class="o">=</span> <span class="n">_trace</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-928" name="__codelineno-0-928"></a>        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+<a id="__codelineno-0-929" name="__codelineno-0-929"></a>            <span class="k">continue</span>
+<a id="__codelineno-0-930" name="__codelineno-0-930"></a>        <span class="n">from_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">)</span>
+<a id="__codelineno-0-931" name="__codelineno-0-931"></a>        <span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span> <span class="o">=</span> <span class="n">path</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+<a id="__codelineno-0-932" name="__codelineno-0-932"></a>        <span class="n">to_node</span> <span class="o">=</span> <span class="n">_get_node_id</span><span class="p">(</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">)</span>
+<a id="__codelineno-0-933" name="__codelineno-0-933"></a>
+<a id="__codelineno-0-934" name="__codelineno-0-934"></a>        <span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+<a id="__codelineno-0-935" name="__codelineno-0-935"></a>        <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">gt</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">r</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="n">gt</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">path</span><span class="p">]</span>
+<a id="__codelineno-0-936" name="__codelineno-0-936"></a>        <span class="n">geom</span> <span class="o">=</span> <span class="n">LineString</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span>
+<a id="__codelineno-0-937" name="__codelineno-0-937"></a>
+<a id="__codelineno-0-938" name="__codelineno-0-938"></a>        <span class="c1"># Sinuosity = traced length / straight-line distance between endpoints.</span>
+<a id="__codelineno-0-939" name="__codelineno-0-939"></a>        <span class="c1"># Degenerate (single-cell or zero-length) links default to 1.0 — straight.</span>
+<a id="__codelineno-0-940" name="__codelineno-0-940"></a>        <span class="n">straight_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(((</span><span class="n">xs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="mf">0.5</span><span class="p">)</span>
+<a id="__codelineno-0-941" name="__codelineno-0-941"></a>        <span class="k">if</span> <span class="n">straight_m</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-942" name="__codelineno-0-942"></a>            <span class="n">sinuosity</span> <span class="o">=</span> <span class="n">length_m</span> <span class="o">/</span> <span class="n">straight_m</span>
+<a id="__codelineno-0-943" name="__codelineno-0-943"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-944" name="__codelineno-0-944"></a>            <span class="n">sinuosity</span> <span class="o">=</span> <span class="mf">1.0</span>
+<a id="__codelineno-0-945" name="__codelineno-0-945"></a>
+<a id="__codelineno-0-946" name="__codelineno-0-946"></a>        <span class="k">if</span> <span class="n">z</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-947" name="__codelineno-0-947"></a>            <span class="n">z_from</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r0</span><span class="p">,</span> <span class="n">c0</span><span class="p">])</span>
+<a id="__codelineno-0-948" name="__codelineno-0-948"></a>            <span class="n">z_to</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">z</span><span class="p">[</span><span class="n">r_end</span><span class="p">,</span> <span class="n">c_end</span><span class="p">])</span>
+<a id="__codelineno-0-949" name="__codelineno-0-949"></a>            <span class="n">drop_m</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">z_from</span> <span class="o">-</span> <span class="n">z_to</span><span class="p">)</span>
+<a id="__codelineno-0-950" name="__codelineno-0-950"></a>            <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">drop_m</span> <span class="o">/</span> <span class="n">length_m</span> <span class="k">if</span> <span class="n">length_m</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-951" name="__codelineno-0-951"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="__codelineno-0-952" name="__codelineno-0-952"></a>            <span class="n">drop_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-953" name="__codelineno-0-953"></a>            <span class="n">mean_slope</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+<a id="__codelineno-0-954" name="__codelineno-0-954"></a>
+<a id="__codelineno-0-955" name="__codelineno-0-955"></a>        <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="__codelineno-0-956" name="__codelineno-0-956"></a>            <span class="p">{</span>
+<a id="__codelineno-0-957" name="__codelineno-0-957"></a>                <span class="s2">"link_id"</span><span class="p">:</span> <span class="n">link_id</span><span class="p">,</span>
+<a id="__codelineno-0-958" name="__codelineno-0-958"></a>                <span class="s2">"from_node"</span><span class="p">:</span> <span class="n">from_node</span><span class="p">,</span>
+<a id="__codelineno-0-959" name="__codelineno-0-959"></a>                <span class="s2">"to_node"</span><span class="p">:</span> <span class="n">to_node</span><span class="p">,</span>
+<a id="__codelineno-0-960" name="__codelineno-0-960"></a>                <span class="s2">"length_m"</span><span class="p">:</span> <span class="n">length_m</span><span class="p">,</span>
+<a id="__codelineno-0-961" name="__codelineno-0-961"></a>                <span class="s2">"drop_m"</span><span class="p">:</span> <span class="n">drop_m</span><span class="p">,</span>
+<a id="__codelineno-0-962" name="__codelineno-0-962"></a>                <span class="s2">"mean_slope"</span><span class="p">:</span> <span class="n">mean_slope</span><span class="p">,</span>
+<a id="__codelineno-0-963" name="__codelineno-0-963"></a>                <span class="s2">"sinuosity"</span><span class="p">:</span> <span class="n">sinuosity</span><span class="p">,</span>
+<a id="__codelineno-0-964" name="__codelineno-0-964"></a>                <span class="s2">"geometry"</span><span class="p">:</span> <span class="n">geom</span><span class="p">,</span>
+<a id="__codelineno-0-965" name="__codelineno-0-965"></a>            <span class="p">}</span>
+<a id="__codelineno-0-966" name="__codelineno-0-966"></a>        <span class="p">)</span>
+<a id="__codelineno-0-967" name="__codelineno-0-967"></a>        <span class="n">link_id</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="__codelineno-0-968" name="__codelineno-0-968"></a>
+<a id="__codelineno-0-969" name="__codelineno-0-969"></a>    <span class="n">crs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">epsg</span>
+<a id="__codelineno-0-970" name="__codelineno-0-970"></a>    <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h4 id="digitalrivers.streams.raster.StreamRaster.__repr__" class="doc doc-heading"><a href="#digitalrivers.streams.raster.StreamRaster.__repr__" class="toclink">
+            <code class="highlight language-python"><span class="fm">__repr__</span><span class="p">()</span></code>
+
+</a><a href="#digitalrivers.streams.raster.StreamRaster.__repr__" class="headerlink" title="Permanent link">#</a></h4>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</p>
+<p>The threshold is what decides which cells became channel, so it is
+      the first thing to check when a network looks too dense or too
+      sparse.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A string of the form <code>&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;</code>.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/digitalrivers/streams/raster.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-972">972</a></span>
+<span class="normal"><a href="#__codelineno-0-973">973</a></span>
+<span class="normal"><a href="#__codelineno-0-974">974</a></span>
+<span class="normal"><a href="#__codelineno-0-975">975</a></span>
+<span class="normal"><a href="#__codelineno-0-976">976</a></span>
+<span class="normal"><a href="#__codelineno-0-977">977</a></span>
+<span class="normal"><a href="#__codelineno-0-978">978</a></span>
+<span class="normal"><a href="#__codelineno-0-979">979</a></span>
+<span class="normal"><a href="#__codelineno-0-980">980</a></span>
+<span class="normal"><a href="#__codelineno-0-981">981</a></span>
+<span class="normal"><a href="#__codelineno-0-982">982</a></span>
+<span class="normal"><a href="#__codelineno-0-983">983</a></span>
+<span class="normal"><a href="#__codelineno-0-984">984</a></span>
+<span class="normal"><a href="#__codelineno-0-985">985</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-972" name="__codelineno-0-972"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-973" name="__codelineno-0-973"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</span>
+<a id="__codelineno-0-974" name="__codelineno-0-974"></a>
+<a id="__codelineno-0-975" name="__codelineno-0-975"></a><span class="sd">    The threshold is what decides which cells became channel, so it is</span>
+<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">          the first thing to check when a network looks too dense or too</span>
+<a id="__codelineno-0-977" name="__codelineno-0-977"></a><span class="sd">          sparse.</span>
+<a id="__codelineno-0-978" name="__codelineno-0-978"></a>
+<a id="__codelineno-0-979" name="__codelineno-0-979"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-980" name="__codelineno-0-980"></a><span class="sd">        A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
+<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">    """</span>
+<a id="__codelineno-0-982" name="__codelineno-0-982"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-983" name="__codelineno-0-983"></a>        <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-984" name="__codelineno-0-984"></a>        <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-985" name="__codelineno-0-985"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
