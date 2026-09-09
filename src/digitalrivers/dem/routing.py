@@ -23,6 +23,11 @@ from geopandas import GeoDataFrame
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.core.directions import DIR_OFFSETS
+from digitalrivers.dem._kernels.flowpaths import (
+    accumulate_upstream,
+    cell_indices_from_directions,
+    opposite_direction as _opposite_direction,
+)
 from digitalrivers.flow._kernels.routing import (
     dinf_flow_direction as _dinf_flow_direction,
     mfd_flow_direction as _mfd_flow_direction,
@@ -210,61 +215,7 @@ class RoutingMixin:
             Number of upstream cells that drain into `(r, c)`
             (excluding the cell itself).
         """
-        rows, cols = flow_dir.shape
-
-        if not (0 <= r < rows and 0 <= c < cols):
-            return 0
-        if acc[r, c] >= 0:
-            return acc[r, c]
-
-        offsets_list = [
-            (d_col, d_row, self.opposite_direction(d_row, d_col, dir_offsets))
-            for d_col, d_row in dir_offsets.values()
-        ]
-
-        stack = [(r, c, 0, 0)]
-
-        while stack:
-            cr, cc, idx, total = stack[-1]
-
-            if acc[cr, cc] >= 0:
-                stack.pop()
-                if stack:
-                    pr, pc, pidx, ptotal = stack[-1]
-                    stack[-1] = (pr, pc, pidx, ptotal + acc[cr, cc] + 1)
-                continue
-
-            # Advance through remaining neighbours.
-            found_unprocessed = False
-            while idx < len(offsets_list):
-                d_col, d_row, opp = offsets_list[idx]
-                idx += 1
-                rr, rc = cr + d_row, cc + d_col
-                if not (0 <= rr < rows and 0 <= rc < cols):
-                    continue
-                if flow_dir[rr, rc] != opp:
-                    continue
-                if opp is None:
-                    continue
-                # Neighbour already computed — just add its count.
-                if acc[rr, rc] >= 0:
-                    total += acc[rr, rc] + 1
-                    continue
-                # Neighbour needs processing — save our state and push it.
-                stack[-1] = (cr, cc, idx, total)
-                stack.append((rr, rc, 0, 0))
-                found_unprocessed = True
-                break
-
-            if not found_unprocessed:
-                # All neighbours processed — finalise this cell.
-                acc[cr, cc] = total
-                stack.pop()
-                if stack:
-                    pr, pc, pidx, ptotal = stack[-1]
-                    stack[-1] = (pr, pc, pidx, ptotal + total + 1)
-
-        return acc[r, c]
+        return accumulate_upstream(r, c, flow_dir, acc, dir_offsets)
 
     @staticmethod
     def opposite_direction(dr, dc, dir_offsets):
@@ -279,10 +230,7 @@ class RoutingMixin:
             int or None: Direction code whose offset is `(-dr, -dc)`,
             or `None` if no match is found.
         """
-        for d, (d_col, d_row) in dir_offsets.items():
-            if d_row == -dr and d_col == -dc:
-                return d
-        return None
+        return _opposite_direction(dr, dc, dir_offsets)
 
     def flow_accumulation(
         self,
@@ -430,33 +378,19 @@ class RoutingMixin:
         downstream neighbour.
 
         Returns:
-            np.ndarray: 3-D `float64` array of shape
-                `(rows, columns, 2)`.  Layer 0 holds the downstream
-                row index; layer 1 holds the downstream column index.
-                Cells with no valid direction contain `np.nan`.
+            np.ndarray: 3-D `float64` array of shape `(rows, columns, 2)`.
+                Layer 0 holds the downstream **column** index and layer 1 the
+                downstream **row** index — that order, which is the one
+                `tests/conftest.py` and the reference fixture have always used.
+                This docstring said the opposite until the kernel behind it was
+                extracted and given a doctest. Cells with no valid direction
+                contain `np.nan`.
         """
         flow_direction = self.flow_direction()
         flow_dir = flow_direction.read_array(band=0).astype(np.float32)
         no_val = flow_direction.no_data_value[0]
         flow_dir[np.isclose(flow_dir, no_val, rtol=0.00001)] = np.nan
-
-        rows, cols = flow_dir.shape
-        valid = ~np.isnan(flow_dir)
-
-        # Build lookup arrays from DIR_OFFSETS (index 0 = first tuple
-        # element, index 1 = second tuple element, matching the
-        # original loop: cell[i,j,0] = i + offset[0]).
-        offset_0 = np.array([DIR_OFFSETS[d][0] for d in range(8)], dtype=np.float64)
-        offset_1 = np.array([DIR_OFFSETS[d][1] for d in range(8)], dtype=np.float64)
-
-        flow_direction_cell = np.full((rows, cols, 2), np.nan, dtype=np.float64)
-
-        dir_idx = flow_dir[valid].astype(int)
-        row_idx, col_idx = np.nonzero(valid)
-        flow_direction_cell[valid, 0] = row_idx + offset_0[dir_idx]
-        flow_direction_cell[valid, 1] = col_idx + offset_1[dir_idx]
-
-        return flow_direction_cell
+        return cell_indices_from_directions(flow_dir, DIR_OFFSETS)
 
     @staticmethod
     def delete_basins(basins: Dataset, path: str):

@@ -26,6 +26,11 @@ from __future__ import annotations
 import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
+from digitalrivers.dem._kernels.surface import (
+    eight_direction_slopes,
+    focal_window_stats,
+)
+
 
 __all__ = ["MorphometryMixin"]
 
@@ -46,49 +51,7 @@ class MorphometryMixin:
                 `(rows, columns, 8)` where the third axis corresponds
                 to the direction indices defined in `DIR_OFFSETS`.
         """
-        elev = self.values
-        cell_size = self.cell_size
-        dist2 = cell_size * np.sqrt(2)
-        distances = [
-            cell_size,
-            dist2,
-            cell_size,
-            dist2,
-            cell_size,
-            dist2,
-            cell_size,
-            dist2,
-        ]
-        rows, cols = elev.shape
-        slopes = np.full((rows, cols, 8), np.nan, dtype=np.float32)
-
-        # padding = 2
-        # pad_1 = padding - 1
-        # Create a padded elevation array for boundary conditions
-        padded_elev = np.full((rows + 2, cols + 2), np.nan, dtype=np.float32)
-        padded_elev[1:-1, 1:-1] = elev
-
-        # Calculate elevation differences using slicing
-        diff_right = padded_elev[1:-1, 1:-1] - padded_elev[1:-1, 2:]
-        diff_top_right = padded_elev[1:-1, 1:-1] - padded_elev[:-2, 2:]
-        diff_top = padded_elev[1:-1, 1:-1] - padded_elev[:-2, 1:-1]
-        diff_top_left = padded_elev[1:-1, 1:-1] - padded_elev[:-2, :-2]
-        diff_left = padded_elev[1:-1, 1:-1] - padded_elev[1:-1, :-2]
-        diff_bottom_left = padded_elev[1:-1, 1:-1] - padded_elev[2:, :-2]
-        diff_bottom = padded_elev[1:-1, 1:-1] - padded_elev[2:, 1:-1]
-        diff_bottom_right = padded_elev[1:-1, 1:-1] - padded_elev[2:, 2:]
-
-        # Calculate slopes
-        slopes[:, :, 0] = diff_bottom / distances[0]
-        slopes[:, :, 1] = diff_bottom_left / distances[1]
-        slopes[:, :, 2] = diff_left / distances[2]
-        slopes[:, :, 3] = diff_top_left / distances[3]
-        slopes[:, :, 4] = diff_top / distances[4]
-        slopes[:, :, 5] = diff_top_right / distances[5]
-        slopes[:, :, 6] = diff_right / distances[6]
-        slopes[:, :, 7] = diff_bottom_right / distances[7]
-
-        return slopes
+        return eight_direction_slopes(self.values, self.cell_size)
 
     def twi(
         self,
@@ -236,32 +199,7 @@ class MorphometryMixin:
         Used by `tpi`, `deviation_from_mean`, and `elev_std`. `ruggedness`
         has its own per-shift kernel and does not call this helper.
         """
-        from scipy.ndimage import uniform_filter
-
-        if window < 1:
-            raise ValueError(f"window must be >= 1; got {window!r}")
-        z = self.values.astype(np.float64, copy=False)
-        valid = ~np.isnan(z)
-        valid_f = valid.astype(np.float64)
-        z_filled = np.where(valid, z, 0.0)
-        # No-data-aware focal mean: total signal / count of valid neighbours
-        # in each window. Cells whose window has zero valid neighbours yield
-        # NaN (0 / 0); the caller's no-data wrapping converts those to the
-        # DEM's sentinel.
-        sum_z = uniform_filter(z_filled, size=int(window), mode="reflect")
-        sum_zz = uniform_filter(z_filled * z_filled, size=int(window), mode="reflect")
-        # `uniform_filter` averages by default — multiply by the window area
-        # to recover unscaled sums so the same divisor (count of valid cells
-        # in the window) applies to both numerator and second moment.
-        n_window = float(int(window) * int(window))
-        sum_z *= n_window
-        sum_zz *= n_window
-        count = uniform_filter(valid_f, size=int(window), mode="reflect") * n_window
-        with np.errstate(invalid="ignore", divide="ignore"):
-            m = sum_z / count
-            ex2 = sum_zz / count
-            sd = np.sqrt(np.maximum(ex2 - m * m, 0.0))
-        return z, m, sd
+        return focal_window_stats(self.values, window)
 
     def tpi(self, window: int = 3) -> Dataset:
         """Topographic Position Index (Guisan 1999).
