@@ -336,7 +336,7 @@ def breach_depressions(
         return z_work
 
     # least_cost and hybrid both run the full Dijkstra. Cheap single-cell pre-pass first.
-    remaining_after_singles = _breach_single_cell_pits(z_work, nodata_mask, pit_rcs)
+    _breach_single_cell_pits(z_work, nodata_mask, pit_rcs)
     # Re-detect pits after the single-cell pass — some pits may have been resolved as a
     # side effect of lowering an intermediate that was also a neighbour of another pit.
     pit_mask = local_minima_8(z_work, nodata_mask=nodata_mask)
