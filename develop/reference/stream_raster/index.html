@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -1134,6 +1134,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -1634,6 +1638,62 @@
     
   
     Topobathy fusion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../interop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interop (export, sub-grid, ANUDEM)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core primitives
   
 
     
@@ -3239,7 +3299,8 @@ when it is reopened. Default <code>None</code>.</p>
 <span class="normal"><a href="#__codelineno-0-983">983</a></span>
 <span class="normal"><a href="#__codelineno-0-984">984</a></span>
 <span class="normal"><a href="#__codelineno-0-985">985</a></span>
-<span class="normal"><a href="#__codelineno-0-986">986</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">class</span><span class="w"> </span><span class="nc">StreamRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="normal"><a href="#__codelineno-0-986">986</a></span>
+<span class="normal"><a href="#__codelineno-0-987">987</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-82" name="__codelineno-0-82"></a><span class="k">class</span><span class="w"> </span><span class="nc">StreamRaster</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <a id="__codelineno-0-83" name="__codelineno-0-83"></a><span class="w">    </span><span class="sd">"""Boolean/int stream-network raster tagged with extraction threshold.</span>
 <a id="__codelineno-0-84" name="__codelineno-0-84"></a>
 <a id="__codelineno-0-85" name="__codelineno-0-85"></a><span class="sd">    Args:</span>
@@ -4131,19 +4192,20 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-971" name="__codelineno-0-971"></a>        <span class="k">return</span> <span class="n">gpd</span><span class="o">.</span><span class="n">GeoDataFrame</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">geometry</span><span class="o">=</span><span class="s2">"geometry"</span><span class="p">,</span> <span class="n">crs</span><span class="o">=</span><span class="n">crs</span><span class="p">)</span>
 <a id="__codelineno-0-972" name="__codelineno-0-972"></a>
 <a id="__codelineno-0-973" name="__codelineno-0-973"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-974" name="__codelineno-0-974"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</span>
+<a id="__codelineno-0-974" name="__codelineno-0-974"></a><span class="w">        </span><span class="sd">"""Return a one-line summary of the raster.</span>
 <a id="__codelineno-0-975" name="__codelineno-0-975"></a>
-<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">        The threshold is what decides which cells became channel, so it is</span>
-<a id="__codelineno-0-977" name="__codelineno-0-977"></a><span class="sd">              the first thing to check when a network looks too dense or too</span>
-<a id="__codelineno-0-978" name="__codelineno-0-978"></a><span class="sd">              sparse.</span>
-<a id="__codelineno-0-979" name="__codelineno-0-979"></a>
-<a id="__codelineno-0-980" name="__codelineno-0-980"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">            A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
-<a id="__codelineno-0-982" name="__codelineno-0-982"></a><span class="sd">        """</span>
-<a id="__codelineno-0-983" name="__codelineno-0-983"></a>        <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-984" name="__codelineno-0-984"></a>            <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-985" name="__codelineno-0-985"></a>            <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-986" name="__codelineno-0-986"></a>        <span class="p">)</span>
+<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">        Names its shape, extraction threshold and routing scheme.</span>
+<a id="__codelineno-0-977" name="__codelineno-0-977"></a>
+<a id="__codelineno-0-978" name="__codelineno-0-978"></a><span class="sd">        The threshold is what decides which cells became channel, so it is the first</span>
+<a id="__codelineno-0-979" name="__codelineno-0-979"></a><span class="sd">        thing to check when a network looks too dense or too sparse.</span>
+<a id="__codelineno-0-980" name="__codelineno-0-980"></a>
+<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-982" name="__codelineno-0-982"></a><span class="sd">            A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
+<a id="__codelineno-0-983" name="__codelineno-0-983"></a><span class="sd">        """</span>
+<a id="__codelineno-0-984" name="__codelineno-0-984"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-985" name="__codelineno-0-985"></a>            <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-986" name="__codelineno-0-986"></a>            <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-987" name="__codelineno-0-987"></a>        <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -7221,10 +7283,10 @@ vertices at cell centres.</p>
 
     <div class="doc doc-contents ">
 
-        <p>Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</p>
-<p>The threshold is what decides which cells became channel, so it is
-      the first thing to check when a network looks too dense or too
-      sparse.</p>
+        <p>Return a one-line summary of the raster.</p>
+<p>Names its shape, extraction threshold and routing scheme.</p>
+<p>The threshold is what decides which cells became channel, so it is the first
+thing to check when a network looks too dense or too sparse.</p>
 
 
     <p><span class="doc-section-title">Returns:</span></p>
@@ -7265,20 +7327,22 @@ vertices at cell centres.</p>
 <span class="normal"><a href="#__codelineno-0-983">983</a></span>
 <span class="normal"><a href="#__codelineno-0-984">984</a></span>
 <span class="normal"><a href="#__codelineno-0-985">985</a></span>
-<span class="normal"><a href="#__codelineno-0-986">986</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-973" name="__codelineno-0-973"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-974" name="__codelineno-0-974"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.</span>
+<span class="normal"><a href="#__codelineno-0-986">986</a></span>
+<span class="normal"><a href="#__codelineno-0-987">987</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-973" name="__codelineno-0-973"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-974" name="__codelineno-0-974"></a><span class="w">    </span><span class="sd">"""Return a one-line summary of the raster.</span>
 <a id="__codelineno-0-975" name="__codelineno-0-975"></a>
-<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">    The threshold is what decides which cells became channel, so it is</span>
-<a id="__codelineno-0-977" name="__codelineno-0-977"></a><span class="sd">          the first thing to check when a network looks too dense or too</span>
-<a id="__codelineno-0-978" name="__codelineno-0-978"></a><span class="sd">          sparse.</span>
-<a id="__codelineno-0-979" name="__codelineno-0-979"></a>
-<a id="__codelineno-0-980" name="__codelineno-0-980"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">        A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
-<a id="__codelineno-0-982" name="__codelineno-0-982"></a><span class="sd">    """</span>
-<a id="__codelineno-0-983" name="__codelineno-0-983"></a>    <span class="k">return</span> <span class="p">(</span>
-<a id="__codelineno-0-984" name="__codelineno-0-984"></a>        <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
-<a id="__codelineno-0-985" name="__codelineno-0-985"></a>        <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
-<a id="__codelineno-0-986" name="__codelineno-0-986"></a>    <span class="p">)</span>
+<a id="__codelineno-0-976" name="__codelineno-0-976"></a><span class="sd">    Names its shape, extraction threshold and routing scheme.</span>
+<a id="__codelineno-0-977" name="__codelineno-0-977"></a>
+<a id="__codelineno-0-978" name="__codelineno-0-978"></a><span class="sd">    The threshold is what decides which cells became channel, so it is the first</span>
+<a id="__codelineno-0-979" name="__codelineno-0-979"></a><span class="sd">    thing to check when a network looks too dense or too sparse.</span>
+<a id="__codelineno-0-980" name="__codelineno-0-980"></a>
+<a id="__codelineno-0-981" name="__codelineno-0-981"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-982" name="__codelineno-0-982"></a><span class="sd">        A string of the form `&lt;StreamRaster rows=R cols=C threshold=... routing='...'&gt;`.</span>
+<a id="__codelineno-0-983" name="__codelineno-0-983"></a><span class="sd">    """</span>
+<a id="__codelineno-0-984" name="__codelineno-0-984"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-0-985" name="__codelineno-0-985"></a>        <span class="sa">f</span><span class="s2">"&lt;StreamRaster rows=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rows</span><span class="si">}</span><span class="s2"> cols=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">columns</span><span class="si">}</span><span class="s2"> "</span>
+<a id="__codelineno-0-986" name="__codelineno-0-986"></a>        <span class="sa">f</span><span class="s2">"threshold=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="si">!r}</span><span class="s2"> routing=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="si">!r}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-987" name="__codelineno-0-987"></a>    <span class="p">)</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
