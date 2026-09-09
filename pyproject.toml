@@ -219,8 +219,10 @@ digital-rivers = { path = ".", editable = true }
 #     CI matrix (cp311-cp314), and taking them from PyPI keeps numba, llvmlite
 #     and numpy on one ecosystem instead of splitting them.
 #
-# The conda-forge feedstock build does need a real GDAL, but that belongs in the
-# feedstock recipe, not in the environments this file defines.
+# The conda-forge feedstock build does need a real GDAL, but that belongs in its
+# recipe, not in the environments this file defines. That recipe lives outside
+# this repo — conda-forge/digital-rivers-feedstock, recipe/meta.yaml — and takes
+# its run requirements from [project.dependencies], which is unchanged here.
 
 [tool.pixi.tasks]
 main = { cmd = "pytest -vvv --cov=src/digitalrivers -sv -m 'not plot' --cov-report=xml", description = "Run the main test suite" }
