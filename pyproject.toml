@@ -93,6 +93,31 @@ docs = [
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
 ]
+# Dask backend for the out-of-core path, for the environments to install.
+#
+# A group rather than the `distributed` extra because that extra is
+# `pyramids-gis[lazy]`, which is seven packages — dask, distributed, fsspec,
+# zarr, s3fs, kerchunk and h5py. The group narrows that to the two the
+# out-of-core path is built on, rather than adding anything the extra lacks.
+#
+# To be exact about what uses them: `dask` is imported, lazily, in three places
+# in _outofcore/distributed.py — no test imports it directly, they reach it
+# through that module. `distributed` is imported nowhere. It is here because
+# dask's distributed scheduler is the point of that module and a Client makes it
+# reachable; nothing constructs one yet. It carried over from the conda feature
+# this group replaced, so dropping it is a separate decision from this move.
+#
+# The floors here mirror the two the upstream extra already sets. If pyramids
+# raises its own, this does not follow — check both when bumping pyramids.
+#
+# Named `lazy`, not `distributed`: a group and an extra sharing a name makes
+# pixi auto-activate the extra, which would pull the other five packages back
+# in and defeat the narrowing. The environments reference this name and pixi
+# resolves it like `dev` / `docs`.
+lazy = [
+    "dask >=2024.1.0",
+    "distributed >=2024.1.0",
+]
 notebook = [
     "pip",
     "jupyterlab",
@@ -183,9 +208,27 @@ macos = "14.0"
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
-# pyramids-gis is floored in [project.dependencies] (and the `viz` / `distributed`
-# extras), so no override is needed here. GDAL is supplied from conda-forge — see
-# [tool.pixi.dependencies] below.
+# The editable self-install is the only entry: there are no conda or PyPI
+# overrides, and no [tool.pixi.dependencies] table at all. Everything the
+# environments get arrives through the standard declarations — runtime deps
+# from [project.dependencies], plotting from the `viz` extra, tooling from the
+# `dev` / `docs` / `lazy` dependency groups — resolved from PyPI.
+#
+# Two conda overrides used to live here and are deliberately gone:
+#   * gdal — the pyramids-gis wheel vendors its own osgeo, and `import pyramids`
+#     prepends that directory to sys.path[0] (activate_vendored_osgeo). Since
+#     `digitalrivers/__init__.py` imports pyramids at load, `from osgeo import
+#     gdal` always resolves to the vendored copy, so a conda GDAL was installed
+#     and never imported. It was only needed back when pyramids-gis was pinned to
+#     a git/sdist build, which does not vendor osgeo.
+#   * numba — PyPI ships numba and llvmlite wheels for every interpreter in the
+#     CI matrix (cp311-cp314), and taking them from PyPI keeps numba, llvmlite
+#     and numpy on one ecosystem instead of splitting them.
+#
+# The conda-forge feedstock build does need a real GDAL, but that belongs in its
+# recipe, not in the environments this file defines. That recipe lives outside
+# this repo — conda-forge/digital-rivers-feedstock, recipe/meta.yaml — and takes
+# its run requirements from [project.dependencies], which is unchanged here.
 
 [tool.pixi.tasks]
 main = { cmd = "pytest -vvv --cov=src/digitalrivers -sv -m 'not plot' --cov-report=xml", description = "Run the main test suite" }
@@ -195,52 +238,43 @@ build-dist = { cmd = "python -m build", description = "Build sdist and wheel for
 publish-pypi = { cmd = "twine upload --non-interactive --repository pypi dist/*", depends-on = ["build-dist"], description = "Build and upload package to PyPI" }
 
 [tool.pixi.environments]
-default = { features = ["gil"], solve-group = "default" }
-dev = { features = ["dev", "viz", "lazy", "gil"], solve-group = "default" }
-docs = { features = ["docs", "gil"], solve-group = "default" }
+default = { features = ["py314"], solve-group = "default" }
+dev = { features = ["py314", "dev", "viz", "lazy"], solve-group = "default" }
+docs = { features = ["py314", "docs"], solve-group = "default" }
 py311 = { features = ["py311", "dev", "viz", "lazy"], solve-group = "py311" }
 py312 = { features = ["py312", "dev", "viz", "lazy"], solve-group = "py312" }
 py313 = { features = ["py313", "dev", "viz", "lazy"], solve-group = "py313" }
 py314 = { features = ["py314", "dev", "viz", "lazy"], solve-group = "py314" }
 
 
+# Interpreter pins, one feature per environment in the matrix. `default`,
+# `dev` and `docs` reuse `py314` rather than declaring a second 3.14 pin of
+# their own. Nothing else constrains them — without a pin their only bound is
+# `requires-python = ">= 3.11, <4"`, so they float to whatever conda-forge
+# ships newest. pyramids-gis publishes cp311-cp314 wheels only, so once 3.15
+# is out the next re-lock would resolve an interpreter with no wheel and fall
+# back to the sdist, which vendors no osgeo — and with no conda GDAL
+# underneath, that is a hard import failure. Bump the pin when pyramids ships
+# 3.15 wheels. (CI runs `--locked`, so a released 3.15 breaks nothing until
+# someone re-locks.)
+#
+# 3.13 and 3.14 additionally carry a build glob to exclude the free-threaded
+# interpreter, whose conda build string ends `_cp313t` / `_cp314t` — the glob
+# anchors on the plain suffix, so it matches one and not the other. pyramids
+# skips `cp313t` / `cp314t` in cibuildwheel and ships no wheel for either, and
+# nothing absorbs that any more: the fallback used to be the conda GDAL, which
+# is gone. `pixi lock` and `pixi install` both still succeed in that state, so
+# the failure lands at import rather than at resolve time. The solver does not
+# choose a free-threaded build here today; pyramids added the same glob only
+# after its own solve picked `*_cp314t` on two of its platforms.
+#
+# 3.11 and 3.12 need no glob — free-threading starts at 3.13, so conda-forge
+# publishes no `t` variant to exclude.
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 [tool.pixi.feature.py313.dependencies]
-python = "3.13.*"
+python = { version = "3.13.*", build = "*_cp313" }
 [tool.pixi.feature.py314.dependencies]
-python = "3.14.*"
-
-[tool.pixi.dependencies]
-numba = ">=0.60.0,<1"
-# NOTE: this conda GDAL is currently SHADOWED, not used. The pyramids-gis
-# wheel vendors its own osgeo, and `import pyramids` prepends that directory
-# to sys.path[0] (activate_vendored_osgeo); `digitalrivers/__init__.py`
-# imports pyramids at load, so by the time anything says `from osgeo import
-# gdal` the vendored copy wins. Verified: osgeo resolves under
-# site-packages/pyramids/_vendor/. Both stacks are the same 3.13.3 here, so
-# the pin costs disk rather than correctness — but it is dead weight, and the
-# version match is what stops it becoming a real skew. Kept pinned to
-# pyramids' own gdal feature until we decide whether to drop it (the
-# conda-forge feedstock build does want a real GDAL; the wheel does not).
-gdal = ">=3.13.3,<3.13.4"
-
-# Force the standard (GIL) CPython build for the unpinned `default`
-# solve-group (default / dev / docs). Without this, conda-forge's solver
-# selects the free-threaded 3.14 variant (build string `*_cp314t`), for
-# which pyramids-gis ships NO wheel (its cibuildwheel `skip` excludes
-# `cp314t`) — pixi then falls back to the GDAL-less sdist and `import
-# digitalrivers` breaks. The `*cp314` build glob matches the regular ABI
-# wheel (`pyramids_gis-…-cp314-cp314-…`) and excludes the `cp314t` one.
-# Scoped to its own feature (not [tool.pixi.dependencies]) so it doesn't
-# collide with the `py311` / `py312` / `py313` env python pins.
-[tool.pixi.feature.gil.dependencies]
-python = { version = "3.14.*"}
-
-# Dask backend for the out-of-core B7 path, via conda-forge `dask-core`. Named `lazy` (not `distributed`) so it
-# does not collide with the `distributed` PyPI extra and trigger pixi to auto-activate it.
-[tool.pixi.feature.lazy.dependencies]
-dask-core = ">=2024.1.0"
-distributed = ">=2024.1.0"
+python = { version = "3.14.*", build = "*_cp314" }
