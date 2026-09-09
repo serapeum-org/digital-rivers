@@ -22,7 +22,7 @@ import pytest
 from digitalrivers.interop.anudem import relax_gaps
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def hole_5x5() -> np.ndarray:
     """A flat surface at 10.0 with a single `NaN` at the centre.
 

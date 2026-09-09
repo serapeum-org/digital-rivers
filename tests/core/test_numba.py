@@ -234,7 +234,7 @@ class TestFallbackBodiesInProcess:
     under the disable flag and restore it afterwards, so the no-op bodies are measured.
     """
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture
     def disabled_shim(self, monkeypatch):
         """Import a fresh `core.numba` with the JIT disabled, then put the real one back.
 

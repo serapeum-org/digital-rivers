@@ -19,7 +19,7 @@ import pytest
 from digitalrivers.interop.subgrid import subgrid_table
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def ramp_4x4() -> np.ndarray:
     """A 4x4 elevation ramp, 0..15 row-major.
 

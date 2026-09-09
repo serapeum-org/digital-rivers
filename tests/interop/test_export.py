@@ -11,8 +11,11 @@ domain by its own height. Several tests pin that arithmetic directly.
 
 from __future__ import annotations
 
+import dataclasses
+
 import numpy as np
 import pytest
+from pyramids.base._errors import DriverNotExistError
 
 from digitalrivers.interop.export import (
     TARGETS,
@@ -29,7 +32,7 @@ from digitalrivers.interop.export import (
 NO_DATA = -9999.0
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def grid() -> ExportGrid:
     """A 3x3 grid at 10 m cells with one no-data cell.
 
@@ -89,11 +92,11 @@ class TestExportGrid:
 
     def test_grid_is_frozen(self, grid):
         """`ExportGrid` is immutable, so a writer cannot alter what the next one sees."""
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(dataclasses.FrozenInstanceError) as exc_info:
             grid.no_data = 0.0
-        assert "frozen" in str(exc_info.value).lower() or isinstance(
-            exc_info.value, AttributeError
-        ), f"Expected a frozen-dataclass error, got: {exc_info.value!r}"
+        assert "no_data" in str(
+            exc_info.value
+        ), f"Expected the rejected field to be named: {exc_info.value!r}"
 
 
 class TestWriteLisfloodFp:
@@ -400,11 +403,12 @@ class TestWrite:
             "bare_lisflood"
         ), "lisflood_fp is documented to use the path verbatim"
 
-        with pytest.raises(Exception) as exc_info:
+        with pytest.raises(DriverNotExistError) as exc_info:
             write("hec_ras", grid, str(tmp_path / "bare_hecras"))
-        assert "extension" in str(
-            exc_info.value
-        ), f"Expected an extension-related failure, got: {exc_info.value!r}"
+        assert "extension" in str(exc_info.value), (
+            "The failure should name the missing extension rather than some other "
+            f"driver problem: {exc_info.value!r}"
+        )
 
     def test_registry_holds_exactly_the_six_documented_targets(self):
         """The registry is the contract `DEM.export` validates against."""
