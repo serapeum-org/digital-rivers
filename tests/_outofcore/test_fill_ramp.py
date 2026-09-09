@@ -17,7 +17,11 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers._numba import _DIR_DC_I32, _DIR_DR_I32, priority_flood_numba
+from digitalrivers.dem._kernels.numba import priority_flood_numba
+from digitalrivers.core.directions import (
+    DIR_DC_I32 as _DIR_DC_I32,
+    DIR_DR_I32 as _DIR_DR_I32,
+)
 from digitalrivers._outofcore.fill_ramp import (
     fill_depressions_ramp_tiled,
     ramp_fill_reference,

@@ -5,11 +5,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from digitalrivers._numba import (
-    _DIR_DC_I32,
-    _DIR_DR_I32,
+from digitalrivers.dem._kernels.numba import (
     priority_flood_labels_numba,
     priority_flood_numba,
+)
+from digitalrivers.core.directions import (
+    DIR_DC_I32 as _DIR_DC_I32,
+    DIR_DR_I32 as _DIR_DR_I32,
 )
 
 

@@ -38,7 +38,7 @@ flood. The kernel (`priority_flood_numba`) lifts an unvisited neighbour `n` of a
 
 ## Experiments
 
-All runs use the real kernel `digitalrivers._numba.priority_flood_numba` with `epsilon = 1e-3`, deriving
+All runs use the real kernel `digitalrivers.dem._kernels.numba.priority_flood_numba` with `epsilon = 1e-3`, deriving
 `g = round((fill_eps - fill_0) / epsilon)`.
 
 ### 1. `g` is integer-valued — confirmed
@@ -107,4 +107,4 @@ out-of-core engine.
 
 The two probe scripts used here construct the fixtures, call `priority_flood_numba` for `epsilon ∈ {0, 1e-3}`,
 derive `g`, test `g == flipud(g)` on the symmetric fixture, and compare `g` against the two tile-local models.
-They are self-contained (`numpy`, `scipy.ndimage`, `digitalrivers._numba`) and were run under `pixi run -e py311`.
+They are self-contained (`numpy`, `scipy.ndimage`, `digitalrivers.dem._kernels.numba`) and were run under `pixi run -e py311`.

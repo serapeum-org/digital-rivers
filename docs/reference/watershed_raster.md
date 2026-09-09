@@ -17,7 +17,7 @@ Top-level surface:
     * `longest_flow_path_m` (with `flow_direction`; W-8 — `accumulation` is no-op post-M1).
 * **`to_polygons()`** — vectorise the labelled raster to per-basin polygons.
 
-::: digitalrivers.watershed_raster.WatershedRaster
+::: digitalrivers.watershed.raster.WatershedRaster
     options:
         show_root_heading: true
         show_source: true

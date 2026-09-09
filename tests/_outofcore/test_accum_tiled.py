@@ -10,12 +10,16 @@ import numpy as np
 import pytest
 from pyramids.dataset import Dataset, GeoReference
 
-from digitalrivers._numba import (
-    _DIR_DC_I32,
-    _DIR_DR_I32,
-    d8_flow_direction_numba,
-    kahn_accumulate_d8_numba,
+from digitalrivers.dem._kernels.numba import (
     priority_flood_numba,
+)
+from digitalrivers.flow._kernels.numba import (
+    kahn_accumulate_d8_numba,
+)
+from tests.helpers import d8_flow_direction_numba
+from digitalrivers.core.directions import (
+    DIR_DC_I32 as _DIR_DC_I32,
+    DIR_DR_I32 as _DIR_DR_I32,
 )
 from digitalrivers._outofcore.accumulate import flow_accumulation_tiled
 

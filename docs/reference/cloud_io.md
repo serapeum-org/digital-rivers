@@ -6,7 +6,7 @@ dependency outright.
 
 ## Module-level functions
 
-::: digitalrivers.cloud_io
+::: digitalrivers.interop.cloud_io
     options:
         show_root_heading: false
         show_source: true

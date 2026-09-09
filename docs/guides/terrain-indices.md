@@ -45,7 +45,7 @@ grows with how strongly the surface bends inside the window.
 
 ## Visibility (W-27, W-28)
 
-Both metrics share a numba-accelerated `horizon_walk_kernel` (in `digitalrivers._numba`) that walks
+Both metrics share a numba-accelerated `horizon_walk_kernel` (in `digitalrivers.dem._kernels.morphometry`) that walks
 outward from every cell along 8 azimuths up to `search_radius` cells, recording the maximum
 elevation angle (the "horizon") in each direction.
 

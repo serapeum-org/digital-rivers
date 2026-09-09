@@ -5,45 +5,75 @@ Verifies:
 * The fast-path produces bit-for-bit identical output to the pure-Python branch
   on the affected algorithms (priority-flood fill, D8 accumulation).
 * The `DIGITALRIVERS_DISABLE_NUMBA=1` env var cleanly disables the JIT path
-  (requires re-importing the kernel module after setting the env var).
-* The kernel module exposes a public `is_numba_enabled` predicate.
+  (requires re-importing `core.numba`, which is what reads the flag).
+* `digitalrivers.core.numba` exposes a public `is_numba_enabled` predicate.
 """
 
 from __future__ import annotations
 
 import importlib
-import os
 import sys
 
 import numpy as np
 import pytest
 
-import digitalrivers._numba as _numba
-from digitalrivers._conditioning.pitremoval import _priority_flood, fill_depressions
-from digitalrivers._flow.accumulation import _receivers_d8, kahn_accumulate
+import digitalrivers.core
+
+from digitalrivers.core.directions import DIR_DC_I32, DIR_DR_I32
+from digitalrivers.core.numba import is_numba_enabled
+from digitalrivers.dem._kernels.pitremoval import _priority_flood, fill_depressions
+from digitalrivers.flow._kernels.accumulation import _receivers_d8, kahn_accumulate
+from digitalrivers.flow._kernels.numba import kahn_accumulate_d8_numba
+from tests.helpers import d8_flow_direction_numba
 
 
 # ----- Toggle / availability ----------------------------------------------------------------
 
 
 def test_is_numba_enabled_predicate_exists():
-    assert isinstance(_numba.is_numba_enabled(), bool)
+    assert isinstance(is_numba_enabled(), bool)
 
 
 def test_env_var_disables_numba_on_reimport(monkeypatch):
     """Setting DIGITALRIVERS_DISABLE_NUMBA=1 and re-importing the module must
     return `is_numba_enabled() is False`. This is how CI exercises the fallback
-    path without needing a Numba-free environment."""
+    path without needing a Numba-free environment.
+
+    The teardown puts back the *original module object* rather than re-importing.
+    Re-importing here is a trap: monkeypatch undoes `setenv` in its fixture finalizer,
+    which runs after this function's `finally`, so a re-import at this point still sees
+    the flag set and installs a JIT-disabled module for the rest of the session. Every
+    later test then silently takes the pure-Python branch.
+    """
+    original = sys.modules.get("digitalrivers.core.numba")
     monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
-    # Re-import the module under the new env.
-    sys.modules.pop("digitalrivers._numba", None)
-    reloaded = importlib.import_module("digitalrivers._numba")
+    sys.modules.pop("digitalrivers.core.numba", None)
     try:
+        reloaded = importlib.import_module("digitalrivers.core.numba")
         assert reloaded.is_numba_enabled() is False
     finally:
-        # Restore the original module so other tests use the JIT path.
-        sys.modules.pop("digitalrivers._numba", None)
-        importlib.import_module("digitalrivers._numba")
+        sys.modules.pop("digitalrivers.core.numba", None)
+        if original is not None:
+            sys.modules["digitalrivers.core.numba"] = original
+            digitalrivers.core.numba = original
+
+
+def test_the_disable_test_left_the_jit_on():
+    """The JIT is live again after the test above, resolved at call time.
+
+    pytest runs tests in definition order within a file, so this sits immediately after
+    the only test that turns the JIT off. It resolves the module through `sys.modules`
+    rather than importing the name at module scope, because a module-scope import binds
+    at collection time — before the leak could happen — and would pass regardless.
+    """
+    mod = sys.modules["digitalrivers.core.numba"]
+    assert mod.is_numba_enabled() is True, (
+        "DIGITALRIVERS_DISABLE_NUMBA leaked out of the test above; every later test in "
+        "the session would silently run the pure-Python branch"
+    )
+    assert (
+        digitalrivers.core.numba is mod
+    ), "digitalrivers.core.numba still points at the disabled module object"
 
 
 # ----- Priority-flood parity -----------------------------------------------------------------
@@ -112,9 +142,7 @@ def test_kahn_accumulate_d8_numba_matches_pure_python():
     weights = np.ones(fdir.shape, dtype=np.float64)
     valid = np.ones(fdir.shape, dtype=bool)
 
-    numba_out = _numba.kahn_accumulate_d8_numba(
-        fdir, weights, _numba._DIR_DR_I32, _numba._DIR_DC_I32
-    )
+    numba_out = kahn_accumulate_d8_numba(fdir, weights, DIR_DR_I32, DIR_DC_I32)
     receivers, proportions = _receivers_d8(fdir, valid)
     py_out = kahn_accumulate(receivers, proportions, weights, valid)
     np.testing.assert_allclose(numba_out, py_out)
@@ -131,9 +159,7 @@ def test_d8_kernel_handles_sinks():
         dtype=np.int32,
     )
     weights = np.ones(fdir.shape, dtype=np.float64)
-    out = _numba.kahn_accumulate_d8_numba(
-        fdir, weights, _numba._DIR_DR_I32, _numba._DIR_DC_I32
-    )
+    out = kahn_accumulate_d8_numba(fdir, weights, DIR_DR_I32, DIR_DC_I32)
     # The sink at (0, 3) collects the three upstream cells.
     assert out[0, 3] == pytest.approx(3.0)
 
@@ -151,9 +177,7 @@ def test_d8_flow_direction_numba_matches_steepest_descent():
         ],
         dtype=np.float64,
     )
-    out = _numba.d8_flow_direction_numba(
-        z, 1.0, np.int32(-9999), _numba._DIR_DR_I32, _numba._DIR_DC_I32
-    )
+    out = d8_flow_direction_numba(z, 1.0, np.int32(-9999), DIR_DR_I32, DIR_DC_I32)
     # Centre cell has 8 equally downhill neighbours; the kernel breaks ties by
     # the first direction it scans (index 0 = S) with strictly-greater slope.
     assert out[1, 1] in {0, 1, 2, 3, 4, 5, 6, 7}

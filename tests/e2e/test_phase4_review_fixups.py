@@ -139,7 +139,7 @@ def test_grid_lidar_median_isolates_per_cell():
 def test_write_cog_output_is_tiled_geotiff(tmp_path):
     """The COG writer's output must have block-tiled internal layout —
     a hard requirement of the COG spec."""
-    from digitalrivers.cloud_io import write_cog
+    from digitalrivers.interop.cloud_io import write_cog
 
     z = np.arange(64, dtype=np.float32).reshape(8, 8)
     ds = Dataset.from_array(
@@ -172,7 +172,7 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
     """A fine grid where every coarse block has exactly one outlet
     candidate cannot benefit from any swap — the engine must short-circuit
     (zero swaps) and report converged=True."""
-    from digitalrivers._flow.ihu import ihu_upscale
+    from digitalrivers.flow._kernels.ihu import ihu_upscale
 
     # Tiny 4x4 grid → 2x2 coarse output at sf=2. Make every block contain
     # exactly one cell that has an exit by giving most cells fdir == -1
@@ -203,7 +203,7 @@ def test_ihu_no_improvement_on_single_candidate_per_block():
 
 def test_topobathy_fusion_min_blend_picks_lower():
     """The new `"min"` blend mode (I3 fix) returns `np.fmin(topo, bathy)`."""
-    from digitalrivers.fusion import topobathy_fusion
+    from digitalrivers.dem.fusion import topobathy_fusion
 
     topo = Dataset.from_array(
         np.array([[5.0, -1.0], [3.0, -2.0]], dtype=np.float32),
@@ -251,7 +251,7 @@ class TestIhuReturnAndMetrics:
         return fdir, acc
 
     def test_outlets_dict_has_one_entry_per_coarse_cell(self):
-        from digitalrivers._flow.ihu import ihu_upscale
+        from digitalrivers.flow._kernels.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         sf = 2
@@ -267,14 +267,14 @@ class TestIhuReturnAndMetrics:
             assert all(isinstance(v, int) for v in k)
 
     def test_swaps_per_iteration_length_matches_iterations(self):
-        from digitalrivers._flow.ihu import ihu_upscale
+        from digitalrivers.flow._kernels.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         _, metrics, _ = ihu_upscale(fdir, acc, scale_factor=2, max_iter=10)
         assert len(metrics["swaps_per_iteration"]) == metrics["iterations"]
 
     def test_swaps_per_iteration_sums_to_total_swaps(self):
-        from digitalrivers._flow.ihu import ihu_upscale
+        from digitalrivers.flow._kernels.ihu import ihu_upscale
 
         fdir, acc = self._build_inputs()
         _, metrics, _ = ihu_upscale(fdir, acc, scale_factor=2, max_iter=10)
@@ -356,7 +356,7 @@ def test_grid_lidar_mean_5000_points_matches_naive():
 
 def test_topobathy_min_blend_nan_picks_other_operand():
     """When one operand is NaN, `np.fmin` returns the non-NaN value."""
-    from digitalrivers.fusion import topobathy_fusion
+    from digitalrivers.dem.fusion import topobathy_fusion
 
     topo = Dataset.from_array(
         np.array([[np.nan, 5.0]], dtype=np.float32),
@@ -375,7 +375,7 @@ def test_topobathy_min_blend_nan_picks_other_operand():
 
 def test_topobathy_invalid_blend_now_mentions_min():
     """The new error message lists `'min'` in the allow-list."""
-    from digitalrivers.fusion import topobathy_fusion
+    from digitalrivers.dem.fusion import topobathy_fusion
 
     arr = np.zeros((2, 2), dtype=np.float32)
     ds = Dataset.from_array(
@@ -407,12 +407,12 @@ def test_package_all_carries_mesh_in_sorted_order():
 
 
 def test_mesh_importable_from_package_root_without_submodule_path():
-    """The short import works (no `digitalrivers.mesh` required)."""
+    """The short import works (no `digitalrivers.interop.mesh` required)."""
     import digitalrivers
 
     assert hasattr(digitalrivers, "Mesh")
-    # Pre-Phase-4 backfill, this was only reachable via `digitalrivers.mesh`.
+    # Pre-Phase-4 backfill, this was only reachable via `digitalrivers.interop.mesh`.
     from digitalrivers import Mesh as MeshA
-    from digitalrivers.mesh import Mesh as MeshB
+    from digitalrivers.interop.mesh import Mesh as MeshB
 
     assert MeshA is MeshB

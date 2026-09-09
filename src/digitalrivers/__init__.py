@@ -36,13 +36,12 @@ except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 
 
-from digitalrivers.accumulation import Accumulation
 from digitalrivers.dem import DEM
-from digitalrivers.flow_direction import FlowDirection
-from digitalrivers.mesh import Mesh
-from digitalrivers.stream_raster import StreamRaster
+from digitalrivers.flow import Accumulation, FlowDirection
+from digitalrivers.interop import Mesh
+from digitalrivers.streams import StreamRaster
 from digitalrivers.terrain import Terrain
-from digitalrivers.watershed_raster import WatershedRaster
+from digitalrivers.watershed import WatershedRaster
 
 __all__ = [
     "Accumulation",

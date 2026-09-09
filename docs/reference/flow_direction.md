@@ -17,7 +17,7 @@ Top-level surface:
 * **`upslope_flowpath_length()`** — per-cell longest upslope flow path (W-9).
 * **`upscale(method=...)` / `upscale_ihu(...)`** — COTAT / EAM / DMM / IHU (Eilander 2021) upscalers.
 
-::: digitalrivers.flow_direction.FlowDirection
+::: digitalrivers.flow.direction.FlowDirection
     options:
         show_root_heading: true
         show_source: true

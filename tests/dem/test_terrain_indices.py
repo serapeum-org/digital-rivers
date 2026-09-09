@@ -700,7 +700,7 @@ class TestSkyViewFactor:
 
 
 class TestHorizonWalkKernel:
-    """Tests for the shared `horizon_walk_kernel` in `_numba.py`."""
+    """Tests for the shared `horizon_walk_kernel` in `dem/_kernels/morphometry.py`."""
 
     def test_kernel_mode_zero_matches_openness(self):
         """Test mode=0 produces the same surface as `DEM.openness`.
@@ -710,7 +710,7 @@ class TestHorizonWalkKernel:
             the kernel directly with mode=0 on a flat DEM must yield the
             same `π/2` everywhere.
         """
-        from digitalrivers._numba import horizon_walk_kernel
+        from digitalrivers.dem._kernels.morphometry import horizon_walk_kernel
 
         z = np.full((5, 5), 10.0, dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 0)
@@ -722,7 +722,7 @@ class TestHorizonWalkKernel:
         Test scenario:
             On flat terrain, mode=1 must return 1.0 at every cell.
         """
-        from digitalrivers._numba import horizon_walk_kernel
+        from digitalrivers.dem._kernels.morphometry import horizon_walk_kernel
 
         z = np.full((5, 5), 10.0, dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 1)
@@ -735,7 +735,7 @@ class TestHorizonWalkKernel:
             For any rectangular input shape, the kernel returns a
             same-shape raster.
         """
-        from digitalrivers._numba import horizon_walk_kernel
+        from digitalrivers.dem._kernels.morphometry import horizon_walk_kernel
 
         z = np.zeros((3, 7), dtype=np.float64)
         out = horizon_walk_kernel(z, 1.0, 2, 0)
