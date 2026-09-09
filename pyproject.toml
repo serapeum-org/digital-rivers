@@ -226,26 +226,34 @@ py313 = { features = ["py313", "dev", "viz", "lazy"], solve-group = "py313" }
 py314 = { features = ["py314", "dev", "viz", "lazy"], solve-group = "py314" }
 
 
+# Interpreter pins, one feature per environment in the matrix. `default`,
+# `dev` and `docs` reuse `py314` rather than declaring a second 3.14 pin of
+# their own. Nothing else constrains them — without a pin their only bound is
+# `requires-python = ">= 3.11, <4"`, so they float to whatever conda-forge
+# ships newest. pyramids-gis publishes cp311-cp314 wheels only, so once 3.15
+# is out the next re-lock would resolve an interpreter with no wheel and fall
+# back to the sdist, which vendors no osgeo — and with no conda GDAL
+# underneath, that is a hard import failure. Bump the pin when pyramids ships
+# 3.15 wheels. (CI runs `--locked`, so a released 3.15 breaks nothing until
+# someone re-locks.)
+#
+# 3.13 and 3.14 additionally carry a build glob to exclude the free-threaded
+# interpreter, whose conda build string ends `_cp313t` / `_cp314t` — the glob
+# anchors on the plain suffix, so it matches one and not the other. pyramids
+# skips `cp313t` / `cp314t` in cibuildwheel and ships no wheel for either, and
+# nothing absorbs that any more: the fallback used to be the conda GDAL, which
+# is gone. `pixi lock` and `pixi install` both still succeed in that state, so
+# the failure lands at import rather than at resolve time. The solver does not
+# choose a free-threaded build here today; pyramids added the same glob only
+# after its own solve picked `*_cp314t` on two of its platforms.
+#
+# 3.11 and 3.12 need no glob — free-threading starts at 3.13, so conda-forge
+# publishes no `t` variant to exclude.
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
 [tool.pixi.feature.py312.dependencies]
 python = "3.12.*"
 [tool.pixi.feature.py313.dependencies]
-python = "3.13.*"
-# The `default` solve-group (default / dev / docs) reuses this feature rather
-# than declaring a second 3.14 pin of its own. Nothing else constrains it —
-# without a pin its only bound is `requires-python = ">= 3.11, <4"`, so it
-# floats to whatever conda-forge ships newest. pyramids-gis publishes
-# cp311-cp314 wheels only, so when 3.15 lands those environments would resolve
-# an interpreter with no wheel and fall back to the sdist, which vendors no
-# osgeo — and with no conda GDAL underneath, that is a hard import failure.
-# Bump this when pyramids ships 3.15 wheels.
-#
-# The `*_cp314` build glob excludes the free-threaded variant, which pyramids
-# skips in cibuildwheel and has no wheel for. The solver does not pick it here
-# today, but pyramids pins the same glob after it chose `*_cp314t` on osx-64
-# and win-64, so it is cheap insurance.
+python = { version = "3.13.*", build = "*_cp313" }
 [tool.pixi.feature.py314.dependencies]
 python = { version = "3.14.*", build = "*_cp314" }
-
-
