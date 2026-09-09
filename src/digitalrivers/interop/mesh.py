@@ -33,8 +33,9 @@ class Mesh:
 
     Args:
         vertices: `(N, 2)` or `(N, 3)` float64 array of vertex
-            coordinates. 3-D inputs are kept as 3-D; smoothing operates
-            on the XY plane and leaves Z unchanged.
+            coordinates. 3-D inputs are kept as 3-D, and `laplacian_smooth`
+            moves points in every column it is given — including Z. Smooth a
+            topobathy mesh and the elevations are smoothed with it.
         triangles: `(M, 3)` int array of vertex indices, CCW order.
 
     Attributes:
@@ -78,13 +79,18 @@ class Mesh:
     def __init__(self, vertices: np.ndarray, triangles: np.ndarray):
         """Build a mesh from vertex coordinates and triangle indices.
 
-        Both arrays are converted rather than adopted, so the caller's arrays are never
-        written to and a list of lists works as well as an ndarray. Vertices become
-        `float64` and triangles `int64`, which is what the quality kernels index with.
+        Vertices become `float64` and triangles `int64`, which is what the quality
+        kernels index with, and a list of lists works as well as an ndarray.
+
+        The conversion is `np.asarray`, which does **not** copy when the input already
+        has the right dtype, so a `float64` array passed in is adopted rather than
+        copied and `mesh.vertices is your_array` holds. Writing through either one is
+        visible in the other. `laplacian_smooth` copies before it writes, so it is safe
+        today, but it returns a mesh sharing your triangle array.
 
         Args:
             vertices: `(N, 2)` or `(N, 3)` array of vertex coordinates. A 3-D input
-                stays 3-D; smoothing moves points in the XY plane and leaves Z alone.
+                stays 3-D, and smoothing then moves Z along with X and Y.
             triangles: `(M, 3)` array of vertex indices, counter-clockwise.
 
         Raises:
@@ -228,6 +234,11 @@ class Mesh:
         full step:
 
             v_new = v + relaxation * (centroid(neighbours) - v)
+
+        The centroid is taken over every column of the vertex array, so on a 3-D mesh
+        this smooths Z as well as X and Y. That is ordinary 3-D Laplacian smoothing, but
+        it means the method is not safe to run on a mesh whose Z carries elevations you
+        need preserved — it will flatten them toward their neighbourhood mean.
 
         Args:
             n_iterations: Number of smoothing passes.
