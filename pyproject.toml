@@ -93,30 +93,28 @@ docs = [
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
 ]
-# Dask backend for the out-of-core path, for the environments to install.
+# Dask, for the environments to install: `_outofcore/distributed.py` is the B7
+# backend and calls `dask.compute(...)`, so the tiled tests need it present.
 #
-# A group rather than the `distributed` extra because that extra is
-# `pyramids-gis[lazy]`, which is seven packages — dask, distributed, fsspec,
-# zarr, s3fs, kerchunk and h5py. The group narrows that to the two the
-# out-of-core path is built on, rather than adding anything the extra lacks.
+# Only dask. The `distributed` package is deliberately not here — nothing in
+# src/ or tests/ imports it. That module's `client` argument is duck-typed and
+# supplied by the caller (it only ever calls `client.gather` / `client.compute`),
+# it never constructs a Client, and the tests pass `scheduler="threads"` rather
+# than a cluster. Anyone who does want a real `distributed.Client` installs the
+# `distributed` extra, which is `pyramids-gis[lazy]` and brings it.
 #
-# To be exact about what uses them: `dask` is imported, lazily, in three places
-# in _outofcore/distributed.py — no test imports it directly, they reach it
-# through that module. `distributed` is imported nowhere. It is here because
-# dask's distributed scheduler is the point of that module and a Client makes it
-# reachable; nothing constructs one yet. It carried over from the conda feature
-# this group replaced, so dropping it is a separate decision from this move.
+# A group rather than that extra, because the extra is seven packages — dask,
+# distributed, fsspec, zarr, s3fs, kerchunk, h5py — where this needs one.
 #
-# The floors here mirror the two the upstream extra already sets. If pyramids
-# raises its own, this does not follow — check both when bumping pyramids.
+# The floor mirrors the one the upstream extra sets. If pyramids raises its own,
+# this does not follow — check both when bumping pyramids.
 #
 # Named `lazy`, not `distributed`: a group and an extra sharing a name makes
-# pixi auto-activate the extra, which would pull the other five packages back
-# in and defeat the narrowing. The environments reference this name and pixi
+# pixi auto-activate the extra, which would pull the other six packages back in
+# and defeat the narrowing. The environments reference this name and pixi
 # resolves it like `dev` / `docs`.
 lazy = [
     "dask >=2024.1.0",
-    "distributed >=2024.1.0",
 ]
 notebook = [
     "pip",
