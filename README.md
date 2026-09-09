@@ -42,12 +42,18 @@ pixi shell -e dev
 
 ### Optional features
 
-The `viz` extra adds plotting (`cleopatra`) and `distributed` adds the out-of-core
-Dask backend. Both are already in the `dev` environment; select them explicitly with:
+Two extras are published: `viz` adds plotting (`cleopatra`), and `distributed` adds the
+out-of-core Dask backend (`pyramids-gis[lazy]` — dask, distributed, fsspec, zarr, s3fs,
+kerchunk, h5py).
 
 ```bash
-pixi install -e dev
+pip install "digital-rivers[viz]"
+pip install "digital-rivers[all]"      # both
 ```
+
+The `dev` environment already carries `viz`. For the Dask backend it carries the `lazy`
+dependency group instead of the `distributed` extra — the same dask and distributed the
+tests import, without the rest of the lazy stack.
 
 Supported Python: **3.11–3.14**.
 

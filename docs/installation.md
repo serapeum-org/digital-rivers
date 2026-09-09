@@ -66,13 +66,18 @@ pixi run notebooks     # validate example notebooks
 
 | Environment | Features | Purpose |
 |---|---|---|
-| `default` | base runtime | minimal install |
-| `dev` | `dev` extra | tests, linting, build tooling |
-| `docs` | `docs` extra | docs site (`mkdocs serve`) |
-| `py311` | `py311` + `dev` | pinned Python 3.11 |
-| `py312` | `py312` + `dev` | pinned Python 3.12 |
-| `py313` | `py313` + `dev` | pinned Python 3.13 |
-| `py314` | `py314` + `dev` | pinned Python 3.14 |
+| `default` | `py314` | minimal runtime |
+| `dev` | `py314`, `dev`, `viz`, `lazy` | tests, linting, build tooling |
+| `docs` | `py314`, `docs` | docs site (`mkdocs serve`) |
+| `py311` | `py311`, `dev`, `viz`, `lazy` | pinned Python 3.11 |
+| `py312` | `py312`, `dev`, `viz`, `lazy` | pinned Python 3.12 |
+| `py313` | `py313`, `dev`, `viz`, `lazy` | pinned Python 3.13 |
+| `py314` | `py314`, `dev`, `viz`, `lazy` | pinned Python 3.14 |
+
+`default`, `dev` and `docs` are not unpinned — they reuse the `py314` feature, so they
+resolve Python 3.14 like the matrix environment of that name. `viz` is a PEP 621 extra;
+`dev`, `docs` and `lazy` are PEP 735 dependency groups. The definitions live in
+`pyproject.toml` under `[tool.pixi.environments]`.
 
 ## Alternative: conda
 
@@ -80,9 +85,13 @@ If you'd rather manage the environment yourself, install the native stack from
 conda-forge and add the package from source:
 
 ```bash
-mamba create -n digital-rivers -c conda-forge     python=3.12 "gdal>=3.13.3,<3.13.4" libgdal-netcdf libgdal-hdf4
+mamba create -n digital-rivers -c conda-forge python=3.12 gdal libgdal-netcdf libgdal-hdf4
 mamba activate digital-rivers
 ```
+
+The GDAL version is deliberately unpinned here. The `pyramids-gis` wheel vendors its own
+osgeo bindings and uses those in preference to anything conda installs, so this environment
+only needs a GDAL new enough for the other conda packages that want one.
 
 The repository's own environments are defined in `pyproject.toml` and resolved by
 pixi; `pixi install -e dev` is the supported way to reproduce them exactly, and the
@@ -116,7 +125,8 @@ editable-install step.
   depends on the PyPI distribution name (`pyramids-gis`) so it works regardless of how pyramids itself was
   installed.
 - For very recent pyramids releases the conda-forge ↔ PyPI hash mapping pixi uses can lag by a day; if
-  `pixi update` reports "No candidates were found for pyramids", either wait for the mapping to refresh or
-  temporarily comment out the conda `pyramids` pin in `[tool.pixi.dependencies]`.
+  `pixi update` reports "No candidates were found for pyramids", wait for the mapping to refresh. The old
+  workaround of commenting out a conda `pyramids` pin no longer applies — there is no
+  `[tool.pixi.dependencies]` table; every dependency resolves from PyPI.
 - Documentation: <https://serapeum-org.github.io/digital-rivers/latest>
 - Source repository: <https://github.com/serapeum-org/digital-rivers>
