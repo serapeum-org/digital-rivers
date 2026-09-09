@@ -5,18 +5,17 @@ grid of 4000 m cells in EPSG:32618, plus the reference arrays the DEM tests comp
 output against. Raster fixtures hand back the raw `gdal.Dataset`, not a `DEM`, so each test
 decides which typed class to wrap it in.
 
-The `import pyramids` below is order-critical and must stay the first import in this module:
-it is what puts the osgeo bindings vendored inside the pyramids wheel on `sys.path`, and the
-test modules that do `from osgeo import gdal` rely on that having already happened. The
-comment on the import itself carries the full rationale.
+The `import pyramids` below is order-critical and must stay the first import in this module.
+The comment on that line carries the rationale.
 """
 
 # Import pyramids FIRST — before anything else, and keep it first.
 # The osgeo bindings live inside the pyramids wheel; importing pyramids is
-# what puts `_vendor/osgeo` on sys.path. Ten test modules under tests/ do
-# `from osgeo import gdal` before they import digitalrivers, so this line is
-# what makes their imports resolve. Nothing installs a top-level osgeo any
-# more, so sorting this below the osgeo import breaks collection everywhere.
+# what puts `_vendor/osgeo` on sys.path. Most test modules under tests/ do
+# `from osgeo import gdal` before they import digitalrivers, and this line is
+# what makes those imports resolve — including the one below. Nothing installs
+# a top-level osgeo any more, so deleting this line, or sorting it below the
+# osgeo import, breaks collection for the whole directory.
 import pyramids  # noqa: F401  # isort:skip
 
 from typing import Dict
