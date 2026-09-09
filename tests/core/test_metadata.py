@@ -94,13 +94,24 @@ class TestValidValueSets:
             vocabulary, frozenset
         ), f"Expected frozenset, got {type(vocabulary).__name__}"
 
-    def test_digitalrivers_is_the_default_encoding_and_is_valid(self):
-        """The default the typed classes fall back to must be in the vocabulary."""
-        assert "digitalrivers" in VALID_ENCODING, sorted(VALID_ENCODING)
+    def test_the_constructor_defaults_are_members_of_their_vocabularies(self):
+        """`FlowDirection`'s default encoding must validate against the set.
 
-    def test_d8_is_valid_routing(self):
-        """The most common scheme is accepted; a guard against an inverted check."""
-        assert "d8" in VALID_ROUTING, sorted(VALID_ROUTING)
+        Test scenario:
+            Not a subset of the exact-set tests above: this reads the default off the
+            constructor signature, so it fails if the default is changed to something
+            the vocabulary does not contain — which the exact-set tests would not catch.
+        """
+        import inspect
+
+        from digitalrivers.flow.direction import FlowDirection
+
+        default = (
+            inspect.signature(FlowDirection.__init__).parameters["encoding"].default
+        )
+        assert (
+            default in VALID_ENCODING
+        ), f"FlowDirection defaults to {default!r}, not in {sorted(VALID_ENCODING)}"
 
 
 class TestResolveNoVal:

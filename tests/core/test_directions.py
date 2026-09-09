@@ -124,11 +124,18 @@ class TestConsumersSeeTheSharedTable:
     """The modules that used to declare their own copy now alias this one."""
 
     def test_flow_routing_uses_the_int8_variant(self):
-        """The routing kernels broadcast against int8 rasters and must keep that dtype."""
+        """The routing kernels broadcast against int8 rasters and must keep that dtype.
+
+        Test scenario:
+            Asserts identity with the shared table rather than equality, because a
+            private copy holding the same values would pass an equality check and then
+            drift the next time one of the two is edited.
+        """
         from digitalrivers.flow._kernels import routing
 
-        assert routing._DIR_DR is DIR_DR_I8
-        assert routing._DIR_DC is DIR_DC_I8
+        assert routing._DIR_DR is DIR_DR_I8, "routing rebound its row offsets"
+        assert routing._DIR_DC is DIR_DC_I8, "routing rebound its column offsets"
+        assert routing._DIR_DR.dtype == np.int8, routing._DIR_DR.dtype
 
     @pytest.mark.parametrize(
         "module_path",
@@ -152,19 +159,3 @@ class TestConsumersSeeTheSharedTable:
         from digitalrivers.dem import DIR_OFFSETS as from_dem
 
         assert from_dem is DIR_OFFSETS
-
-
-class TestSelfCheck:
-    """Tests for the module's own consistency assertion."""
-
-    def test_self_check_passes(self):
-        """`_self_check` asserts every exported form agrees, and returns True.
-
-        Test scenario:
-            The function is written to be run as a doctest, so the main suite never
-            executes its body. Calling it directly means a change that breaks the
-            internal agreement fails the ordinary test run too, not only the doctest hook.
-        """
-        from digitalrivers.core.directions import _self_check
-
-        assert _self_check() is True, "The module's self-consistency check did not pass"

@@ -91,7 +91,13 @@ class TestExportGrid:
         assert grid.yllcorner == 470.0, f"Expected 470.0, got {grid.yllcorner}"
 
     def test_grid_is_frozen(self, grid):
-        """`ExportGrid` is immutable, so a writer cannot alter what the next one sees."""
+        """Rebinding an `ExportGrid` field raises, so a writer cannot swap one out.
+
+        Test scenario:
+            `frozen=True` blocks attribute assignment, and that is all it blocks. The
+            arrays it holds are ordinary mutable ndarrays, so this pins the guarantee
+            the dataclass actually gives rather than deep immutability it does not.
+        """
         with pytest.raises(dataclasses.FrozenInstanceError) as exc_info:
             grid.no_data = 0.0
         assert "no_data" in str(

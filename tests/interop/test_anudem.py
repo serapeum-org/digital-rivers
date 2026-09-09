@@ -98,13 +98,24 @@ class TestRelaxGaps:
         z[1, 3] = np.nan
         assert relax_gaps(z).shape == (3, 7), "Shape changed"
 
-    def test_does_not_mutate_its_input(self, hole_5x5):
-        """The kernel copies before relaxing; the caller's array is untouched."""
-        before = hole_5x5.copy()
-        relax_gaps(hole_5x5)
+    def test_does_not_mutate_its_input(self):
+        """The kernel copies before relaxing; the caller's array is untouched.
+
+        Test scenario:
+            Uses a surface whose values all differ, and compares the values as well as
+            the NaN pattern. On a constant fixture, or comparing only where the NaNs
+            are, a kernel that overwrote every cell in place would still pass.
+        """
+        z = np.arange(25, dtype=np.float64).reshape(5, 5)
+        z[2, 2] = np.nan
+        before = z.copy()
+        relax_gaps(z)
         assert np.array_equal(
-            np.isnan(hole_5x5), np.isnan(before)
-        ), "Input array was modified"
+            np.isnan(z), np.isnan(before)
+        ), "The NaN pattern of the input changed"
+        assert np.array_equal(
+            z[~np.isnan(z)], before[~np.isnan(before)]
+        ), "Input values were modified in place"
 
     def test_surface_with_no_holes_is_returned_unchanged(self):
         """Nothing to fill means nothing to change."""

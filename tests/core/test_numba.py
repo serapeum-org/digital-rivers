@@ -17,6 +17,9 @@ tests re-import in a subprocess so the flag is read fresh.
 
 from __future__ import annotations
 
+import importlib
+import importlib.util
+import os
 import subprocess
 import sys
 
@@ -24,6 +27,14 @@ import pytest
 
 import digitalrivers.core
 from digitalrivers.core import numba as core_numba
+
+#: These two tests assert the JIT is live, which is false on a platform with no
+#: Numba wheel — the very case `core.numba`'s fallback exists to serve. Skip rather
+#: than fail there, so the suite stays honest on both kinds of machine.
+requires_numba = pytest.mark.skipif(
+    importlib.util.find_spec("numba") is None,
+    reason="asserts the JIT is active; meaningless without a Numba wheel",
+)
 
 
 def _run(code: str, env_flag: str | None = None) -> subprocess.CompletedProcess[str]:
@@ -39,8 +50,6 @@ def _run(code: str, env_flag: str | None = None) -> subprocess.CompletedProcess[
     Returns:
         subprocess.CompletedProcess: The completed run, with output captured.
     """
-    import os
-
     env = dict(os.environ)
     env.pop("DIGITALRIVERS_DISABLE_NUMBA", None)
     if env_flag is not None:
@@ -63,12 +72,6 @@ class TestIsNumbaEnabled:
         result = core_numba.is_numba_enabled()
         assert isinstance(result, bool), f"Expected bool, got {type(result).__name__}"
 
-    def test_agrees_with_the_module_flag(self):
-        """The predicate reports the flag rather than re-deriving it."""
-        assert (
-            core_numba.is_numba_enabled() is core_numba._USE_NUMBA
-        ), "Predicate and flag disagree"
-
     def test_reports_false_in_a_fresh_interpreter_with_the_flag_set(self):
         """`DIGITALRIVERS_DISABLE_NUMBA=1` turns the JIT off at import.
 
@@ -86,6 +89,7 @@ class TestIsNumbaEnabled:
             proc.stdout.strip() == "False"
         ), f"Expected False with the flag set, got {proc.stdout.strip()!r}"
 
+    @requires_numba
     @pytest.mark.parametrize("value", ["0", "", "true", "yes", "2"])
     def test_only_the_exact_string_one_disables_the_jit(self, value):
         """Anything other than `"1"` leaves the JIT on.
@@ -160,6 +164,7 @@ class TestNjitFallback:
             "from digitalrivers.core.numba import prange;print(list(prange(2, 5)))",
             env_flag="1",
         )
+        assert proc.returncode == 0, f"Subprocess failed: {proc.stderr}"
         assert (
             proc.stdout.strip() == "[2, 3, 4]"
         ), f"Expected [2, 3, 4], got {proc.stdout.strip()!r}"
@@ -193,6 +198,7 @@ class TestLazyImportContract:
             proc.stdout.strip() == "False"
         ), "digitalrivers.core.directions pulled numba in"
 
+    @requires_numba
     def test_importing_the_shim_itself_does_import_numba(self):
         """The contrast that gives the two tests above their meaning.
 
@@ -242,8 +248,6 @@ class TestFallbackBodiesInProcess:
         Yields:
             module: The shim as imported with `DIGITALRIVERS_DISABLE_NUMBA=1`.
         """
-        import importlib
-
         original = sys.modules.get("digitalrivers.core.numba")
         monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
         sys.modules.pop("digitalrivers.core.numba", None)

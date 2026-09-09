@@ -700,7 +700,7 @@ class TestSkyViewFactor:
 
 
 class TestHorizonWalkKernel:
-    """Tests for the shared `horizon_walk_kernel` in `_numba.py`."""
+    """Tests for the shared `horizon_walk_kernel` in `dem/_kernels/morphometry.py`."""
 
     def test_kernel_mode_zero_matches_openness(self):
         """Test mode=0 produces the same surface as `DEM.openness`.
