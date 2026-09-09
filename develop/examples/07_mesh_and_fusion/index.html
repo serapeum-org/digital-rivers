@@ -3119,7 +3119,7 @@ but with a 5-m mismatch in the overlap zone. Exercise every blend mode.</p>
 </clipboard-copy>
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">topobathy_fusion</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.dem.fusion</span><span class="w"> </span><span class="kn">import</span> <span class="n">topobathy_fusion</span>
 
 <span class="n">rows</span><span class="p">,</span> <span class="n">cols</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">6</span>
 <span class="c1"># Topo: land at +5 m on the west half, +10 m on the east; one cell at -3 m (a coastal channel).</span>
@@ -3143,7 +3143,7 @@ but with a 5-m mismatch in the overlap zone. Exercise every blend mode.</p>
 <span class="p">)</span>
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-6">from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.fusion import topobathy_fusion
+from digitalrivers.dem.fusion import topobathy_fusion
 
 rows, cols = 6, 6
 # Topo: land at +5 m on the west half, +10 m on the east; one cell at -3 m (a coastal channel).

@@ -1929,7 +1929,7 @@ flood. The kernel (<code>priority_flood_numba</code>) lifts an unvisited neighbo
 <code>e + epsilon</code> whenever <code>out[n] &lt;= e</code>, pushing it onto a shared FIFO pit-queue; the heap pops by
 <code>(elevation, row-major linear index)</code>.</p>
 <h2 id="experiments"><a class="toclink" href="#experiments">Experiments</a><a class="headerlink" href="#experiments" title="Permanent link">#</a></h2>
-<p>All runs use the real kernel <code>digitalrivers._numba.priority_flood_numba</code> with <code>epsilon = 1e-3</code>, deriving
+<p>All runs use the real kernel <code>digitalrivers.dem._kernels.numba.priority_flood_numba</code> with <code>epsilon = 1e-3</code>, deriving
 <code>g = round((fill_eps - fill_0) / epsilon)</code>.</p>
 <h3 id="1-g-is-integer-valued-confirmed"><a class="toclink" href="#1-g-is-integer-valued-confirmed">1. <code>g</code> is integer-valued — confirmed</a><a class="headerlink" href="#1-g-is-integer-valued-confirmed" title="Permanent link">#</a></h3>
 <p>Across every fixture (symmetric basins, nested depressions, trenches, plateaus, random terrain) <code>g</code> is a
@@ -1982,7 +1982,7 @@ out-of-core engine.</p>
 <h2 id="reproduction"><a class="toclink" href="#reproduction">Reproduction</a><a class="headerlink" href="#reproduction" title="Permanent link">#</a></h2>
 <p>The two probe scripts used here construct the fixtures, call <code>priority_flood_numba</code> for <code>epsilon ∈ {0, 1e-3}</code>,
 derive <code>g</code>, test <code>g == flipud(g)</code> on the symmetric fixture, and compare <code>g</code> against the two tile-local models.
-They are self-contained (<code>numpy</code>, <code>scipy.ndimage</code>, <code>digitalrivers._numba</code>) and were run under <code>pixi run -e py311</code>.</p>
+They are self-contained (<code>numpy</code>, <code>scipy.ndimage</code>, <code>digitalrivers.dem._kernels.numba</code>) and were run under <code>pixi run -e py311</code>.</p>
 
 
 

@@ -2787,7 +2787,7 @@ plt.rcParams["savefig.dpi"] = 80
 </div>
 <div class="highlight-ipynb hl-python"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pyramids.dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">GeoReference</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.cloud_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">tile_windows</span><span class="p">,</span> <span class="n">write_cog</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">digitalrivers.interop.cloud_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">tile_windows</span><span class="p">,</span> <span class="n">write_cog</span>
 
 <span class="c1"># Build a 500×500 'continental' DEM (stand-in for a multi-million-cell raster).</span>
 <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">2026</span><span class="p">)</span>
@@ -2801,7 +2801,7 @@ plt.rcParams["savefig.dpi"] = 80
 </pre></div>
 <div class="clipboard-copy-txt" id="cell-2">import numpy as np
 from pyramids.dataset import Dataset, GeoReference
-from digitalrivers.cloud_io import tile_windows, write_cog
+from digitalrivers.interop.cloud_io import tile_windows, write_cog
 
 # Build a 500×500 'continental' DEM (stand-in for a multi-million-cell raster).
 rng = np.random.default_rng(seed=2026)

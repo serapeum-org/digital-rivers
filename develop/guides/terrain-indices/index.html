@@ -2150,7 +2150,7 @@ finite differences, focal-means the unit-normal components in a window, and retu
 angle (in radians) between the local normal and the focal-mean normal. A roughness metric that
 grows with how strongly the surface bends inside the window.</p>
 <h2 id="visibility-w-27-w-28"><a class="toclink" href="#visibility-w-27-w-28">Visibility (W-27, W-28)</a><a class="headerlink" href="#visibility-w-27-w-28" title="Permanent link">#</a></h2>
-<p>Both metrics share a numba-accelerated <code>horizon_walk_kernel</code> (in <code>digitalrivers._numba</code>) that walks
+<p>Both metrics share a numba-accelerated <code>horizon_walk_kernel</code> (in <code>digitalrivers.dem._kernels.morphometry</code>) that walks
 outward from every cell along 8 azimuths up to <code>search_radius</code> cells, recording the maximum
 elevation angle (the "horizon") in each direction.</p>
 <h3 id="topographic-openness-w-27"><a class="toclink" href="#topographic-openness-w-27">Topographic openness (W-27)</a><a class="headerlink" href="#topographic-openness-w-27" title="Permanent link">#</a></h3>
