@@ -1,4 +1,11 @@
-from pyramids import __version__
+# Import pyramids FIRST — before anything else, and keep it first.
+# The osgeo bindings live inside the pyramids wheel; importing pyramids is
+# what puts `_vendor/osgeo` on sys.path. Ten test modules under tests/ do
+# `from osgeo import gdal` before they import digitalrivers, so this line is
+# what makes their imports resolve. Nothing installs a top-level osgeo any
+# more, so sorting this below the osgeo import breaks collection everywhere.
+import pyramids  # noqa: F401  # isort:skip
+
 from typing import Dict
 import pytest
 import numpy as np
