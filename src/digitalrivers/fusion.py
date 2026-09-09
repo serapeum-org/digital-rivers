@@ -1,7 +1,7 @@
 """Deprecated import path for topobathy fusion.
 
-This module moved to :mod:`digitalrivers.dem.fusion` in the package restructure. Importing from here still
-works and returns the same objects, but warns; the shim is removed in 0.6.0.
+This module moved to :mod:`digitalrivers.dem.fusion` in the package restructure. Importing from
+here still works and warns; the shim is removed in 0.6.0.
 
     # before
     from digitalrivers.fusion import topobathy_fusion
@@ -9,8 +9,13 @@ works and returns the same objects, but warns; the shim is removed in 0.6.0.
     # after
     from digitalrivers.dem.fusion import topobathy_fusion
 
-The names re-exported from the package root are unaffected: `from digitalrivers import
-topobathy_fusion` was correct before and is still correct.
+`topobathy_fusion` has never been re-exported from the package root, so `from digitalrivers
+import topobathy_fusion` raises `ImportError` on this version and on every earlier one. Import
+it from `digitalrivers.dem.fusion`.
+
+It re-exports `topobathy_fusion` and nothing else. Names that this module used to expose
+incidentally — it never declared `__all__`, so anything it imported was reachable through it —
+are not carried over.
 """
 
 from __future__ import annotations
