@@ -18,6 +18,8 @@ import sys
 import numpy as np
 import pytest
 
+import digitalrivers.core
+
 from digitalrivers.core.directions import DIR_DC_I32, DIR_DR_I32
 from digitalrivers.core.numba import is_numba_enabled
 from digitalrivers.dem._kernels.pitremoval import _priority_flood, fill_depressions
@@ -36,18 +38,43 @@ def test_is_numba_enabled_predicate_exists():
 def test_env_var_disables_numba_on_reimport(monkeypatch):
     """Setting DIGITALRIVERS_DISABLE_NUMBA=1 and re-importing the module must
     return `is_numba_enabled() is False`. This is how CI exercises the fallback
-    path without needing a Numba-free environment."""
+    path without needing a Numba-free environment.
+
+    The teardown puts back the *original module object* rather than re-importing.
+    Re-importing here is a trap: monkeypatch undoes `setenv` in its fixture finalizer,
+    which runs after this function's `finally`, so a re-import at this point still sees
+    the flag set and installs a JIT-disabled module for the rest of the session. Every
+    later test then silently takes the pure-Python branch.
+    """
+    original = sys.modules.get("digitalrivers.core.numba")
     monkeypatch.setenv("DIGITALRIVERS_DISABLE_NUMBA", "1")
-    # Re-import under the new env. core.numba is what reads the flag; _numba binds
-    # its decorators from it at import, so both have to go.
     sys.modules.pop("digitalrivers.core.numba", None)
-    reloaded = importlib.import_module("digitalrivers.core.numba")
     try:
+        reloaded = importlib.import_module("digitalrivers.core.numba")
         assert reloaded.is_numba_enabled() is False
     finally:
-        # Restore the original modules so other tests use the JIT path.
         sys.modules.pop("digitalrivers.core.numba", None)
-        importlib.import_module("digitalrivers.core.numba")
+        if original is not None:
+            sys.modules["digitalrivers.core.numba"] = original
+            digitalrivers.core.numba = original
+
+
+def test_the_disable_test_left_the_jit_on():
+    """The JIT is live again after the test above, resolved at call time.
+
+    pytest runs tests in definition order within a file, so this sits immediately after
+    the only test that turns the JIT off. It resolves the module through `sys.modules`
+    rather than importing the name at module scope, because a module-scope import binds
+    at collection time — before the leak could happen — and would pass regardless.
+    """
+    mod = sys.modules["digitalrivers.core.numba"]
+    assert mod.is_numba_enabled() is True, (
+        "DIGITALRIVERS_DISABLE_NUMBA leaked out of the test above; every later test in "
+        "the session would silently run the pure-Python branch"
+    )
+    assert (
+        digitalrivers.core.numba is mod
+    ), "digitalrivers.core.numba still points at the disabled module object"
 
 
 # ----- Priority-flood parity -----------------------------------------------------------------

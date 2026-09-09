@@ -22,6 +22,7 @@ import sys
 
 import pytest
 
+import digitalrivers.core
 from digitalrivers.core import numba as core_numba
 
 
@@ -252,6 +253,10 @@ class TestFallbackBodiesInProcess:
             sys.modules.pop("digitalrivers.core.numba", None)
             if original is not None:
                 sys.modules["digitalrivers.core.numba"] = original
+                # sys.modules alone is not enough: `digitalrivers.core` still holds a
+                # `numba` attribute bound to the disabled module, so anything reaching
+                # it by attribute rather than by import would keep the wrong one.
+                digitalrivers.core.numba = original
 
     def test_fallback_njit_is_transparent_in_both_call_shapes(self, disabled_shim):
         """Both `@njit` and `@njit(...)` return a function that computes the same answer.
