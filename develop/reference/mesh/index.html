@@ -2570,7 +2570,9 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
 <span class="normal"><a href="#__codelineno-0-378">378</a></span>
-<span class="normal"><a href="#__codelineno-0-379">379</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">Mesh</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-379">379</a></span>
+<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+<span class="normal"><a href="#__codelineno-0-381">381</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-26" name="__codelineno-0-26"></a><span class="k">class</span><span class="w"> </span><span class="nc">Mesh</span><span class="p">:</span>
 <a id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="sd">"""A triangle mesh with vertex and triangle index arrays.</span>
 <a id="__codelineno-0-28" name="__codelineno-0-28"></a>
 <a id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="sd">    Performance note. `boundary_vertex_mask`, `neighbour_lists` and</span>
@@ -2898,32 +2900,34 @@ Mesh.aspect_ratios: per-triangle quality metric.</p>
 <a id="__codelineno-0-351" name="__codelineno-0-351"></a>                <span class="p">)</span>
 <a id="__codelineno-0-352" name="__codelineno-0-352"></a>                <span class="o">/</span> <span class="mf">2.0</span>
 <a id="__codelineno-0-353" name="__codelineno-0-353"></a>            <span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>            <span class="k">if</span> <span class="n">area</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>                <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>                <span class="k">continue</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">inradius</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">s</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>            <span class="n">circumradius</span> <span class="o">=</span> <span class="p">(</span><span class="n">la</span> <span class="o">*</span> <span class="n">lb</span> <span class="o">*</span> <span class="n">lc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">area</span><span class="p">)</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">circumradius</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">inradius</span><span class="p">)</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>        <span class="k">return</span> <span class="n">out</span>
-<a id="__codelineno-0-361" name="__codelineno-0-361"></a>
-<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the mesh's size.</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">        Returns:</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">            A string of the form `&lt;Mesh vertices=N triangles=M&gt;`.</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">        Examples:</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">            - The repr reports both counts:</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">                &gt;&gt;&gt; import numpy as np</span>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">                &gt;&gt;&gt; from digitalrivers.interop.mesh import Mesh</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">                &gt;&gt;&gt; Mesh(</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">                ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">                ...     np.array([[0, 1, 2]]),</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">                ... )</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">                &lt;Mesh vertices=3 triangles=1&gt;</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">        """</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> "</span> <span class="sa">f</span><span class="s2">"triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;"</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>            <span class="c1"># `area` is an absolute value, so `&lt;= 0` is the degenerate case and</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>            <span class="c1"># avoids an equality test on a computed float.</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="k">if</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>                <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>                <span class="k">continue</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>            <span class="n">inradius</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">s</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>            <span class="n">circumradius</span> <span class="o">=</span> <span class="p">(</span><span class="n">la</span> <span class="o">*</span> <span class="n">lb</span> <span class="o">*</span> <span class="n">lc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">area</span><span class="p">)</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">circumradius</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">inradius</span><span class="p">)</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>        <span class="k">return</span> <span class="n">out</span>
+<a id="__codelineno-0-363" name="__codelineno-0-363"></a>
+<a id="__codelineno-0-364" name="__codelineno-0-364"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="w">        </span><span class="sd">"""Return a one-line summary naming the mesh's size.</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">        Returns:</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">            A string of the form `&lt;Mesh vertices=N triangles=M&gt;`.</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">        Examples:</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">            - The repr reports both counts:</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">                &gt;&gt;&gt; import numpy as np</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">                &gt;&gt;&gt; from digitalrivers.interop.mesh import Mesh</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">                &gt;&gt;&gt; Mesh(</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">                ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">                ...     np.array([[0, 1, 2]]),</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">                ... )</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">                &lt;Mesh vertices=3 triangles=1&gt;</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">        """</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> "</span> <span class="sa">f</span><span class="s2">"triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;"</span>
 </code></pre></div></td></tr></table></div>
               </details>
 
@@ -3981,7 +3985,9 @@ inf</p>
 <span class="normal"><a href="#__codelineno-0-357">357</a></span>
 <span class="normal"><a href="#__codelineno-0-358">358</a></span>
 <span class="normal"><a href="#__codelineno-0-359">359</a></span>
-<span class="normal"><a href="#__codelineno-0-360">360</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="k">def</span><span class="w"> </span><span class="nf">aspect_ratios</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="normal"><a href="#__codelineno-0-360">360</a></span>
+<span class="normal"><a href="#__codelineno-0-361">361</a></span>
+<span class="normal"><a href="#__codelineno-0-362">362</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-295" name="__codelineno-0-295"></a><span class="k">def</span><span class="w"> </span><span class="nf">aspect_ratios</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <a id="__codelineno-0-296" name="__codelineno-0-296"></a><span class="w">    </span><span class="sd">"""Per-triangle aspect ratio `circumradius / (2 * inradius)`.</span>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a>
 <a id="__codelineno-0-298" name="__codelineno-0-298"></a><span class="sd">    Equilateral triangles score 1.0 (the optimum). Higher values</span>
@@ -4040,13 +4046,15 @@ inf</p>
 <a id="__codelineno-0-351" name="__codelineno-0-351"></a>            <span class="p">)</span>
 <a id="__codelineno-0-352" name="__codelineno-0-352"></a>            <span class="o">/</span> <span class="mf">2.0</span>
 <a id="__codelineno-0-353" name="__codelineno-0-353"></a>        <span class="p">)</span>
-<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="k">if</span> <span class="n">area</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-<a id="__codelineno-0-355" name="__codelineno-0-355"></a>            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
-<a id="__codelineno-0-356" name="__codelineno-0-356"></a>            <span class="k">continue</span>
-<a id="__codelineno-0-357" name="__codelineno-0-357"></a>        <span class="n">inradius</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">s</span>
-<a id="__codelineno-0-358" name="__codelineno-0-358"></a>        <span class="n">circumradius</span> <span class="o">=</span> <span class="p">(</span><span class="n">la</span> <span class="o">*</span> <span class="n">lb</span> <span class="o">*</span> <span class="n">lc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">area</span><span class="p">)</span>
-<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">circumradius</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">inradius</span><span class="p">)</span>
-<a id="__codelineno-0-360" name="__codelineno-0-360"></a>    <span class="k">return</span> <span class="n">out</span>
+<a id="__codelineno-0-354" name="__codelineno-0-354"></a>        <span class="c1"># `area` is an absolute value, so `&lt;= 0` is the degenerate case and</span>
+<a id="__codelineno-0-355" name="__codelineno-0-355"></a>        <span class="c1"># avoids an equality test on a computed float.</span>
+<a id="__codelineno-0-356" name="__codelineno-0-356"></a>        <span class="k">if</span> <span class="n">area</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="__codelineno-0-357" name="__codelineno-0-357"></a>            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span>
+<a id="__codelineno-0-358" name="__codelineno-0-358"></a>            <span class="k">continue</span>
+<a id="__codelineno-0-359" name="__codelineno-0-359"></a>        <span class="n">inradius</span> <span class="o">=</span> <span class="n">area</span> <span class="o">/</span> <span class="n">s</span>
+<a id="__codelineno-0-360" name="__codelineno-0-360"></a>        <span class="n">circumradius</span> <span class="o">=</span> <span class="p">(</span><span class="n">la</span> <span class="o">*</span> <span class="n">lb</span> <span class="o">*</span> <span class="n">lc</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">4.0</span> <span class="o">*</span> <span class="n">area</span><span class="p">)</span>
+<a id="__codelineno-0-361" name="__codelineno-0-361"></a>        <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">circumradius</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">inradius</span><span class="p">)</span>
+<a id="__codelineno-0-362" name="__codelineno-0-362"></a>    <span class="k">return</span> <span class="n">out</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -4113,9 +4121,7 @@ Mesh(
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/digitalrivers/interop/mesh.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-362">362</a></span>
-<span class="normal"><a href="#__codelineno-0-363">363</a></span>
-<span class="normal"><a href="#__codelineno-0-364">364</a></span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-364">364</a></span>
 <span class="normal"><a href="#__codelineno-0-365">365</a></span>
 <span class="normal"><a href="#__codelineno-0-366">366</a></span>
 <span class="normal"><a href="#__codelineno-0-367">367</a></span>
@@ -4130,24 +4136,26 @@ Mesh(
 <span class="normal"><a href="#__codelineno-0-376">376</a></span>
 <span class="normal"><a href="#__codelineno-0-377">377</a></span>
 <span class="normal"><a href="#__codelineno-0-378">378</a></span>
-<span class="normal"><a href="#__codelineno-0-379">379</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-362" name="__codelineno-0-362"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<a id="__codelineno-0-363" name="__codelineno-0-363"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the mesh's size.</span>
-<a id="__codelineno-0-364" name="__codelineno-0-364"></a>
-<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="sd">    Returns:</span>
-<a id="__codelineno-0-366" name="__codelineno-0-366"></a><span class="sd">        A string of the form `&lt;Mesh vertices=N triangles=M&gt;`.</span>
-<a id="__codelineno-0-367" name="__codelineno-0-367"></a>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">    Examples:</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="sd">        - The repr reports both counts:</span>
-<a id="__codelineno-0-370" name="__codelineno-0-370"></a>
-<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
-<a id="__codelineno-0-372" name="__codelineno-0-372"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.interop.mesh import Mesh</span>
-<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">            &gt;&gt;&gt; Mesh(</span>
-<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">            ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),</span>
-<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">            ...     np.array([[0, 1, 2]]),</span>
-<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            ... )</span>
-<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">            &lt;Mesh vertices=3 triangles=1&gt;</span>
-<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">    """</span>
-<a id="__codelineno-0-379" name="__codelineno-0-379"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> "</span> <span class="sa">f</span><span class="s2">"triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;"</span>
+<span class="normal"><a href="#__codelineno-0-379">379</a></span>
+<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+<span class="normal"><a href="#__codelineno-0-381">381</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-364" name="__codelineno-0-364"></a><span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="__codelineno-0-365" name="__codelineno-0-365"></a><span class="w">    </span><span class="sd">"""Return a one-line summary naming the mesh's size.</span>
+<a id="__codelineno-0-366" name="__codelineno-0-366"></a>
+<a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="sd">    Returns:</span>
+<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="sd">        A string of the form `&lt;Mesh vertices=N triangles=M&gt;`.</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a><span class="sd">    Examples:</span>
+<a id="__codelineno-0-371" name="__codelineno-0-371"></a><span class="sd">        - The repr reports both counts:</span>
+<a id="__codelineno-0-372" name="__codelineno-0-372"></a>
+<a id="__codelineno-0-373" name="__codelineno-0-373"></a><span class="sd">            &gt;&gt;&gt; import numpy as np</span>
+<a id="__codelineno-0-374" name="__codelineno-0-374"></a><span class="sd">            &gt;&gt;&gt; from digitalrivers.interop.mesh import Mesh</span>
+<a id="__codelineno-0-375" name="__codelineno-0-375"></a><span class="sd">            &gt;&gt;&gt; Mesh(</span>
+<a id="__codelineno-0-376" name="__codelineno-0-376"></a><span class="sd">            ...     np.array([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),</span>
+<a id="__codelineno-0-377" name="__codelineno-0-377"></a><span class="sd">            ...     np.array([[0, 1, 2]]),</span>
+<a id="__codelineno-0-378" name="__codelineno-0-378"></a><span class="sd">            ... )</span>
+<a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="sd">            &lt;Mesh vertices=3 triangles=1&gt;</span>
+<a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="sd">    """</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="k">return</span> <span class="sa">f</span><span class="s2">"&lt;Mesh vertices=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_vertices</span><span class="si">}</span><span class="s2"> "</span> <span class="sa">f</span><span class="s2">"triangles=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">n_triangles</span><span class="si">}</span><span class="s2">&gt;"</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
