@@ -71,6 +71,10 @@ plugins:
             show_root_heading: true
             heading_level: 2
             docstring_style: google
+            # DEM and FlowDirection are assembled from mixins, so most of their methods
+            # are defined on a base class rather than on the class itself. mkdocstrings
+            # defaults this to false, which silently rendered 5 of DEM's 45 methods.
+            inherited_members: true
   - table-reader
   - tags
   - mike:
