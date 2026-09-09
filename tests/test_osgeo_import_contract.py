@@ -2,15 +2,19 @@
 
 The `osgeo` bindings are not installed at the top level any more: they ship inside the
 `pyramids` wheel under `_vendor/osgeo/`, and `pyramids/__init__.py` is what puts that
-directory on `sys.path`. Most test modules here do `from osgeo import gdal` before they
-import `digitalrivers`, so the `import pyramids` on the first line of `tests/conftest.py`
-is what makes their imports resolve.
+directory on `sys.path`. Nine test modules here do `from osgeo import gdal` at module scope
+before they import `digitalrivers`, so the `import pyramids` on the first line of
+`tests/conftest.py` is what makes their imports resolve.
 
 These tests assert the mechanism, in fresh subprocesses: osgeo is importable after
 pyramids, it resolves inside the wheel, and it is not importable without pyramids. That
 is the part worth pinning, because it can break silently — a free-threaded or
 ABI-mismatched solve leaves `activate_vendored_osgeo` warning and returning `False`
 rather than raising, and there is no conda GDAL underneath to absorb it any more.
+
+A fourth test guards the other three: it proves those subprocesses cannot see a package
+sitting in the directory pytest happened to be invoked from, so what they report is a fact
+about the environment rather than about the working directory.
 
 What these tests deliberately do **not** try to do is police the import order inside
 `tests/conftest.py`. A test living under `tests/` is collected through that conftest, so

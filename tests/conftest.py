@@ -18,7 +18,6 @@ The comment on that line carries the rationale.
 # sorting it below the osgeo import, breaks collection for the whole directory.
 import pyramids  # noqa: F401  # isort:skip
 
-from typing import Dict
 import pytest
 import numpy as np
 from osgeo import gdal
