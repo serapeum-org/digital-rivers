@@ -195,16 +195,20 @@ markers = [
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
-platforms = ["win-64", "linux-64", "osx-arm64"]
-
-# Raise the macOS baseline so pixi picks the pre-built wheel instead of falling
-# back to an sdist: pyproj's osx-arm64 wheel is tagged `macosx_14_0_arm64`,
-# above pixi's default (macos-latest runners are >= 14).
-# No `libc` entry: pyramids-gis used to ship its Linux wheel as
-# `manylinux_2_39`, which forced a raised glibc baseline. It ships
-# `manylinux_2_28` now, so the override is gone and pixi's own default applies.
-[tool.pixi.system-requirements]
-macos = "14.0"
+# The macOS baseline is raised on osx-arm64 so pixi picks the pre-built wheels
+# instead of falling back to sdists. pyproj publishes only `macosx_14_0_arm64`
+# for arm64, above pixi's default, so without this it has no wheel to take and
+# builds from source — which needs PROJ headers the runner does not have. numpy
+# and scipy also ship a `macosx_14_0_arm64` build and quietly drop to an older,
+# lower-baseline wheel without it. macos-latest runners are >= 14.
+#
+# Declared here rather than in a `[tool.pixi.system-requirements]` table: pixi
+# 0.73 deprecates that table in favour of virtual packages on the platform entry.
+#
+# No `libc` entry: pyramids-gis used to ship its Linux wheel as `manylinux_2_39`,
+# which forced a raised glibc baseline. It ships `manylinux_2_28` now, so the
+# override is gone and pixi's own default applies.
+platforms = ["win-64", "linux-64", { platform = "osx-arm64", macos = "14.0" }]
 
 [tool.pixi.pypi-dependencies]
 digital-rivers = { path = ".", editable = true }
