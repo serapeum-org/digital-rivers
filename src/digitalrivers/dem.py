@@ -136,7 +136,10 @@ class DEM(Dataset):
     computation.
 
     Args:
-        src: GDAL dataset containing a single-band elevation raster.
+        src: GDAL dataset containing a single-band elevation raster. To open a
+            DEM from a file path, use the inherited `DEM.read_file(path)`
+            classmethod — it returns a `DEM`, not a plain
+            `pyramids.dataset.Dataset`.
         access: `"read_only"` (default) or `"write"`.
         gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on
             the dataset and re-installed around its reads, so the paths that
@@ -157,6 +160,9 @@ class DEM(Dataset):
 
         Args:
             src: Open GDAL dataset to wrap. The handle is adopted, not copied.
+                To open a DEM from a file path use the inherited
+                `DEM.read_file(path)` classmethod instead; this constructor
+                accepts a `gdal.Dataset` only.
             access: `"read_only"` (default) or `"write"`.
             gdal_env: GDAL config (cloud credentials, HTTP knobs) captured on the
                 dataset and re-installed around its reads. Default `None`.
