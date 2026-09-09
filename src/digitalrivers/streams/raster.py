@@ -971,11 +971,12 @@ class StreamRaster(Dataset):
         return gpd.GeoDataFrame(records, geometry="geometry", crs=crs)
 
     def __repr__(self) -> str:
-        """Return a one-line summary naming the raster's shape, extraction threshold and routing scheme.
+        """Return a one-line summary of the raster.
 
-        The threshold is what decides which cells became channel, so it is
-              the first thing to check when a network looks too dense or too
-              sparse.
+        Names its shape, extraction threshold and routing scheme.
+
+        The threshold is what decides which cells became channel, so it is the first
+        thing to check when a network looks too dense or too sparse.
 
         Returns:
             A string of the form `<StreamRaster rows=R cols=C threshold=... routing='...'>`.

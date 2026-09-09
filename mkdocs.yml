@@ -145,6 +145,8 @@ nav:
     - Mesh: reference/mesh.md
     - Cloud I/O: reference/cloud_io.md
     - Topobathy fusion: reference/fusion.md
+    - Interop (export, sub-grid, ANUDEM): reference/interop.md
+    - Core primitives: reference/core.md
   - About:
     - Change-log: change-log.md
     - Code of Conduct: CODE_OF_CONDUCT.md

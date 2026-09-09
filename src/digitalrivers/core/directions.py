@@ -31,6 +31,33 @@ Not every 8-direction table in the package belongs here:
 `dem._kernels.morphometry.horizon_walk_kernel` walks in *azimuth* order
 (E, NE, N, NW, W, SW, S, SE), a different labelling that happens to cover the same eight
 neighbours. It stays local to that kernel.
+
+The forms are cross-checked by `tests/core/test_directions.py`; the examples below are
+the same invariants written so they run as doctests.
+
+Examples:
+    - The dict form and the array form describe the same eight neighbours:
+
+        >>> from digitalrivers.core.directions import DIR_OFFSETS
+        >>> from digitalrivers.core.directions import DIR_DR_I32, DIR_DC_I32
+        >>> pairs = list(zip(DIR_DC_I32.tolist(), DIR_DR_I32.tolist()))
+        >>> [DIR_OFFSETS[k] for k in range(8)] == pairs
+        True
+
+    - Reversing a direction twice is the identity:
+
+        >>> from digitalrivers.core.directions import INV_DIR
+        >>> INV_DIR[INV_DIR].tolist() == list(range(8))
+        True
+
+    - And a direction's offsets cancel against its inverse's:
+
+        >>> all(
+        ...     DIR_DR_I32[k] + DIR_DR_I32[INV_DIR[k]] == 0
+        ...     and DIR_DC_I32[k] + DIR_DC_I32[INV_DIR[k]] == 0
+        ...     for k in range(8)
+        ... )
+        True
 """
 
 from __future__ import annotations
@@ -79,53 +106,3 @@ DIR_DC_I32 = np.array(_DC, dtype=np.int32)
 
 #: `INV_DIR[k]` is the direction code of a neighbour at offset `k` flowing *into* centre.
 INV_DIR = np.array([4, 5, 6, 7, 0, 1, 2, 3], dtype=np.int32)
-
-
-def _self_check() -> bool:
-    """Assert the exported forms all encode one convention.
-
-    The dict is `(col, row)` and the arrays are `(row, col)`, so the dict's tuples are the
-    column array zipped against the row array. `INV_DIR` is its own inverse, because
-    reversing a direction twice returns the original.
-
-    Returns:
-        `True` when every form agrees. Raises `AssertionError` otherwise.
-
-    Examples:
-        - The dict form and the array form describe the same eight neighbours:
-
-            >>> from digitalrivers.core.directions import DIR_OFFSETS
-            >>> from digitalrivers.core.directions import DIR_DR_I32, DIR_DC_I32
-            >>> pairs = list(zip(DIR_DC_I32.tolist(), DIR_DR_I32.tolist()))
-            >>> [DIR_OFFSETS[k] for k in range(8)] == pairs
-            True
-
-        - The `int8` and `int32` variants hold the same values:
-
-            >>> from digitalrivers.core.directions import DIR_DR_I8, DIR_DC_I8
-            >>> DIR_DR_I8.tolist() == DIR_DR_I32.tolist()
-            True
-            >>> DIR_DC_I8.tolist() == DIR_DC_I32.tolist()
-            True
-
-        - Reversing a direction twice is the identity:
-
-            >>> from digitalrivers.core.directions import INV_DIR
-            >>> INV_DIR[INV_DIR].tolist() == list(range(8))
-            True
-
-        - And the offsets of a direction and its inverse cancel:
-
-            >>> all(
-            ...     DIR_DR_I32[k] + DIR_DR_I32[INV_DIR[k]] == 0
-            ...     and DIR_DC_I32[k] + DIR_DC_I32[INV_DIR[k]] == 0
-            ...     for k in range(8)
-            ... )
-            True
-    """
-    pairs = list(zip(DIR_DC_I32.tolist(), DIR_DR_I32.tolist()))
-    assert [DIR_OFFSETS[k] for k in range(8)] == pairs
-    assert DIR_DR_I8.tolist() == DIR_DR_I32.tolist()
-    assert DIR_DC_I8.tolist() == DIR_DC_I32.tolist()
-    assert INV_DIR[INV_DIR].tolist() == list(range(8))
-    return True

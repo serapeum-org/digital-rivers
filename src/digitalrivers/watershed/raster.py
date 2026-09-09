@@ -468,10 +468,12 @@ class WatershedRaster(Dataset):
         return gpd.GeoDataFrame(records, geometry="geometry", crs=self.epsg)
 
     def __repr__(self) -> str:
-        """Return a one-line summary naming the raster's shape, basin count and routing scheme.
+        """Return a one-line summary of the raster.
 
-        `basin_count` is computed from the labels rather than stored, so the
-              repr reflects what is actually in the raster.
+        Names its shape, basin count and routing scheme.
+
+        `basin_count` is computed from the labels rather than stored, so the repr
+        reflects what is actually in the raster.
 
         Returns:
             A string of the form `<WatershedRaster rows=R cols=C basin_count=N routing='...'>`.
