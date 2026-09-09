@@ -152,3 +152,19 @@ class TestConsumersSeeTheSharedTable:
         from digitalrivers.dem import DIR_OFFSETS as from_dem
 
         assert from_dem is DIR_OFFSETS
+
+
+class TestSelfCheck:
+    """Tests for the module's own consistency assertion."""
+
+    def test_self_check_passes(self):
+        """`_self_check` asserts every exported form agrees, and returns True.
+
+        Test scenario:
+            The function is written to be run as a doctest, so the main suite never
+            executes its body. Calling it directly means a change that breaks the
+            internal agreement fails the ordinary test run too, not only the doctest hook.
+        """
+        from digitalrivers.core.directions import _self_check
+
+        assert _self_check() is True, "The module's self-consistency check did not pass"

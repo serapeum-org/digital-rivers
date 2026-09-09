@@ -34,8 +34,10 @@ def relax_gaps(
 
     Args:
         elev: 2-D elevation array; `NaN` marks the cells to fill.
-        mask: Optional bool array of the same shape. `True` marks a cell unknown, on top
-            of the `NaN` cells. Defaults to `None`.
+        mask: Optional bool array of the same shape. `True` marks a cell as one to
+            *preserve*, in addition to the finite cells that are held fixed anyway. A
+            `NaN` cell marked `True` is therefore left `NaN` rather than filled.
+            Defaults to `None`, which holds every finite cell fixed and fills the rest.
         max_iter: Maximum relaxation sweeps. Defaults to 200.
         tol: Stop once the largest change in a sweep falls below this. Defaults to 1e-3.
         method: `"laplacian"` (default) or `"biharmonic"`.
@@ -44,8 +46,9 @@ def relax_gaps(
         `float64` array of the same shape, with the unknown cells filled.
 
     Raises:
-        ValueError: For an unknown `method`, a `mask` whose shape does not match, or an
-            input with no finite cell to interpolate from.
+        ValueError: For an unknown `method`, or an input with no cell held fixed to
+            interpolate from. A `mask` whose shape does not match also raises
+            `ValueError`, from the broadcast rather than from an explicit check.
     """
     if method not in ("laplacian", "biharmonic"):
         raise ValueError(f"method must be 'laplacian' or 'biharmonic'; got {method!r}")
