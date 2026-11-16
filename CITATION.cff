@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "digital-rivers"
+abstract: "DEM and raster data processing library"
+authors:
+  - family-names: Farrag
+    given-names: Mostafa
+    email: moah.farag@gmail.com
+version: "0.4.0"
+date-released: 2026-06-09
+license: GPL-3.0
+repository-code: "https://github.com/serapeum-org/digital-rivers"
+url: "https://serapeum-org.github.io/digital-rivers/"
+keywords:
+  - "GIS"
+  - "DEM"
+  - "Hydrology"
