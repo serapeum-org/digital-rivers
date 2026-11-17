@@ -27,8 +27,12 @@ import numpy as np
 from pyramids.dataset import Dataset, GeoReference
 
 from digitalrivers.dem._kernels.surface import (
+    area_slope_index,
+    curvature_surface,
     eight_direction_slopes,
     focal_window_stats,
+    normal_vector_deviation_surface,
+    ruggedness_surface,
 )
 
 
@@ -52,6 +56,31 @@ class MorphometryMixin:
                 to the direction indices defined in `DIR_OFFSETS`.
         """
         return eight_direction_slopes(self.values, self.cell_size)
+
+    def _as_dataset(self, arr, no_val: float | None = None) -> Dataset:
+        """Wrap a computed index array as a `Dataset` on this DEM's grid.
+
+        Every morphometric method ends the same way: substitute the no-data sentinel for
+        the cells the kernel left as `NaN`, then attach this raster's georeferencing. The
+        kernels return `NaN` rather than a sentinel precisely so that step lives here,
+        where the sentinel is known, instead of being passed down into each of them.
+
+        Args:
+            arr: `(rows, cols)` result array, `NaN` where undefined.
+            no_val: Sentinel to write for the undefined cells. Defaults to this DEM's own
+                no-data value; the area-slope indices pass `-9999.0` explicitly because
+                they are derived rasters that do not inherit it.
+
+        Returns:
+            `Dataset` carrying `arr` on this DEM's geotransform and CRS.
+        """
+        sentinel = float(self.no_data_value[0]) if no_val is None else float(no_val)
+        out = np.where(np.isnan(arr), sentinel, arr).astype(np.float32)
+        return Dataset.from_array(
+            out,
+            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
+            no_data_value=sentinel,
+        )
 
     def twi(
         self,
@@ -146,42 +175,13 @@ class MorphometryMixin:
             if no_val is not None:
                 slope_deg_arr = np.where(slope_deg_arr == no_val, np.nan, slope_deg_arr)
 
-        acc = accumulation.read_array().astype(np.float64, copy=False)
-        if slope_deg_arr.shape != acc.shape:
-            raise ValueError(
-                f"slope shape {slope_deg_arr.shape} != accumulation shape "
-                f"{acc.shape}"
-            )
-
-        slope_rad = np.deg2rad(slope_deg_arr)
-        # Floor at ~0.001 rad (≈ 0.06°) to keep tan() / sin() bounded away
-        # from zero on flats.
-        slope_rad = np.where(
-            np.isfinite(slope_rad),
-            np.maximum(slope_rad, 1.0e-3),
-            np.nan,
+        arr = area_slope_index(
+            slope_deg_arr,
+            accumulation.read_array(),
+            self.geotransform[1],
+            kind,
         )
-
-        cs = float(abs(self.geotransform[1]))
-        sca = acc * cs  # specific catchment area (m, since width ≈ cell_size)
-
-        with np.errstate(divide="ignore", invalid="ignore"):
-            if kind == "twi":
-                arr = np.log(sca / np.tan(slope_rad))
-            elif kind == "spi":
-                arr = sca * np.tan(slope_rad)
-            elif kind == "sti":
-                arr = ((sca / 22.13) ** 0.6) * ((np.sin(slope_rad) / 0.0896) ** 1.3)
-            else:  # pragma: no cover — defensive
-                raise ValueError(f"unknown kind {kind!r}")
-
-        no_val = -9999.0
-        arr = np.where(np.isfinite(arr), arr, no_val).astype(np.float32)
-        return Dataset.from_array(
-            arr,
-            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
-            no_data_value=no_val,
-        )
+        return self._as_dataset(arr, no_val=-9999.0)
 
     def _focal_window_stats(
         self,
@@ -482,45 +482,8 @@ class MorphometryMixin:
                 >>> bool(np.allclose(mean, total / 2.0, atol=1e-5))
                 True
         """
-        if kind not in ("plan", "profile", "total", "mean", "gaussian"):
-            raise ValueError(
-                f"kind must be one of 'plan', 'profile', 'total', 'mean', "
-                f"'gaussian'; got {kind!r}"
-            )
-        z = self.values.astype(np.float64, copy=False)
-        L = float(abs(self.geotransform[1]))
-        # 3×3 stencil — `np.pad(mode="edge")` mirrors the boundary value so
-        # finite differences stay defined at the raster edge.
-        zp = np.pad(np.where(np.isnan(z), 0.0, z), 1, mode="edge")
-        z1, z2, z3 = zp[:-2, :-2], zp[:-2, 1:-1], zp[:-2, 2:]
-        z4, z5, z6 = zp[1:-1, :-2], zp[1:-1, 1:-1], zp[1:-1, 2:]
-        z7, z8, z9 = zp[2:, :-2], zp[2:, 1:-1], zp[2:, 2:]
-        # Zevenbergen-Thorne polynomial coefficients.
-        D = ((z4 + z6) / 2.0 - z5) / (L * L)
-        E = ((z2 + z8) / 2.0 - z5) / (L * L)
-        F = (-z1 + z3 + z7 - z9) / (4.0 * L * L)
-        G = (-z4 + z6) / (2.0 * L)
-        H = (z2 - z8) / (2.0 * L)
-        denom = G * G + H * H + 1.0e-12
-        with np.errstate(invalid="ignore", divide="ignore"):
-            if kind == "plan":
-                arr = -2.0 * (D * H * H + E * G * G - F * G * H) / denom
-            elif kind == "profile":
-                arr = 2.0 * (D * G * G + E * H * H + F * G * H) / denom
-            elif kind == "total":
-                arr = 2.0 * (D + E)
-            elif kind == "mean":
-                arr = D + E
-            else:  # gaussian
-                arr = 4.0 * D * E - F * F
-        out = arr.astype(np.float32)
-        no_val = float(self.no_data_value[0])
-        out = np.where(np.isnan(z) | ~np.isfinite(out), no_val, out)
-        return Dataset.from_array(
-            out,
-            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
-            no_data_value=no_val,
-        )
+        arr = curvature_surface(self.values, self.geotransform[1], kind)
+        return self._as_dataset(arr)
 
     def normal_vector_deviation(self, window: int = 3) -> Dataset:
         """Per-cell angular deviation of the surface normal from its focal mean.
@@ -582,42 +545,8 @@ class MorphometryMixin:
                 >>> bool(np.allclose(arr[2:-2, 2:-2], 0.0, atol=1e-4))
                 True
         """
-        from scipy.ndimage import uniform_filter
-
-        if window < 1:
-            raise ValueError(f"window must be >= 1; got {window!r}")
-        z = self.values.astype(np.float64, copy=False)
-        L = float(abs(self.geotransform[1]))
-        # Finite-difference partials with reflective edge padding.
-        zp = np.pad(np.where(np.isnan(z), 0.0, z), 1, mode="edge")
-        dzdx = (zp[1:-1, 2:] - zp[1:-1, :-2]) / (2.0 * L)
-        dzdy = (zp[2:, 1:-1] - zp[:-2, 1:-1]) / (2.0 * L)
-        # Outward-pointing normal `(-dz/dx, -dz/dy, 1)`; renormalise to unit.
-        nx_raw = -dzdx
-        ny_raw = -dzdy
-        nz_raw = np.ones_like(z)
-        nm = np.sqrt(nx_raw * nx_raw + ny_raw * ny_raw + nz_raw * nz_raw)
-        nx = nx_raw / nm
-        ny = ny_raw / nm
-        nz = nz_raw / nm
-        # Focal mean of each component, then renormalise to keep the mean
-        # vector unit-length.
-        mnx = uniform_filter(nx, size=int(window), mode="reflect")
-        mny = uniform_filter(ny, size=int(window), mode="reflect")
-        mnz = uniform_filter(nz, size=int(window), mode="reflect")
-        mm = np.sqrt(mnx * mnx + mny * mny + mnz * mnz) + 1.0e-12
-        mnx /= mm
-        mny /= mm
-        mnz /= mm
-        cos_theta = np.clip(nx * mnx + ny * mny + nz * mnz, -1.0, 1.0)
-        out = np.arccos(cos_theta).astype(np.float32)
-        no_val = float(self.no_data_value[0])
-        out = np.where(np.isnan(z), no_val, out)
-        return Dataset.from_array(
-            out,
-            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
-            no_data_value=no_val,
-        )
+        arr = normal_vector_deviation_surface(self.values, self.geotransform[1], window)
+        return self._as_dataset(arr)
 
     def openness(
         self,
@@ -895,28 +824,8 @@ class MorphometryMixin:
                 >>> bool(tri[2, 2] > 0 and tri[1, 2] > 0 and tri[3, 2] > 0)
                 True
         """
-        if window < 1:
-            raise ValueError(f"window must be >= 1; got {window!r}")
-        z = self.values.astype(np.float64, copy=False)
-        z_filled = np.where(np.isnan(z), 0.0, z)
-        total = np.zeros_like(z_filled)
-        count = 0
-        half = int(window) // 2
-        for dr in range(-half, half + 1):
-            for dc in range(-half, half + 1):
-                if dr == 0 and dc == 0:
-                    continue
-                shifted = np.roll(z_filled, shift=(dr, dc), axis=(0, 1))
-                total += np.abs(z_filled - shifted)
-                count += 1
-        out = (total / float(count)).astype(np.float32)
-        no_val = float(self.no_data_value[0])
-        out = np.where(np.isnan(z), no_val, out)
-        return Dataset.from_array(
-            out,
-            geo_ref=GeoReference(geo=self.geotransform, epsg=self.epsg),
-            no_data_value=no_val,
-        )
+        arr = ruggedness_surface(self.values, window)
+        return self._as_dataset(arr)
 
     def slope(
         self,
