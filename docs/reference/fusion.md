@@ -11,7 +11,7 @@ Four blend modes:
 * **`topo_above`** — topo wins above sea-level; bathy fills below.
 * **`bathy_below`** — bathy wins below sea-level; topo fills above.
 
-::: digitalrivers.fusion.topobathy_fusion
+::: digitalrivers.dem.fusion.topobathy_fusion
     options:
         show_root_heading: true
         show_source: true

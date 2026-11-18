@@ -15,7 +15,7 @@ Top-level surface:
 * **`subbasins(flow_direction, method="link")`** — partition the basin into one sub-basin per stream
   link.
 
-::: digitalrivers.stream_raster.StreamRaster
+::: digitalrivers.streams.raster.StreamRaster
     options:
         show_root_heading: true
         show_source: true

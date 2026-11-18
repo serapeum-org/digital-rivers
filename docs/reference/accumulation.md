@@ -13,7 +13,7 @@ Top-level surface:
 * **`snap_pour_points(points, radius_cells=..., method="max_accumulation"/"jenson")`** — Jenson &
   Domingue 1988 or ArcGIS-style max-accumulation snap of pour-point geometries.
 
-::: digitalrivers.accumulation.Accumulation
+::: digitalrivers.flow.accumulation.Accumulation
     options:
         show_root_heading: true
         show_source: true
