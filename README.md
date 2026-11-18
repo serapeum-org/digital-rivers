@@ -55,9 +55,10 @@ mamba install -c conda-forge digital-rivers
 PyPI has the same distribution name but lags at `0.1.0`, so `pip install "digital-rivers[viz]"`
 will not get you this version.
 
-The `dev` environment already carries `viz`. For the Dask backend it carries the `lazy`
-dependency group instead of the `distributed` extra — the same dask and distributed the
-tests import, without the rest of the lazy stack.
+The `dev` environment installs both extras, so the tests run against the same set an
+installed user gets. `distributed` is what the parallel tiled path needs:
+`fill_depressions(engine="tiled", workers=4)` imports dask, and without the extra that
+call raises `ModuleNotFoundError`. The serial tiled path (`workers=1`) needs neither.
 
 Supported Python: **3.11–3.14**.
 

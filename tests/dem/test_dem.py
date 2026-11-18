@@ -2,7 +2,7 @@ import numpy as np
 from osgeo import gdal
 from geopandas import GeoDataFrame
 from digitalrivers.dem import DEM
-from digitalrivers.flow_direction import FlowDirection
+from digitalrivers.flow.direction import FlowDirection
 from pyramids.dataset import Dataset
 
 

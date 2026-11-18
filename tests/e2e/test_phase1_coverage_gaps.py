@@ -242,7 +242,7 @@ def test_streams_envelope_shape_mismatch_rejected():
 # --- local_minima_8 NaN / no_data edge cases (I4 fix) ----------------------
 
 
-from digitalrivers._conditioning.pitremoval import local_minima_8
+from digitalrivers.dem._kernels.pitremoval import local_minima_8
 
 
 class TestLocalMinima8EdgeCases:

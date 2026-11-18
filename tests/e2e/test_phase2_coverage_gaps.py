@@ -275,7 +275,7 @@ def test_drainage_density_with_flow_direction_higher_for_diagonal_chain():
 
 def test_resolve_no_val_returns_band0_sentinel():
     """A dataset with a configured no-data returns its band-0 sentinel."""
-    from digitalrivers._metadata import resolve_no_val
+    from digitalrivers.core.metadata import resolve_no_val
 
     arr = np.ones((3, 3), dtype=np.float32)
     ds = Dataset.from_array(
@@ -290,7 +290,7 @@ def test_resolve_no_val_short_circuits_on_falsy_attribute():
     """The helper returns None for any falsy `no_data_value` —
     explicit None, empty tuple, etc. Exercised via a minimal stand-in
     rather than depending on pyramids' default-sentinel behaviour."""
-    from digitalrivers._metadata import resolve_no_val
+    from digitalrivers.core.metadata import resolve_no_val
 
     class _FakeDs:
         no_data_value = None
@@ -351,7 +351,7 @@ def test_watershed_d8_non_unique_mode_visits_each_cell_at_most_once():
     """N7 fix: reversed-order BFS keeps the non-unique watershed labelling
     O(N) total. Verify the contract ("later seed wins on overlap") is still
     honoured."""
-    from digitalrivers._flow.watershed import watershed_d8
+    from digitalrivers.watershed._kernels.watershed import watershed_d8
 
     # 1×5 east-flowing chain; two seeds at (0, 2) and (0, 4). Both seeds
     # can reach (0, 0) → (0, 2) via upstream BFS, so cells {0, 1, 2} are

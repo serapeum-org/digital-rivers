@@ -244,10 +244,12 @@ def _accum_exports(spec, fd, w, acc, rows, cols, dr, dc):
 
 def _accum_tile(path, weights_path, spec, rows, cols, inflow_items, finalize):
     """One tile's round: acc = kahn(w+inflow)+inflow; return exports (round) or the core acc (finalize)."""
-    from digitalrivers._numba import (  # noqa: PLC0415
-        _DIR_DC_I32,
-        _DIR_DR_I32,
+    from digitalrivers.flow._kernels.numba import (  # noqa: PLC0415
         kahn_accumulate_d8_numba,
+    )
+    from digitalrivers.core.directions import (  # noqa: PLC0415
+        DIR_DC_I32 as _DIR_DC_I32,
+        DIR_DR_I32 as _DIR_DR_I32,
     )
 
     fd, w = _accum_load(path, weights_path, spec, rows, cols)

@@ -92,7 +92,7 @@ def plan_tiles(
     """Partition a `rows × cols` raster into row-major :class:`TileSpec` tiles.
 
     The cores tile the domain exactly — no overlap, edge tiles clipped — mirroring
-    `digitalrivers.cloud_io.tile_windows` but carrying a `halo` for neighbour context.
+    `digitalrivers.interop.cloud_io.tile_windows` but carrying a `halo` for neighbour context.
 
     Args:
         rows: Full raster height in cells.

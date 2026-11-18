@@ -13,7 +13,7 @@ Top-level surface:
   2004 Laplacian smoothing; boundary vertices are pinned by default.
 * **`aspect_ratios()`** — per-triangle aspect-ratio quality metric.
 
-::: digitalrivers.mesh.Mesh
+::: digitalrivers.interop.mesh.Mesh
     options:
         show_root_heading: true
         show_source: true

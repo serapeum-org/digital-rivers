@@ -95,10 +95,12 @@ def flow_accumulation_tiled(
             scheduler=scheduler,
             client=client,
         )
-    from digitalrivers._numba import (  # noqa: PLC0415
-        _DIR_DC_I32,
-        _DIR_DR_I32,
+    from digitalrivers.flow._kernels.numba import (  # noqa: PLC0415
         kahn_accumulate_d8_numba,
+    )
+    from digitalrivers.core.directions import (  # noqa: PLC0415
+        DIR_DC_I32 as _DIR_DC_I32,
+        DIR_DR_I32 as _DIR_DR_I32,
     )
 
     rows, cols = fdir.rows, fdir.columns

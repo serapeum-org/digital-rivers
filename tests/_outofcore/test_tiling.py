@@ -18,7 +18,7 @@ from digitalrivers._outofcore.tiling import (
     require_single_band,
     write_core,
 )
-from digitalrivers.cloud_io import tile_windows
+from digitalrivers.interop.cloud_io import tile_windows
 
 
 class TestRequireSingleBand:
