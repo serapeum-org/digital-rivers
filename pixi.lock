@@ -5503,14 +5503,14 @@ packages:
 - pypi: ./
   name: digital-rivers
   requires_dist:
-  - pyramids-core>=0.70.0
+  - pyramids-core>=0.80.0
   - geopandas>=1.0.0
   - numba>=0.60.0,<1
   - numpy>=2.0.0
-  - pyramids-core[viz]>=0.70.0 ; extra == 'viz'
+  - pyramids-core[viz]>=0.80.0 ; extra == 'viz'
   - cleopatra[tiles]>=0.37.0 ; extra == 'viz'
   - dask>=2024.1.0 ; extra == 'distributed'
-  - pyramids-core[lazy]>=0.70.0 ; extra == 'distributed'
+  - pyramids-lazy>=0.2.0 ; extra == 'distributed'
   - digital-rivers[viz,distributed] ; extra == 'all'
   requires_python: '>=3.11,<4'
 - pypi: https://files.pythonhosted.org/packages/02/03/74fe2a4cb3817d94d86402f2506554130a2f01414e299b5a843e5a8a957f/numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl
