@@ -50,11 +50,11 @@ def test_dataset_has_classmethod_dataset_like():
     assert isinstance(inspect.getattr_static(Dataset, "dataset_like"), classmethod)
 
 
-def test_dataset_has_meta_data_setter():
-    prop = inspect.getattr_static(Dataset, "meta_data")
+def test_dataset_has_metadata_setter():
+    prop = inspect.getattr_static(Dataset, "metadata")
     assert isinstance(prop, property)
     assert prop.fset is not None, (
-        "pyramids.Dataset.meta_data must have a setter — that is the channel "
+        "pyramids.Dataset.metadata must have a setter — that is the channel "
         "we use to write DR_ROUTING / DR_ENCODING / DR_THRESHOLD tags."
     )
 

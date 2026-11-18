@@ -183,7 +183,7 @@ class WatershedRaster(Dataset):
 
     def persist_metadata(self) -> None:
         """Persist the routing and class tags to the raster metadata."""
-        self.meta_data = {
+        self.metadata = {
             META_CLASS: type(self).__name__,
             META_ROUTING: self.routing,
         }

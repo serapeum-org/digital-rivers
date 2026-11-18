@@ -212,7 +212,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
         Stored under `DR_CLASS` / `DR_ROUTING` / `DR_ENCODING` GeoTIFF
         metadata keys so `FlowDirection.open(path)` can recover them.
         """
-        self.meta_data = {
+        self.metadata = {
             META_CLASS: type(self).__name__,
             META_ROUTING: self.routing,
             META_ENCODING: self.encoding,
@@ -267,7 +267,7 @@ class FlowDirection(UpscaleMixin, PfafstetterMixin, Dataset):
         ds = Dataset.read_file(
             path, read_only, gdal_env=gdal_env, open_options=open_options
         )
-        md = ds.meta_data or {}
+        md = ds.metadata or {}
         resolved_routing = routing or md.get(META_ROUTING)
         resolved_encoding = encoding or md.get(META_ENCODING) or "digitalrivers"
         if resolved_routing is None:
