@@ -50,17 +50,25 @@ dependencies = [
 # explicitly at the release this package is written against: the typed render
 # groups (`plot(color=ColorScaling...)`) are 0.31+, and 0.37 is current.
 viz = ["pyramids-core[viz] >=0.80.0", "cleopatra[tiles] >=0.37.0"]
-# `pyramids-lazy`, not `pyramids-core[lazy]`: 0.80.0 dropped that extra and moved the
-# dask/zarr compute backend into its own distribution, loaded through the
-# `pyramids.compute_backend` entry point. The old spelling still resolves — pip ignores
-# an unknown extra with only a warning — but it installs nothing, so the tiled path
-# would lose its backend silently.
+# dask alone. This extra exists for the one consumer the test environments do not
+# represent: a `pip install digital-rivers[distributed]` user calling
+# `fill_depressions(engine="tiled", workers>1)`. That path does `import dask` in
+# `_outofcore/distributed.py`, so the distribution declares it.
 #
-# dask stays listed explicitly even though pyramids-lazy also brings it:
-# `_outofcore/distributed.py` does `import dask` in shipped code, reached from the public
-# `fill_depressions(engine="tiled", workers>1)`, so this distribution declares what it
-# imports rather than inheriting it from another package's dependency tree.
-distributed = ["dask >=2024.1.0", "pyramids-lazy >=0.2.0"]
+# Not `pyramids-core[lazy]`, which 0.80.0 removed — the dask/zarr backend became its own
+# distribution behind the `pyramids.compute_backend` entry point. The old spelling still
+# resolves, because pip treats an unknown extra as a warning rather than an error, and
+# installs nothing.
+#
+# And not `pyramids-lazy` either. That plugin backs lazy representation and I/O —
+# read_array_lazy, build_lazy_cube, to_kerchunk, open_mfdataset, to_dask_dataframe,
+# to_zarr / from_zarr. On Dataset exactly two methods gate on it, `to_zarr` and
+# `from_zarr`, and this package calls neither; nor any of the collection kerchunk/zarr
+# or lazy-vector entry points. `_outofcore` is a different thing from a lazy array: it
+# reads each tile eagerly through Dataset + Window and uses `dask.delayed` only to fan
+# out the per-tile passes. Depending on the plugin would install a surface nothing here
+# touches. See the tracking issue on aligning the tiled engine with that lazy layer.
+distributed = ["dask >=2024.1.0"]
 all = ["digital-rivers[viz,distributed]"]
 
 [dependency-groups]
