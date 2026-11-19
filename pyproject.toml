@@ -67,7 +67,7 @@ viz = ["pyramids-core[viz] >=0.80.0", "cleopatra[tiles] >=0.37.0"]
 # or lazy-vector entry points. `_outofcore` is a different thing from a lazy array: it
 # reads each tile eagerly through Dataset + Window and uses `dask.delayed` only to fan
 # out the per-tile passes. Depending on the plugin would install a surface nothing here
-# touches. See the tracking issue on aligning the tiled engine with that lazy layer.
+# touches. Aligning the tiled engine with that lazy layer is tracked in issue #88.
 distributed = ["dask >=2024.1.0"]
 all = ["digital-rivers[viz,distributed]"]
 
