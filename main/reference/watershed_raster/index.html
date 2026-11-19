@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -2942,7 +2942,7 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-183" name="__codelineno-0-183"></a>
 <a id="__codelineno-0-184" name="__codelineno-0-184"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">persist_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="w">        </span><span class="sd">"""Persist the routing and class tags to the raster metadata."""</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">meta_data</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-187" name="__codelineno-0-187"></a>            <span class="n">META_CLASS</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
 <a id="__codelineno-0-188" name="__codelineno-0-188"></a>            <span class="n">META_ROUTING</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="p">,</span>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a>        <span class="p">}</span>
@@ -3846,7 +3846,7 @@ from, one row per outlet. Keyword-only.</p>
 <span class="normal"><a href="#__codelineno-0-188">188</a></span>
 <span class="normal"><a href="#__codelineno-0-189">189</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-184" name="__codelineno-0-184"></a><span class="k">def</span><span class="w"> </span><span class="nf">persist_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-185" name="__codelineno-0-185"></a><span class="w">    </span><span class="sd">"""Persist the routing and class tags to the raster metadata."""</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">meta_data</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-187" name="__codelineno-0-187"></a>        <span class="n">META_CLASS</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
 <a id="__codelineno-0-188" name="__codelineno-0-188"></a>        <span class="n">META_ROUTING</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="p">,</span>
 <a id="__codelineno-0-189" name="__codelineno-0-189"></a>    <span class="p">}</span>

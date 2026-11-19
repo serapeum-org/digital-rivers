@@ -64,7 +64,7 @@
     
     
   <meta name="panzoom-theme" content="material">
-<meta name="panzoom-data" content='{"selectors": [".mermaid", ".d2"], "initial_zoom_level": 1.0}'> </head>
+<meta name="panzoom-data" content='{"selectors": [".d2", ".mermaid"], "initial_zoom_level": 1.0}'> </head>
   
   
     
@@ -3473,7 +3473,7 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-252" name="__codelineno-0-252"></a>
 <a id="__codelineno-0-253" name="__codelineno-0-253"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">persist_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="w">        </span><span class="sd">"""Write `routing` and `threshold` to the raster's metadata tags."""</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">meta_data</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-256" name="__codelineno-0-256"></a>            <span class="n">META_CLASS</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
 <a id="__codelineno-0-257" name="__codelineno-0-257"></a>            <span class="n">META_ROUTING</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="p">,</span>
 <a id="__codelineno-0-258" name="__codelineno-0-258"></a>            <span class="n">META_THRESHOLD</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">),</span>
@@ -3518,7 +3518,7 @@ when it is reopened. Default <code>None</code>.</p>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a>        <span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span>
 <a id="__codelineno-0-298" name="__codelineno-0-298"></a>            <span class="n">path</span><span class="p">,</span> <span class="n">read_only</span><span class="p">,</span> <span class="n">gdal_env</span><span class="o">=</span><span class="n">gdal_env</span><span class="p">,</span> <span class="n">open_options</span><span class="o">=</span><span class="n">open_options</span>
 <a id="__codelineno-0-299" name="__codelineno-0-299"></a>        <span class="p">)</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a>        <span class="n">md</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">meta_data</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>        <span class="n">md</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}</span>
 <a id="__codelineno-0-301" name="__codelineno-0-301"></a>        <span class="n">resolved_routing</span> <span class="o">=</span> <span class="n">routing</span> <span class="ow">or</span> <span class="n">md</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">META_ROUTING</span><span class="p">)</span>
 <a id="__codelineno-0-302" name="__codelineno-0-302"></a>        <span class="k">if</span> <span class="n">resolved_routing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-303" name="__codelineno-0-303"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -4917,7 +4917,7 @@ silently downgrade a writable handle to a read-only one.</p>
 <span class="normal"><a href="#__codelineno-0-258">258</a></span>
 <span class="normal"><a href="#__codelineno-0-259">259</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-253" name="__codelineno-0-253"></a><span class="k">def</span><span class="w"> </span><span class="nf">persist_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-254" name="__codelineno-0-254"></a><span class="w">    </span><span class="sd">"""Write `routing` and `threshold` to the raster's metadata tags."""</span>
-<a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">meta_data</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-255" name="__codelineno-0-255"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
 <a id="__codelineno-0-256" name="__codelineno-0-256"></a>        <span class="n">META_CLASS</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
 <a id="__codelineno-0-257" name="__codelineno-0-257"></a>        <span class="n">META_ROUTING</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">routing</span><span class="p">,</span>
 <a id="__codelineno-0-258" name="__codelineno-0-258"></a>        <span class="n">META_THRESHOLD</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">threshold</span><span class="p">),</span>
@@ -5193,7 +5193,7 @@ resolved from kwargs or metadata tags.</p>
 <a id="__codelineno-0-297" name="__codelineno-0-297"></a>    <span class="n">ds</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">read_file</span><span class="p">(</span>
 <a id="__codelineno-0-298" name="__codelineno-0-298"></a>        <span class="n">path</span><span class="p">,</span> <span class="n">read_only</span><span class="p">,</span> <span class="n">gdal_env</span><span class="o">=</span><span class="n">gdal_env</span><span class="p">,</span> <span class="n">open_options</span><span class="o">=</span><span class="n">open_options</span>
 <a id="__codelineno-0-299" name="__codelineno-0-299"></a>    <span class="p">)</span>
-<a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="n">md</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">meta_data</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="__codelineno-0-300" name="__codelineno-0-300"></a>    <span class="n">md</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}</span>
 <a id="__codelineno-0-301" name="__codelineno-0-301"></a>    <span class="n">resolved_routing</span> <span class="o">=</span> <span class="n">routing</span> <span class="ow">or</span> <span class="n">md</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">META_ROUTING</span><span class="p">)</span>
 <a id="__codelineno-0-302" name="__codelineno-0-302"></a>    <span class="k">if</span> <span class="n">resolved_routing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
 <a id="__codelineno-0-303" name="__codelineno-0-303"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
