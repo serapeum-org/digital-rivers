@@ -380,7 +380,7 @@ class TestStreamRasterOpenRoundTrip:
             no_data_value=0,
             path=path,
         )
-        plain.meta_data = {"DR_ROUTING": "d8"}
+        plain.metadata = {"DR_ROUTING": "d8"}
         del plain
         with pytest.raises(ValueError, match="DR_THRESHOLD"):
             StreamRaster.open(path, routing="d8")

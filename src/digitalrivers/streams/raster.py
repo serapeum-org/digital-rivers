@@ -252,7 +252,7 @@ class StreamRaster(Dataset):
 
     def persist_metadata(self) -> None:
         """Write `routing` and `threshold` to the raster's metadata tags."""
-        self.meta_data = {
+        self.metadata = {
             META_CLASS: type(self).__name__,
             META_ROUTING: self.routing,
             META_THRESHOLD: str(self.threshold),
@@ -297,7 +297,7 @@ class StreamRaster(Dataset):
         ds = Dataset.read_file(
             path, read_only, gdal_env=gdal_env, open_options=open_options
         )
-        md = ds.meta_data or {}
+        md = ds.metadata or {}
         resolved_routing = routing or md.get(META_ROUTING)
         if resolved_routing is None:
             raise ValueError(

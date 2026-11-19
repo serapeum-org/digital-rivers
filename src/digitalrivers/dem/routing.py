@@ -136,7 +136,7 @@ class RoutingMixin:
                 downhill = max_slope > 0
                 arr[rr[downhill], cc[downhill]] = best_dir[downhill]
             if forced is not None:
-                indices = self.map_to_array_coordinates(forced)
+                indices = self.nearest_cell(forced)
                 for i, ind in enumerate(indices):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
             plain_ds = Dataset.from_array(
@@ -153,7 +153,7 @@ class RoutingMixin:
             # Replace -1 (sentinel from rho8 helper) with the dataset no-data value.
             arr[arr < 0] = Dataset.default_no_data_value
             if forced is not None:
-                indices = self.map_to_array_coordinates(forced)
+                indices = self.nearest_cell(forced)
                 for i, ind in enumerate(indices):
                     arr[tuple(ind)] = forced.loc[i, "direction"]
             plain_ds = Dataset.from_array(

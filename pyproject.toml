@@ -26,7 +26,7 @@ classifiers = [
 
 requires-python = ">= 3.11, <4"
 
-# pyramids-gis is floored at a released PyPI version. The hard requirement is
+# pyramids-core is floored at a released PyPI version. The hard requirement is
 # >=0.59.0, the release that renamed `create_from_array` (flat `geo` / `epsg` /
 # `top_left_corner` / `cell_size` keywords) to
 # `Dataset.from_array(geo_ref=GeoReference(...))` with no compatibility alias —
@@ -35,29 +35,40 @@ requires-python = ">= 3.11, <4"
 # `Window` and the grouped `to_cog(compression=...)` options before that.
 # 0.60.0 rather than 0.59.0 is the floor simply because that is the release the
 # port was written and verified against, and the one pinned in pixi.lock.
-# The floor must also stay >=0.29.0, the first pyramids-gis whose bundled GDAL
+# The floor must also stay >=0.29.0, the first pyramids-core whose bundled GDAL
 # exposes gdal.ViewshedGenerate + the GVM_* viewshed enums used by
 # Terrain.viewshed.
 dependencies = [
-    "pyramids-gis >=0.60.0",
+    "pyramids-core >=0.80.0",
     "geopandas >=1.0.0",
     "numba >=0.60.0,<1",
     "numpy >=2.0.0",
 ]
 
 [project.optional-dependencies]
-# cleopatra is pulled by pyramids-gis[viz], which floors it at >=0.31.0. Pin it
+# cleopatra is pulled by pyramids-core[viz], which floors it at >=0.31.0. Pin it
 # explicitly at the release this package is written against: the typed render
 # groups (`plot(color=ColorScaling...)`) are 0.31+, and 0.37 is current.
-viz = ["pyramids-gis[viz] >=0.60.0", "cleopatra[tiles] >=0.37.0"]
-# dask is listed explicitly even though `pyramids-gis[lazy]` also brings it.
-# `_outofcore/distributed.py` does `import dask` in shipped code, reached from the
-# public `fill_depressions(engine="tiled", workers>1)`, so this distribution has to
-# declare it rather than inherit it from another package's extra — otherwise a
-# reshuffle of pyramids' `lazy` extra breaks that call path with nothing here to
-# say why. pyramids-gis[lazy] stays for the chunked/cloud I/O the tiled path reads
-# through.
-distributed = ["dask >=2024.1.0", "pyramids-gis[lazy] >=0.60.0"]
+viz = ["pyramids-core[viz] >=0.80.0", "cleopatra[tiles] >=0.37.0"]
+# dask alone. This extra exists for the one consumer the test environments do not
+# represent: a `pip install digital-rivers[distributed]` user calling
+# `fill_depressions(engine="tiled", workers>1)`. That path does `import dask` in
+# `_outofcore/distributed.py`, so the distribution declares it.
+#
+# Not `pyramids-core[lazy]`, which 0.80.0 removed — the dask/zarr backend became its own
+# distribution behind the `pyramids.compute_backend` entry point. The old spelling still
+# resolves, because pip treats an unknown extra as a warning rather than an error, and
+# installs nothing.
+#
+# And not `pyramids-lazy` either. That plugin backs lazy representation and I/O —
+# read_array_lazy, build_lazy_cube, to_kerchunk, open_mfdataset, to_dask_dataframe,
+# to_zarr / from_zarr. On Dataset exactly two methods gate on it, `to_zarr` and
+# `from_zarr`, and this package calls neither; nor any of the collection kerchunk/zarr
+# or lazy-vector entry points. `_outofcore` is a different thing from a lazy array: it
+# reads each tile eagerly through Dataset + Window and uses `dask.delayed` only to fan
+# out the per-tile passes. Depending on the plugin would install a surface nothing here
+# touches. Aligning the tiled engine with that lazy layer is tracked in issue #88.
+distributed = ["dask >=2024.1.0"]
 all = ["digital-rivers[viz,distributed]"]
 
 [dependency-groups]
@@ -99,6 +110,28 @@ docs = [
     "jupyter-contrib-nbextensions  >=0.7.0",
     "mkdocs-panzoom-plugin",
     "notebook<7.0",
+]
+# The tiled hydrology path needs dask and nothing else: `_outofcore/distributed.py`
+# does `import dask`, reached from `fill_depressions(engine="tiled", workers>1)`.
+# Nothing under `_outofcore` imports s3fs, zarr, h5py or kerchunk.
+#
+# A PEP 735 group, like `dev` and `docs` — every dependency in this file is declared
+# through a standard mechanism, so there is no `[tool.pixi.feature.*.dependencies]`
+# conda table anywhere. The environments reference this by name and pixi resolves it
+# exactly as it does the other groups.
+#
+# PyPI `dask` is the library. The conda-forge package of that name is a metapackage
+# that also drags in the distributed scheduler, bokeh, pyarrow and the AWS/Azure C++
+# client libraries, which is why the conda spelling had to say `dask-core`; on PyPI
+# that distinction does not exist and plain `dask` is the narrow thing.
+#
+# Named `tiled`, deliberately NOT `distributed`: a group sharing a name with an extra
+# makes pixi auto-activate that extra, which would pull `pyramids-lazy` and its
+# AWS/S3 and Zarr/HDF5 stacks into every environment in the matrix. The published
+# `distributed` extra is the right shape for a PyPI user who wants the cloud I/O; it
+# is not what CI should install to run the suite.
+tiled = [
+    "dask >=2024.1.0",
 ]
 notebook = [
     "pip",
@@ -187,7 +220,7 @@ channels = ["conda-forge"]
 # Declared here rather than in a `[tool.pixi.system-requirements]` table: pixi
 # 0.73 deprecates that table in favour of virtual packages on the platform entry.
 #
-# No `libc` entry: pyramids-gis used to ship its Linux wheel as `manylinux_2_39`,
+# No `libc` entry: pyramids-core used to ship its Linux wheel as `manylinux_2_39`,
 # which forced a raised glibc baseline. It ships `manylinux_2_28` now, so the
 # override is gone and pixi's own default applies.
 platforms = ["win-64", "linux-64", { platform = "osx-arm64", macos = "14.0" }]
@@ -201,11 +234,11 @@ digital-rivers = { path = ".", editable = true }
 # `dev` / `docs` dependency groups — resolved from PyPI.
 #
 # Two conda overrides used to live here and are deliberately gone:
-#   * gdal — the pyramids-gis wheel vendors its own osgeo, and `import pyramids`
+#   * gdal — the pyramids-core wheel vendors its own osgeo, and `import pyramids`
 #     prepends that directory to sys.path[0] (activate_vendored_osgeo). Since
 #     `digitalrivers/__init__.py` imports pyramids at load, `from osgeo import
 #     gdal` always resolves to the vendored copy, so a conda GDAL was installed
-#     and never imported. It was only needed back when pyramids-gis was pinned to
+#     and never imported. It was only needed back when pyramids-core was pinned to
 #     a git/sdist build, which does not vendor osgeo.
 #   * numba — PyPI ships numba and llvmlite wheels for every interpreter in the
 #     CI matrix (cp311-cp314), and taking them from PyPI keeps numba, llvmlite
@@ -237,7 +270,7 @@ py314 = { features = ["py314", "dev", "viz", "tiled"], solve-group = "py314" }
 # `dev` and `docs` reuse `py314` rather than declaring a second 3.14 pin of
 # their own. Nothing else constrains them — without a pin their only bound is
 # `requires-python = ">= 3.11, <4"`, so they float to whatever conda-forge
-# ships newest. pyramids-gis publishes cp311-cp314 wheels only, so once 3.15
+# ships newest. pyramids-core publishes cp311-cp314 wheels only, so once 3.15
 # is out the next re-lock would resolve an interpreter with no wheel and fall
 # back to the sdist, which vendors no osgeo — and with no conda GDAL
 # underneath, that is a hard import failure. Bump the pin when pyramids ships
@@ -256,28 +289,6 @@ py314 = { features = ["py314", "dev", "viz", "tiled"], solve-group = "py314" }
 #
 # 3.11 and 3.12 need no glob — free-threading starts at 3.13, so conda-forge
 # publishes no `t` variant to exclude.
-# The tiled hydrology path needs dask and nothing else: `_outofcore/distributed.py`
-# does `import dask`, reached from `fill_depressions(engine="tiled", workers>1)`, and
-# `_outofcore/engine.py` reaches for psutil defensively. Nothing under `_outofcore`
-# imports s3fs, zarr, h5py or kerchunk.
-#
-# Named `tiled`, deliberately NOT `distributed`: pixi auto-activates the
-# optional-dependency group of the same name, so a feature called `distributed` would
-# pull the published `distributed` extra — and with it `pyramids-gis[lazy]`, which drags
-# an AWS/S3 client stack (botocore, s3fs, aiobotocore) and a Zarr/HDF5 stack into every
-# environment in the matrix. That is what happened when the old `lazy` group was removed
-# in favour of the extra: twenty packages added, none removed. The published extra is
-# still the right shape for PyPI users who want the cloud I/O; it just should not be what
-# CI installs to run the test suite.
-[tool.pixi.feature.tiled.dependencies]
-# dask-core, not dask: conda-forge's `dask` is a metapackage that also brings the
-# distributed scheduler, bokeh, pyarrow and the AWS/Azure C++ client libraries —
-# 102 packages for the one `import dask` in _outofcore/distributed.py. dask-core is
-# the library itself, which is all `dask.compute(...)` needs. The `client` argument
-# on that path is duck-typed and supplied by the caller; nothing here constructs a
-# `Client`, and every test passes scheduler="threads".
-dask-core = ">=2024.1.0"
-
 [tool.pixi.feature.py311.dependencies]
 python = "3.11.*"
 [tool.pixi.feature.py312.dependencies]
